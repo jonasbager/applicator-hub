@@ -25,7 +25,7 @@ export function JobCard({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Not Started":
-        return "bg-gray-200";
+        return "bg-gray-200 text-gray-800";
       case "In Progress":
         return "bg-blue-200 text-blue-800";
       case "Submitted":
@@ -38,52 +38,56 @@ export function JobCard({
   };
 
   return (
-    <Card className="transition-all duration-200 hover:shadow-md">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-xl font-semibold">{position}</CardTitle>
+    <Card className="w-full transition-all duration-200 hover:shadow-lg hover:-translate-y-1 bg-white/50 backdrop-blur-sm border-2">
+      <CardHeader className="pb-2 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+          <div className="space-y-1">
+            <CardTitle className="text-lg sm:text-xl font-semibold line-clamp-2">{position}</CardTitle>
             <p className="text-sm text-muted-foreground">{company}</p>
           </div>
-          <Badge className={getStatusColor(status)}>{status}</Badge>
+          <Badge className={`${getStatusColor(status)} self-start whitespace-nowrap`}>{status}</Badge>
         </div>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{deadline}</span>
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span>{deadline}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{connections} connections</span>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <User className="h-4 w-4" />
+              <span>{connections} connections</span>
             </div>
           </div>
           
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>Match Rate</span>
+              <span className="text-muted-foreground">Match Rate</span>
               <span className="font-medium">{matchRate}%</span>
             </div>
             <Progress value={matchRate} className="h-2" />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {documents.map((doc) => (
-              <Badge key={doc} variant="secondary" className="flex items-center gap-1">
+              <Badge 
+                key={doc} 
+                variant="secondary" 
+                className="flex items-center gap-1 bg-secondary/50 hover:bg-secondary/70 transition-colors"
+              >
                 <FileText className="h-3 w-3" />
                 {doc}
               </Badge>
             ))}
           </div>
 
-          <div className="flex gap-2">
-            <button className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+          <div className="flex flex-wrap gap-3">
+            <button className="text-sm text-primary hover:text-primary/80 flex items-center gap-1 transition-colors">
               <MessageSquare className="h-4 w-4" />
               Add Note
             </button>
-            <button className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+            <button className="text-sm text-primary hover:text-primary/80 flex items-center gap-1 transition-colors">
               <Link2 className="h-4 w-4" />
               Add Document
             </button>
