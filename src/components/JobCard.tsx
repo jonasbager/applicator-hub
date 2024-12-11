@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
-interface JobCardProps {
+export interface JobCardProps {
   company: string;
   position: string;
   deadline: string;
@@ -38,7 +38,7 @@ export function JobCard({
   };
 
   return (
-    <Card className="card-hover">
+    <Card className="transition-all duration-200 hover:shadow-md">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
