@@ -59,19 +59,52 @@ const Index = () => {
   };
 
   const onDragEnd = (result: any) => {
-    if (!result.destination) return;
-    
-    const { source, destination } = result;
-    const jobId = result.draggableId;
-    const job = jobs.find(j => `${j.company}-${j.position}` === jobId);
-    
-    if (job && source.droppableId !== destination.droppableId) {
-      setJobs(jobs.map(j => 
-        `${j.company}-${j.position}` === jobId 
-          ? {...j, status: destination.droppableId as Job["status"]} 
-          : j
-      ));
+    console.log("Drag ended:", result);
+    const { source, destination, draggableId } = result;
+
+    // If there's no destination or the item was dropped in its original location
+    if (!destination || 
+        (source.droppableId === destination.droppableId && 
+         source.index === destination.index)) {
+      return;
     }
+
+    // Find the job that was dragged
+    const [company, position] = draggableId.split("-");
+    const draggedJob = jobs.find(job => 
+      job.company === company && job.position === position
+    );
+
+    if (!draggedJob) {
+      console.error("Could not find dragged job");
+      return;
+    }
+
+    // Create a new array without the dragged job
+    const newJobs = jobs.filter(job => 
+      !(job.company === company && job.position === position)
+    );
+
+    // Insert the job at the new position with updated status
+    const updatedJob = {
+      ...draggedJob,
+      status: destination.droppableId as Job["status"]
+    };
+
+    // Get all jobs in the destination column
+    const destinationJobs = jobs.filter(job => 
+      job.status === destination.droppableId
+    );
+
+    // Insert the job at the correct position
+    newJobs.splice(
+      jobs.indexOf(destinationJobs[destination.index] || destinationJobs[destinationJobs.length - 1]) + 1 || 0,
+      0,
+      updatedJob
+    );
+
+    console.log("Updated jobs:", newJobs);
+    setJobs(newJobs);
   };
 
   return (
