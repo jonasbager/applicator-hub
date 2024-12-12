@@ -46,7 +46,6 @@ type Job = {
   status: "Not Started" | "In Progress" | "Submitted" | "Interview";
 };
 
-// Define status order for comparison
 const statusOrder: Record<Job["status"], number> = {
   "Not Started": 0,
   "In Progress": 1,
@@ -67,61 +66,71 @@ const Index = () => {
   };
 
   const onDragEnd = (result: any) => {
-    const { source, destination, draggableId } = result;
+    const { source, destination } = result;
+    console.log("Drag ended:", { source, destination });
 
-    // If there's no destination or the item was dropped in its original location
-    if (!destination) {
+    // If dropped outside or in the same position
+    if (!destination || 
+        (source.droppableId === destination.droppableId && 
+         source.index === destination.index)) {
       return;
     }
 
+    // Create a new array of jobs
+    const newJobs = [...jobs];
+    
     // Find the job that was dragged
-    const [company, position] = draggableId.split("-");
-    const draggedJob = jobs.find(job => 
-      job.company === company && job.position === position
-    );
-
+    const sourceColumnJobs = jobs.filter(job => job.status === source.droppableId);
+    const draggedJob = sourceColumnJobs[source.index];
+    
     if (!draggedJob) {
       console.error("Could not find dragged job");
       return;
     }
 
-    // Create a new array of jobs
-    const newJobs = Array.from(jobs);
-    
-    // Remove the dragged item
-    const draggedIndex = jobs.findIndex(job => 
-      job.company === company && job.position === position
-    );
-    newJobs.splice(draggedIndex, 1);
+    console.log("Moving job:", { 
+      from: source.droppableId, 
+      to: destination.droppableId, 
+      job: draggedJob 
+    });
 
-    // Find where to insert the item
+    // Remove the job from its current position
+    const oldIndex = jobs.findIndex(job => 
+      job.company === draggedJob.company && 
+      job.position === draggedJob.position
+    );
+    newJobs.splice(oldIndex, 1);
+
+    // Find the destination column jobs after removing the dragged item
     const destinationColumnJobs = newJobs.filter(
       job => job.status === destination.droppableId
     );
-    
-    // Calculate the insert position
+
+    // Calculate the new position
     let insertIndex;
     if (destinationColumnJobs.length === 0) {
-      // If the column is empty, find the last job of the previous status
+      // If the column is empty, add at the end of all jobs with lower status
       insertIndex = newJobs.findIndex(job => 
         statusOrder[job.status] > statusOrder[destination.droppableId as Job["status"]]
       );
       if (insertIndex === -1) insertIndex = newJobs.length;
     } else {
-      // Find the job at the destination index
-      const jobAtDestination = destinationColumnJobs[Math.min(destination.index, destinationColumnJobs.length - 1)];
-      insertIndex = newJobs.findIndex(job => job === jobAtDestination);
+      // Find the correct position within the destination column
+      const destinationJob = destinationColumnJobs[Math.min(destination.index, destinationColumnJobs.length - 1)];
+      insertIndex = newJobs.findIndex(job => job === destinationJob);
       if (insertIndex === -1) insertIndex = newJobs.length;
-      else if (destination.index >= destinationColumnJobs.length) insertIndex++;
+      if (destination.index >= destinationColumnJobs.length) insertIndex++;
     }
 
     // Insert the job at the new position with updated status
-    newJobs.splice(insertIndex, 0, {
+    const updatedJob = {
       ...draggedJob,
       status: destination.droppableId as Job["status"]
-    });
-
-    console.log("Updated jobs:", newJobs);
+    };
+    
+    newJobs.splice(insertIndex, 0, updatedJob);
+    
+    console.log("Updated jobs array:", newJobs);
     setJobs(newJobs);
   };
 
