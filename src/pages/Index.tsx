@@ -59,13 +59,10 @@ const Index = () => {
   };
 
   const onDragEnd = (result: any) => {
-    console.log("Drag ended:", result);
     const { source, destination, draggableId } = result;
 
     // If there's no destination or the item was dropped in its original location
-    if (!destination || 
-        (source.droppableId === destination.droppableId && 
-         source.index === destination.index)) {
+    if (!destination) {
       return;
     }
 
@@ -80,28 +77,41 @@ const Index = () => {
       return;
     }
 
-    // Create a new array without the dragged job
-    const newJobs = jobs.filter(job => 
-      !(job.company === company && job.position === position)
+    // Create a new array of jobs
+    const newJobs = Array.from(jobs);
+    
+    // Remove the dragged item
+    const draggedIndex = jobs.findIndex(job => 
+      job.company === company && job.position === position
     );
+    newJobs.splice(draggedIndex, 1);
+
+    // Find where to insert the item
+    const destinationColumnJobs = newJobs.filter(
+      job => job.status === destination.droppableId
+    );
+    
+    // Calculate the insert position
+    let insertIndex;
+    if (destinationColumnJobs.length === 0) {
+      // If the column is empty, find the last job of the previous status
+      insertIndex = newJobs.findIndex(job => 
+        job.status > destination.droppableId as Job["status"]
+      );
+      if (insertIndex === -1) insertIndex = newJobs.length;
+    } else {
+      // Find the job at the destination index
+      const jobAtDestination = destinationColumnJobs[Math.min(destination.index, destinationColumnJobs.length - 1)];
+      insertIndex = newJobs.findIndex(job => job === jobAtDestination);
+      if (insertIndex === -1) insertIndex = newJobs.length;
+      else if (destination.index >= destinationColumnJobs.length) insertIndex++;
+    }
 
     // Insert the job at the new position with updated status
-    const updatedJob = {
+    newJobs.splice(insertIndex, 0, {
       ...draggedJob,
       status: destination.droppableId as Job["status"]
-    };
-
-    // Get all jobs in the destination column
-    const destinationJobs = jobs.filter(job => 
-      job.status === destination.droppableId
-    );
-
-    // Insert the job at the correct position
-    newJobs.splice(
-      jobs.indexOf(destinationJobs[destination.index] || destinationJobs[destinationJobs.length - 1]) + 1 || 0,
-      0,
-      updatedJob
-    );
+    });
 
     console.log("Updated jobs:", newJobs);
     setJobs(newJobs);
