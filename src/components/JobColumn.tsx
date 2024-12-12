@@ -25,8 +25,8 @@ export function JobColumn({ status, jobs }: JobColumnProps) {
           >
             {jobs.map((job, index) => (
               <Draggable
-                key={`${job.company}-${job.position}`}
-                draggableId={`${job.company}-${job.position}`}
+                key={job.id}
+                draggableId={job.id}
                 index={index}
               >
                 {(provided) => (

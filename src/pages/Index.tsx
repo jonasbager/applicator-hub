@@ -2,13 +2,14 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
-import { DragDropContext } from "@hello-pangea/dnd";
+import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { useState } from "react";
 import { JobColumn } from "@/components/JobColumn";
 import { Job, JobStatus, JOB_STATUS_ORDER } from "@/types/job";
 
 const initialJobs = [
   {
+    id: "1",
     company: "TechCorp Inc.",
     position: "Senior Frontend Developer",
     deadline: "2024-03-15",
@@ -18,6 +19,7 @@ const initialJobs = [
     status: "In Progress",
   },
   {
+    id: "2",
     company: "Innovation Labs",
     position: "Full Stack Engineer",
     deadline: "2024-03-20",
@@ -27,6 +29,7 @@ const initialJobs = [
     status: "Not Started",
   },
   {
+    id: "3",
     company: "Digital Solutions",
     position: "React Developer",
     deadline: "2024-03-10",
@@ -42,33 +45,39 @@ const Index = () => {
     initialJobs.map(job => ({...job, documents: [...job.documents]}))
   );
 
-  const onDragEnd = (result: any) => {
+  const onDragEnd = (result: DropResult) => {
+    console.log("Drag ended:", result);
     const { source, destination } = result;
     
-    if (!destination) return;
-
-    const newJobs = Array.from(jobs);
-    const [removed] = newJobs.splice(source.index, 1);
-    const updatedJob = { ...removed, status: destination.droppableId as JobStatus };
-    
-    // Find all jobs in the destination status
-    const destinationJobs = newJobs.filter(job => job.status === destination.droppableId);
-    
-    // Find the index where we should insert the job
-    let insertIndex = newJobs.findIndex(job => job.status === destination.droppableId);
-    if (insertIndex === -1) {
-      // If no jobs in destination status, find the first job with a higher status
-      insertIndex = newJobs.findIndex(job => 
-        JOB_STATUS_ORDER.indexOf(job.status) > 
-        JOB_STATUS_ORDER.indexOf(destination.droppableId)
-      );
-      if (insertIndex === -1) insertIndex = newJobs.length;
-    } else {
-      insertIndex += Math.min(destination.index, destinationJobs.length);
+    if (!destination) {
+      console.log("No destination, skipping update");
+      return;
     }
+
+    const sourceStatus = source.droppableId as JobStatus;
+    const destStatus = destination.droppableId as JobStatus;
     
-    newJobs.splice(insertIndex, 0, updatedJob);
-    setJobs(newJobs);
+    console.log(`Moving from ${sourceStatus} to ${destStatus}`);
+
+    setJobs(prevJobs => {
+      const newJobs = [...prevJobs];
+      const [movedJob] = newJobs.splice(source.index, 1);
+      
+      // Find the correct insertion index in the destination column
+      const jobsInDestination = newJobs.filter(job => job.status === destStatus);
+      const insertAtIndex = newJobs.findIndex(job => job.status === destStatus) + destination.index;
+      
+      const updatedJob = { ...movedJob, status: destStatus };
+      
+      if (insertAtIndex === -1) {
+        newJobs.push(updatedJob);
+      } else {
+        newJobs.splice(insertAtIndex, 0, updatedJob);
+      }
+      
+      console.log("Updated jobs:", newJobs);
+      return newJobs;
+    });
   };
 
   const jobsByStatus = JOB_STATUS_ORDER.reduce((acc, status) => {

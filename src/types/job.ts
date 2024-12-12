@@ -1,6 +1,7 @@
 export type JobStatus = "Not Started" | "In Progress" | "Submitted" | "Interview";
 
 export interface Job {
+  id: string;
   company: string;
   position: string;
   deadline: string;
