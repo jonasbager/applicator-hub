@@ -3,14 +3,14 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { JobColumn } from "@/components/JobColumn";
 import { Job, JobStatus, JOB_STATUS_ORDER } from "@/types/job";
 
 const initialJobs = [
   {
     id: "1",
-    company: "TechCorp Inc.",
+    company: "TechCorp 2 Inc.",
     position: "Senior Frontend Developer",
     deadline: "2024-03-15",
     matchRate: 85,
@@ -44,52 +44,55 @@ const Index = () => {
   const [jobs, setJobs] = useState<Job[]>(() => 
     initialJobs.map(job => ({...job, documents: [...job.documents]}))
   );
+  const [isLoading, setIsLoading] = useState(false);
 
-  const onDragEnd = (result: DropResult) => {
-    console.log("Drag ended:", result);
-    const { source, destination } = result;
+  const onDragEnd = useCallback((result: DropResult) => {
+    const { source, destination, draggableId } = result;
     
-    if (!destination) {
-      console.log("No destination, skipping update");
+    if (!destination || (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    )) {
       return;
     }
 
-    const sourceStatus = source.droppableId as JobStatus;
-    const destStatus = destination.droppableId as JobStatus;
-    
-    console.log(`Moving from ${sourceStatus} to ${destStatus}`);
+    setIsLoading(true);
 
-    setJobs(prevJobs => {
-      // Create arrays for each status to maintain proper ordering
-      const jobsByStatus: Record<JobStatus, Job[]> = {
-        "Not Started": [],
-        "In Progress": [],
-        "Submitted": [],
-        "Interview": []
-      };
+    try {
+      setJobs(prevJobs => {
+        const jobToMove = prevJobs.find(job => job.id === draggableId);
+        if (!jobToMove) return prevJobs;
 
-      // First, distribute all jobs except the moved one into their status arrays
-      const sourceIndex = prevJobs.findIndex((_, index) => {
-        const jobsInSourceStatus = prevJobs.filter(j => j.status === sourceStatus);
-        return jobsInSourceStatus[source.index] === prevJobs[index];
+        const newJobs = prevJobs.filter(job => job.id !== draggableId);
+        const updatedJob = { ...jobToMove, status: destination.droppableId as JobStatus };
+
+        // Get jobs of the destination status
+        const destinationJobs = newJobs.filter(
+          job => job.status === destination.droppableId
+        );
+
+        // Insert the job at the new position
+        destinationJobs.splice(destination.index, 0, updatedJob);
+
+        // Reconstruct the jobs array maintaining status order
+        const finalJobs = JOB_STATUS_ORDER.flatMap(status => 
+          status === destination.droppableId
+            ? destinationJobs
+            : newJobs.filter(job => job.status === status)
+        );
+
+        // Here you would typically make an API call to update the job status
+        // For now we'll just simulate a delay
+        setTimeout(() => setIsLoading(false), 500);
+
+        return finalJobs;
       });
-
-      const [movedJob] = prevJobs.splice(sourceIndex, 1);
-      prevJobs.forEach(job => {
-        jobsByStatus[job.status].push(job);
-      });
-
-      // Insert the moved job at the correct position in its new status array
-      const updatedJob = { ...movedJob, status: destStatus };
-      jobsByStatus[destStatus].splice(destination.index, 0, updatedJob);
-
-      // Flatten the arrays back into a single array while maintaining order
-      const newJobs = JOB_STATUS_ORDER.flatMap(status => jobsByStatus[status]);
-      
-      console.log("Updated jobs:", newJobs);
-      return newJobs;
-    });
-  };
+    } catch (error) {
+      console.error('Error updating job status:', error);
+      // Here you would typically show an error toast
+      setIsLoading(false);
+    }
+  }, []);
 
   const jobsByStatus = JOB_STATUS_ORDER.reduce((acc, status) => {
     acc[status] = jobs.filter(job => job.status === status);
@@ -116,7 +119,11 @@ const Index = () => {
             </div>
             
             <DragDropContext onDragEnd={onDragEnd}>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div 
+                className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 transition-opacity ${
+                  isLoading ? 'opacity-50' : ''
+                }`}
+              >
                 {JOB_STATUS_ORDER.map((status) => (
                   <JobColumn 
                     key={status}

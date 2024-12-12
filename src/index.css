@@ -41,3 +41,30 @@
 .card-hover {
   @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
 }
+
+/* Drag and Drop Styles */
+.dragging {
+  opacity: 0.5;
+  cursor: grabbing !important;
+}
+
+[data-rbd-draggable-context-id] {
+  user-select: none;
+  outline: none;
+}
+
+[data-rbd-drag-handle-context-id] {
+  cursor: grab;
+}
+
+[data-rbd-drag-handle-context-id]:active {
+  cursor: grabbing;
+}
+
+[data-rbd-droppable-id] {
+  transition: background-color 0.2s ease;
+}
+
+[data-rbd-droppable-id].droppable-hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
