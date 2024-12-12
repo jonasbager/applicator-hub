@@ -46,6 +46,14 @@ type Job = {
   status: "Not Started" | "In Progress" | "Submitted" | "Interview";
 };
 
+// Define status order for comparison
+const statusOrder: Record<Job["status"], number> = {
+  "Not Started": 0,
+  "In Progress": 1,
+  "Submitted": 2,
+  "Interview": 3,
+};
+
 const Index = () => {
   const [jobs, setJobs] = useState<Job[]>(() => 
     initialJobs.map(job => ({...job, documents: [...job.documents]}))
@@ -96,7 +104,7 @@ const Index = () => {
     if (destinationColumnJobs.length === 0) {
       // If the column is empty, find the last job of the previous status
       insertIndex = newJobs.findIndex(job => 
-        job.status > destination.droppableId as Job["status"]
+        statusOrder[job.status] > statusOrder[destination.droppableId as Job["status"]]
       );
       if (insertIndex === -1) insertIndex = newJobs.length;
     } else {
