@@ -60,20 +60,31 @@ const Index = () => {
     console.log(`Moving from ${sourceStatus} to ${destStatus}`);
 
     setJobs(prevJobs => {
-      const newJobs = [...prevJobs];
-      const [movedJob] = newJobs.splice(source.index, 1);
-      
-      // Find the correct insertion index in the destination column
-      const jobsInDestination = newJobs.filter(job => job.status === destStatus);
-      const insertAtIndex = newJobs.findIndex(job => job.status === destStatus) + destination.index;
-      
+      // Create arrays for each status to maintain proper ordering
+      const jobsByStatus: Record<JobStatus, Job[]> = {
+        "Not Started": [],
+        "In Progress": [],
+        "Submitted": [],
+        "Interview": []
+      };
+
+      // First, distribute all jobs except the moved one into their status arrays
+      const sourceIndex = prevJobs.findIndex((_, index) => {
+        const jobsInSourceStatus = prevJobs.filter(j => j.status === sourceStatus);
+        return jobsInSourceStatus[source.index] === prevJobs[index];
+      });
+
+      const [movedJob] = prevJobs.splice(sourceIndex, 1);
+      prevJobs.forEach(job => {
+        jobsByStatus[job.status].push(job);
+      });
+
+      // Insert the moved job at the correct position in its new status array
       const updatedJob = { ...movedJob, status: destStatus };
-      
-      if (insertAtIndex === -1) {
-        newJobs.push(updatedJob);
-      } else {
-        newJobs.splice(insertAtIndex, 0, updatedJob);
-      }
+      jobsByStatus[destStatus].splice(destination.index, 0, updatedJob);
+
+      // Flatten the arrays back into a single array while maintaining order
+      const newJobs = JOB_STATUS_ORDER.flatMap(status => jobsByStatus[status]);
       
       console.log("Updated jobs:", newJobs);
       return newJobs;
