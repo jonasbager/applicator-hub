@@ -6,26 +6,41 @@ export default function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Get the hash fragment from the URL
-    const hashFragment = window.location.hash;
-    const accessToken = new URLSearchParams(hashFragment.substring(1)).get('access_token');
+    // Handle both code and hash fragment auth methods
+    const handleAuth = async () => {
+      // Check for code in URL (OAuth)
+      const code = new URLSearchParams(window.location.search).get('code');
+      // Check for hash fragment (token)
+      const hashFragment = window.location.hash;
+      const accessToken = hashFragment ? new URLSearchParams(hashFragment.substring(1)).get('access_token') : null;
 
-    if (accessToken) {
-      // Set the access token in Supabase
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: new URLSearchParams(hashFragment.substring(1)).get('refresh_token') || '',
-      }).then(({ error }) => {
+      if (code) {
+        // Let Supabase handle the OAuth code
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          console.error('Error exchanging code for session:', error);
+        } else {
+          navigate('/');
+        }
+      } else if (accessToken) {
+        // Handle token-based auth
+        const refreshToken = new URLSearchParams(hashFragment.substring(1)).get('refresh_token') || '';
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        
         if (error) {
           console.error('Error setting session:', error);
         } else {
-          // Redirect to home page after successful auth
           navigate('/');
         }
-      });
-    }
+      }
+    };
 
-    // Handle the OAuth callback
+    handleAuth();
+
+    // Also listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         navigate('/');

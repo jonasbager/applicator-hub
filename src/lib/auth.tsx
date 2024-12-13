@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${SITE_URL}/auth/v1/callback`,
+          emailRedirectTo: `${SITE_URL}/auth/callback`,
         },
       });
       
@@ -139,7 +139,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin_oidc',
         options: {
-          redirectTo: `${SITE_URL}/auth/v1/callback`,
+          redirectTo: `${SITE_URL}/auth/callback`,
+          queryParams: {
+            redirect_uri: `${SITE_URL}/auth/callback`
+          },
           scopes: 'openid profile email',
         },
       });
