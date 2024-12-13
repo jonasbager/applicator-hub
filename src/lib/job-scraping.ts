@@ -9,13 +9,15 @@ export interface JobDetails {
   url: string;
 }
 
+// Use the same domain as the app for functions
 const SITE_URL = import.meta.env.VITE_SITE_URL || 'http://localhost:8888';
 
 export async function scrapeJobDetails(url: string): Promise<JobDetails> {
   try {
     console.log('Scraping job details for URL:', url);
 
-    const response = await fetch(`${SITE_URL}/.netlify/functions/scrape-job`, {
+    // Use Netlify's function path
+    const response = await fetch('/.netlify/functions/scrape-job', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
