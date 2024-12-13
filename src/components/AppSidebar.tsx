@@ -1,7 +1,6 @@
 import { Briefcase, LogOut, User } from "lucide-react";
 import { cn } from "../lib/utils";
-import { supabase } from "../lib/supabase";
-import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/use-auth";
 
 const menuItems = [
   { title: "Applications", icon: Briefcase, url: "#", active: true },
@@ -9,11 +8,14 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth/login");
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   return (

@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           // Only redirect if we have a session
           if (session?.user) {
-            navigate('/');
+            navigate('/dashboard');
           }
         }
       } catch (error) {
@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           title: "Successfully signed in",
           description: "Welcome back!",
         });
-        navigate('/');
+        navigate('/dashboard');
       } else if (event === 'SIGNED_OUT') {
         console.log('User signed out');
         setState(prev => ({
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           title: "Signed out",
           description: "Successfully signed out of your account.",
         });
-        navigate('/auth/login');
+        navigate('/');
       } else if (event === 'INITIAL_SESSION') {
         console.log('Initial session:', session);
         if (session?.user) {
@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             user: session.user,
             loading: false,
           }));
-          navigate('/');
+          navigate('/dashboard');
         }
       }
     });
@@ -197,6 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      navigate('/');
     } catch (error) {
       handleAuthError(error as AuthError);
       throw error;
