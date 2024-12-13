@@ -23,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('Initial session check:', session);
       if (error) {
         console.error('Error getting session:', error);
         setState(prev => ({ ...prev, error, loading: false }));
@@ -47,19 +48,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session);
       
+      // Don't update state for INITIAL_SESSION if we already have a user
+      if (event === 'INITIAL_SESSION' && state.user) {
+        console.log('Ignoring INITIAL_SESSION as user already exists:', state.user);
+        return;
+      }
+
       setState(prev => ({
         ...prev,
         user: session?.user ?? null,
         loading: false,
       }));
 
-      if (event === 'SIGNED_IN') {
+      if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session?.user)) {
+        console.log('User signed in:', session?.user);
         toast({
           title: "Successfully signed in",
           description: "Welcome back!",
         });
         navigate('/');
       } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out');
         toast({
           title: "Signed out",
           description: "Successfully signed out of your account.",
@@ -69,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [toast, navigate]);
+  }, [toast, navigate, state.user]);
 
   const handleAuthError = (error: AuthError) => {
     console.error('Auth error:', error);
@@ -136,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithLinkedIn = async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
+      console.log('Starting LinkedIn sign in...');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin_oidc',
         options: {
