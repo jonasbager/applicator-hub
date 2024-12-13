@@ -5,6 +5,8 @@ import { useToast } from '../components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from './auth-context';
 
+const SITE_URL = import.meta.env.VITE_SITE_URL || 'http://localhost:3000';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<{
     user: User | null;
@@ -96,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}`,
+          emailRedirectTo: `${SITE_URL}/auth/callback`,
         },
       });
       
@@ -137,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin_oidc',
         options: {
-          redirectTo: 'https://applymate.app/auth/v1/callback',
+          redirectTo: `${SITE_URL}/auth/callback`,
           scopes: 'openid profile email',
         },
       });

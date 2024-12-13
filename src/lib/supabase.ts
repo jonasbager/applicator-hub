@@ -1,7 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://qiowwdewasasyilriyfn.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpb3d3ZGV3YXNhc3lpbHJpeWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM5Njg5NjgsImV4cCI6MjA0OTU0NDk2OH0.sBuZXEglaylseHuJjWuAQhmVcj6ipU85TsWzM2C4Owc';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -9,7 +13,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
     storage: window.localStorage,
-    flowType: 'pkce',
-    redirectTo: 'https://applymate.app/auth/callback'
   },
 });
