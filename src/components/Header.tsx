@@ -7,9 +7,8 @@ export function Header() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <img src="/logo.png" alt="Applymate" className="h-8 w-auto" />
-            <span className="font-bold text-xl">Applymate</span>
+          <Link to="/">
+            <img src="/logo.png" alt="Applymate" className="h-11 w-auto" />
           </Link>
 
           {/* Navigation */}
