@@ -1,0 +1,172 @@
+import { supabase } from './supabase';
+
+export interface JobDetails {
+  position: string;
+  company: string;
+  description: string;
+  keywords: string[];
+  url: string;
+}
+
+const BACKEND_URL = 'http://localhost:3001';
+
+export async function scrapeJobDetails(url: string): Promise<JobDetails> {
+  try {
+    console.log('Scraping job details for URL:', url);
+
+    const response = await fetch(`${BACKEND_URL}/api/scrape-job`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Failed to fetch job details: ${error.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Validate the response
+    const jobDetails = data as JobDetails;
+    const requiredFields = ['position', 'company', 'description', 'keywords', 'url'];
+    for (const field of requiredFields) {
+      if (!(field in jobDetails)) {
+        throw new Error(`Missing required field: ${field}`);
+      }
+    }
+
+    return jobDetails;
+  } catch (error) {
+    console.error('Error scraping job:', error);
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('An unexpected error occurred');
+    }
+  }
+}
+
+export async function saveJob(jobDetails: JobDetails) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .insert([
+        {
+          user_id: session.user.id,
+          position: jobDetails.position,
+          company: jobDetails.company,
+          description: jobDetails.description,
+          keywords: jobDetails.keywords,
+          url: jobDetails.url,
+          status: 'Not Started',
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error saving job:', error);
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('Failed to save job');
+    }
+  }
+}
+
+export async function updateJobStatus(jobId: string, status: string) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ status })
+      .eq('id', jobId)
+      .eq('user_id', session.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error updating job status:', error);
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('Failed to update job status');
+    }
+  }
+}
+
+export async function deleteJob(jobId: string) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    const { error } = await supabase
+      .from('jobs')
+      .delete()
+      .eq('id', jobId)
+      .eq('user_id', session.user.id);
+
+    if (error) {
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error deleting job:', error);
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('Failed to delete job');
+    }
+  }
+}
+
+export async function getJobs() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching jobs:', error);
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('Failed to fetch jobs');
+    }
+  }
+}

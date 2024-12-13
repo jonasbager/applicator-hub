@@ -1,52 +1,49 @@
-import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { JobCard } from "./JobCard";
-import type { Job } from "@/types/job";
+import { Job, JobStatus } from "../types/job";
+import { Droppable, Draggable } from "@hello-pangea/dnd";
 
-interface JobColumnProps {
-  status: Job["status"];
+export interface JobColumnProps {
+  status: JobStatus;
   jobs: Job[];
 }
 
 export function JobColumn({ status, jobs }: JobColumnProps) {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-lg">{status}</h2>
-        <span className="text-sm text-muted-foreground">
-          {jobs.length} {jobs.length === 1 ? 'job' : 'jobs'}
-        </span>
+    <div className="bg-muted p-4 rounded-lg">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">{status}</h2>
+        <span className="text-sm text-muted-foreground">{jobs.length}</span>
       </div>
       <Droppable droppableId={status}>
-        {(provided, snapshot) => (
+        {(provided) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex flex-col gap-4 min-h-[200px] p-4 bg-muted/30 rounded-lg transition-colors ${
-              snapshot.isDraggingOver ? "droppable-hover ring-2 ring-primary/20" : ""
-            }`}
-            aria-label={`${status} column`}
+            className="space-y-4"
           >
             {jobs.map((job, index) => (
-              <Draggable
-                key={job.id}
-                draggableId={job.id}
-                index={index}
-              >
+              <Draggable key={job.id} draggableId={job.id} index={index}>
                 {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
-                    className={`transition-transform ${
-                      snapshot.isDragging ? "rotate-2 scale-105" : ""
-                    }`}
+                    style={{
+                      ...provided.draggableProps.style,
+                      opacity: snapshot.isDragging ? 0.8 : 1,
+                    }}
                   >
-                    <JobCard {...job} />
+                    <JobCard job={job} />
                   </div>
                 )}
               </Draggable>
             ))}
             {provided.placeholder}
+            {jobs.length === 0 && (
+              <div className="text-center text-sm text-muted-foreground py-4">
+                No jobs in this column
+              </div>
+            )}
           </div>
         )}
       </Droppable>
