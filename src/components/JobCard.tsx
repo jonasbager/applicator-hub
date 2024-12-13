@@ -7,9 +7,10 @@ import { JobDetailsModal } from "./JobDetailsModal";
 export interface JobCardProps {
   job: Job;
   onUpdate?: (updatedJob: Job) => void;
+  onDelete?: () => void;
 }
 
-export function JobCard({ job, onUpdate }: JobCardProps) {
+export function JobCard({ job, onUpdate, onDelete }: JobCardProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const handleJobUpdate = (updatedJob: Job) => {
@@ -68,6 +69,7 @@ export function JobCard({ job, onUpdate }: JobCardProps) {
         onOpenChange={setIsDetailsOpen}
         job={job}
         onUpdate={handleJobUpdate}
+        onDelete={onDelete}
       />
     </>
   );

@@ -5,14 +5,16 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
 import { Job } from "../types/job";
-import { updateJobNotes, updateJobApplicationUrl } from "../lib/job-scraping";
+import { updateJobNotes, updateJobApplicationUrl, deleteJob } from "../lib/job-scraping";
 import { useToast } from "./ui/use-toast";
+import { Trash2 } from "lucide-react";
 
 export interface JobDetailsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   job: Job;
   onUpdate?: (updatedJob: Job) => void;
+  onDelete?: () => void;
 }
 
 export function JobDetailsModal({
@@ -20,10 +22,12 @@ export function JobDetailsModal({
   onOpenChange,
   job,
   onUpdate,
+  onDelete,
 }: JobDetailsModalProps) {
   const [notes, setNotes] = useState(job.notes?.join('\n') || '');
   const [applicationUrl, setApplicationUrl] = useState(job.application_draft_url || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   const handleSaveNotes = async () => {
@@ -74,11 +78,49 @@ export function JobDetailsModal({
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this job?')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteJob(job.id);
+      toast({
+        title: "Success",
+        description: "Job deleted successfully",
+      });
+      onOpenChange(false);
+      if (onDelete) {
+        onDelete();
+      }
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete job",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{job.position}</DialogTitle>
+          <div className="flex justify-between items-center">
+            <DialogTitle>{job.position}</DialogTitle>
+            <Button 
+              variant="destructive" 
+              size="icon"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">

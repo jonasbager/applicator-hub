@@ -6,9 +6,10 @@ export interface JobColumnProps {
   status: JobStatus;
   jobs: Job[];
   onJobUpdate?: (updatedJob: Job) => void;
+  onJobDelete?: (jobId: string) => void;
 }
 
-export function JobColumn({ status, jobs, onJobUpdate }: JobColumnProps) {
+export function JobColumn({ status, jobs, onJobUpdate, onJobDelete }: JobColumnProps) {
   return (
     <div className="bg-muted p-4 rounded-lg">
       <div className="flex justify-between items-center mb-4">
@@ -34,7 +35,11 @@ export function JobColumn({ status, jobs, onJobUpdate }: JobColumnProps) {
                       opacity: snapshot.isDragging ? 0.8 : 1,
                     }}
                   >
-                    <JobCard job={job} onUpdate={onJobUpdate} />
+                    <JobCard 
+                      job={job} 
+                      onUpdate={onJobUpdate}
+                      onDelete={() => onJobDelete?.(job.id)}
+                    />
                   </div>
                 )}
               </Draggable>

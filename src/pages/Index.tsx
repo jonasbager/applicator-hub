@@ -35,6 +35,10 @@ export default function Index() {
     );
   };
 
+  const handleJobDelete = (jobId: string) => {
+    setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
+  };
+
   const onDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
     
@@ -127,6 +131,7 @@ export default function Index() {
                   status={status}
                   jobs={jobsByStatus[status]}
                   onJobUpdate={handleJobUpdate}
+                  onJobDelete={handleJobDelete}
                 />
               ))}
             </div>
