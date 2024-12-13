@@ -1,10 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/lib/auth';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import Index from '@/pages/Index';
-import Login from '@/pages/auth/login';
-import Signup from '@/pages/auth/signup';
-import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from './lib/auth';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import Index from './pages/Index';
+import Login from './pages/auth/login';
+import Signup from './pages/auth/signup';
+import { Toaster } from './components/ui/toaster';
 
 function App() {
   return (
