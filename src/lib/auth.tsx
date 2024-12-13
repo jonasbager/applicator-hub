@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from './auth-context';
 
 const SITE_URL = import.meta.env.VITE_SITE_URL || 'http://localhost:3000';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<{
@@ -174,9 +175,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin_oidc',
         options: {
-          redirectTo: `${SITE_URL}/auth/v1/callback`,
+          redirectTo: `${SUPABASE_URL}/auth/v1/callback`,
           queryParams: {
-            redirect_uri: `${SITE_URL}/auth/v1/callback`
+            redirect_uri: `${SUPABASE_URL}/auth/v1/callback`
           },
           scopes: 'openid profile email',
         },
