@@ -3,6 +3,11 @@
   publish = "dist"
 
 [[redirects]]
+  from = "/auth/v1/callback"
+  to = "/auth/callback"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
