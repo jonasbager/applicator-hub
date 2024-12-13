@@ -9,13 +9,13 @@ export interface JobDetails {
   url: string;
 }
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const SITE_URL = import.meta.env.VITE_SITE_URL || 'http://localhost:8888';
 
 export async function scrapeJobDetails(url: string): Promise<JobDetails> {
   try {
     console.log('Scraping job details for URL:', url);
 
-    const response = await fetch(`${BACKEND_URL}/api/scrape-job`, {
+    const response = await fetch(`${SITE_URL}/.netlify/functions/scrape-job`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

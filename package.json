@@ -13,6 +13,10 @@
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
     "@hookform/resolvers": "^3.9.0",
+    "@langchain/community": "^0.3.18",
+    "@langchain/core": "^0.3.23",
+    "@langchain/openai": "^0.3.14",
+    "@netlify/functions": "^2.8.2",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -61,7 +65,7 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
-    "zod": "^3.23.8"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
