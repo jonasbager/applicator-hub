@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { User, AuthError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '../components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from './auth-context';
 
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin_oidc',
         options: {
-          redirectTo: 'https://qiowwdewasasyilriyfn.supabase.co/auth/v1/callback',
+          redirectTo: 'https://applymate.app/auth/v1/callback',
           scopes: 'openid profile email',
         },
       });

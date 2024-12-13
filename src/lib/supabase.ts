@@ -9,5 +9,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
     storage: window.localStorage,
+    flowType: 'pkce',
+    redirectTo: 'https://applymate.app/auth/callback'
   },
 });
