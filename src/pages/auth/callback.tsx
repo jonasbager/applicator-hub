@@ -8,16 +8,6 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // First check if we already have a session
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('Current session:', session);
-        
-        if (session) {
-          console.log('Session already exists, redirecting to home');
-          navigate('/');
-          return;
-        }
-
         // Get code from URL
         const code = new URLSearchParams(window.location.search).get('code');
         if (code) {
@@ -28,7 +18,19 @@ export default function AuthCallback() {
             throw error;
           }
           console.log('Successfully exchanged code for session:', data);
-          navigate('/');
+
+          // Wait a moment for the session to be properly set
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // Verify we have a session before redirecting
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            console.log('Session verified, redirecting to home');
+            navigate('/', { replace: true });
+          } else {
+            console.error('No session found after exchange');
+            throw new Error('Failed to establish session');
+          }
           return;
         }
 
@@ -49,29 +51,44 @@ export default function AuthCallback() {
               throw error;
             }
             console.log('Successfully set session:', data);
-            navigate('/');
+
+            // Wait a moment for the session to be properly set
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Verify we have a session before redirecting
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              console.log('Session verified, redirecting to home');
+              navigate('/', { replace: true });
+            } else {
+              console.error('No session found after setting');
+              throw new Error('Failed to establish session');
+            }
             return;
           }
         }
 
+        // If we get here, check if we already have a valid session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('Found existing session, redirecting to home');
+          navigate('/', { replace: true });
+          return;
+        }
+
         // If we get here, no valid auth data was found
-        console.error('No valid authentication data found in URL');
+        console.error('No valid authentication data found');
         console.log('URL:', window.location.href);
         console.log('Search params:', window.location.search);
         console.log('Hash:', window.location.hash);
-        navigate('/auth/login');
+        navigate('/auth/login', { replace: true });
       } catch (error) {
         console.error('Authentication error:', error);
-        navigate('/auth/login');
+        navigate('/auth/login', { replace: true });
       }
     };
 
-    // Add a small delay to ensure all auth state is properly initialized
-    const timer = setTimeout(() => {
-      handleAuth();
-    }, 500);
-
-    return () => clearTimeout(timer);
+    handleAuth();
   }, [navigate]);
 
   return (

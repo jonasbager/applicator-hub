@@ -21,47 +21,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let mounted = true;
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      console.log('Initial session check:', session);
-      if (error) {
-        console.error('Error getting session:', error);
-        setState(prev => ({ ...prev, error, loading: false }));
-        return;
-      }
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Initial session check:', session);
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          if (mounted) {
+            setState(prev => ({ ...prev, error, loading: false }));
+          }
+          return;
+        }
 
-      setState(prev => ({
-        ...prev,
-        user: session?.user ?? null,
-        loading: false,
-      }));
+        if (mounted) {
+          setState(prev => ({
+            ...prev,
+            user: session?.user ?? null,
+            loading: false,
+          }));
 
-      // Redirect to dashboard if user is logged in
-      if (session?.user) {
-        navigate('/');
+          // Only redirect if we have a session
+          if (session?.user) {
+            navigate('/');
+          }
+        }
+      } catch (error) {
+        console.error('Error during auth initialization:', error);
       }
-    });
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session);
       
-      // Don't update state for INITIAL_SESSION if we already have a user
-      if (event === 'INITIAL_SESSION' && state.user) {
-        console.log('Ignoring INITIAL_SESSION as user already exists:', state.user);
-        return;
-      }
+      if (!mounted) return;
 
-      setState(prev => ({
-        ...prev,
-        user: session?.user ?? null,
-        loading: false,
-      }));
-
-      if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session?.user)) {
+      if (event === 'SIGNED_IN') {
         console.log('User signed in:', session?.user);
+        setState(prev => ({
+          ...prev,
+          user: session?.user ?? null,
+          loading: false,
+        }));
         toast({
           title: "Successfully signed in",
           description: "Welcome back!",
@@ -69,16 +76,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         navigate('/');
       } else if (event === 'SIGNED_OUT') {
         console.log('User signed out');
+        setState(prev => ({
+          ...prev,
+          user: null,
+          loading: false,
+        }));
         toast({
           title: "Signed out",
           description: "Successfully signed out of your account.",
         });
         navigate('/auth/login');
+      } else if (event === 'INITIAL_SESSION') {
+        console.log('Initial session:', session);
+        if (session?.user) {
+          setState(prev => ({
+            ...prev,
+            user: session.user,
+            loading: false,
+          }));
+          navigate('/');
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [toast, navigate, state.user]);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [toast, navigate]);
 
   const handleAuthError = (error: AuthError) => {
     console.error('Auth error:', error);
