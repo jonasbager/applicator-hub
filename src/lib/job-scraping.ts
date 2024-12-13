@@ -9,16 +9,16 @@ export interface JobDetails {
   url: string;
 }
 
-// Use the Netlify dev server URL for local development
-const SITE_URL = import.meta.env.VITE_SITE_URL || 'http://localhost:54584';
+// Use backend server in development, Netlify function in production
+const SCRAPE_URL = import.meta.env.DEV 
+  ? 'http://localhost:3001/api/scrape-job'
+  : '/.netlify/functions/scrape-job';
 
 export async function scrapeJobDetails(url: string): Promise<JobDetails> {
   try {
     console.log('Scraping job details for URL:', url);
-    console.log('Using site URL:', SITE_URL);
 
-    // Use Netlify's function path
-    const response = await fetch(`${SITE_URL}/.netlify/functions/scrape-job`, {
+    const response = await fetch(SCRAPE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

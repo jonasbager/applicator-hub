@@ -14,7 +14,20 @@ const jobSchema = z.object({
   url: z.string().url(),
 });
 
-type JobDetails = z.infer<typeof jobSchema>;
+function trimContent(content: string): string {
+  // Remove script and style tags content
+  content = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  content = content.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+  
+  // Remove HTML tags
+  content = content.replace(/<[^>]+>/g, ' ');
+  
+  // Remove extra whitespace
+  content = content.replace(/\s+/g, ' ').trim();
+  
+  // Take first 4000 characters (roughly 1000 tokens)
+  return content.slice(0, 4000);
+}
 
 export const handler: Handler = async (event) => {
   // Enable CORS
@@ -43,11 +56,7 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    console.log('Function started');
-    console.log('OpenAI API Key exists:', !!process.env.OPENAI_API_KEY);
-
     const { url } = JSON.parse(event.body || '{}');
-    console.log('Received URL:', url);
 
     if (!url) {
       return {
@@ -58,18 +67,15 @@ export const handler: Handler = async (event) => {
     }
 
     // Initialize OpenAI
-    console.log('Initializing OpenAI');
     const model = new ChatOpenAI({
       modelName: 'gpt-3.5-turbo',
       temperature: 0,
     });
 
     // Create a parser for structured output
-    console.log('Creating parser');
     const parser = StructuredOutputParser.fromZodSchema(jobSchema);
 
     // Create a prompt template for job extraction
-    console.log('Creating prompt template');
     const promptTemplate = new PromptTemplate({
       template: `Extract key information from the following job posting HTML content.
       Return a JSON object with these EXACT field names:
@@ -91,39 +97,33 @@ export const handler: Handler = async (event) => {
     });
 
     // Load webpage content
-    console.log('Loading webpage content');
     const loader = new CheerioWebBaseLoader(url);
     const docs = await loader.load();
-    const htmlContent = docs[0].pageContent;
-    console.log('HTML content loaded, length:', htmlContent.length);
+    const htmlContent = trimContent(docs[0].pageContent);
 
     // Format the prompt with the HTML content
-    console.log('Formatting prompt');
     const prompt = await promptTemplate.format({
       html_content: htmlContent,
     });
 
     // Get structured output from OpenAI
-    console.log('Calling OpenAI');
     const response = await model.invoke(prompt);
-    console.log('OpenAI response received');
     
     // Convert the response to a string
     const responseText = response.content.toString();
-    console.log('Response text:', responseText);
+
+    console.log('OpenAI Response:', responseText);
 
     // Parse the response into our schema
-    console.log('Parsing response');
     const parsedJob = await parser.parse(responseText);
-    console.log('Response parsed');
 
     // Add the original URL if not present
-    const jobDetails: JobDetails = {
+    const jobDetails = {
       ...parsedJob,
       url: parsedJob.url || url,
     };
 
-    console.log('Job details:', jobDetails);
+    console.log('Parsed Job Details:', jobDetails);
 
     return {
       statusCode: 200,
@@ -131,14 +131,13 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify(jobDetails),
     };
   } catch (error) {
-    console.error('Error in function:', error);
+    console.error('Error scraping job:', error);
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         error: 'Failed to scrape job details',
         details: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
       }),
     };
   }

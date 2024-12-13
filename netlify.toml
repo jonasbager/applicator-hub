@@ -20,11 +20,4 @@
   VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpb3d3ZGV3YXNhc3lpbHJpeWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM5Njg5NjgsImV4cCI6MjA0OTU0NDk2OH0.sBuZXEglaylseHuJjWuAQhmVcj6ipU85TsWzM2C4Owc"
 
 [functions]
-  # Increase memory and timeout for job scraping
-  node_bundler = "esbuild"
   external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio"]
-  included_files = ["package.json"]
-
-[functions.scrape-job]
-  memory = 1024
-  timeout = 30

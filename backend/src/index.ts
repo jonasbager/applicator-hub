@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { CheerioWebBaseLoader } from '@langchain/community/document_loaders/web/cheerio';
@@ -21,8 +21,6 @@ const jobSchema = z.object({
   keywords: z.array(z.string()),
   url: z.string().url(),
 });
-
-type JobDetails = z.infer<typeof jobSchema>;
 
 // Initialize OpenAI
 const model = new ChatOpenAI({
@@ -54,19 +52,34 @@ const promptTemplate = new PromptTemplate({
   },
 });
 
-// Scraping endpoint
-app.post('/api/scrape-job', async (req: Request, res: Response) => {
+function trimContent(content: string): string {
+  // Remove script and style tags content
+  content = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  content = content.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+  
+  // Remove HTML tags
+  content = content.replace(/<[^>]+>/g, ' ');
+  
+  // Remove extra whitespace
+  content = content.replace(/\s+/g, ' ').trim();
+  
+  // Take first 4000 characters (roughly 1000 tokens)
+  return content.slice(0, 4000);
+}
+
+app.post('/api/scrape-job', async (req, res) => {
   try {
     const { url } = req.body;
 
     if (!url) {
-      return res.status(400).json({ error: 'URL is required' });
+      res.status(400).json({ error: 'URL is required' });
+      return;
     }
 
     // Load webpage content
     const loader = new CheerioWebBaseLoader(url);
     const docs = await loader.load();
-    const htmlContent = docs[0].pageContent;
+    const htmlContent = trimContent(docs[0].pageContent);
 
     // Format the prompt with the HTML content
     const prompt = await promptTemplate.format({
@@ -85,7 +98,7 @@ app.post('/api/scrape-job', async (req: Request, res: Response) => {
     const parsedJob = await parser.parse(responseText);
 
     // Add the original URL if not present
-    const jobDetails: JobDetails = {
+    const jobDetails = {
       ...parsedJob,
       url: parsedJob.url || url,
     };
@@ -103,7 +116,7 @@ app.post('/api/scrape-job', async (req: Request, res: Response) => {
 });
 
 // Health check endpoint
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 

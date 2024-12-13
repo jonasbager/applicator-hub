@@ -1,0 +1,9 @@
+{
+  "name": "netlify-functions",
+  "dependencies": {
+    "@langchain/community": "^0.0.29",
+    "@langchain/openai": "^0.0.14",
+    "@netlify/functions": "^2.5.1",
+    "cheerio": "^1.0.0-rc.12"
+  }
+}
