@@ -44,8 +44,16 @@ export default function Index() {
       const jobToMove = prevJobs.find(job => job.id === draggableId);
       if (!jobToMove) return prevJobs;
 
+      // Create a new array without the moved job
       const newJobs = prevJobs.filter(job => job.id !== draggableId);
-      const updatedJob = { ...jobToMove, status: newStatus };
+
+      // Create updated job with new status while preserving all other fields
+      const updatedJob = {
+        ...jobToMove,
+        status: newStatus,
+        notes: jobToMove.notes || [],
+        application_draft_url: jobToMove.application_draft_url || '',
+      };
 
       // Get jobs of the destination status
       const destinationJobs = newJobs.filter(
