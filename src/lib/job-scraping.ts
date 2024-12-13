@@ -9,7 +9,7 @@ export interface JobDetails {
   url: string;
 }
 
-const BACKEND_URL = 'http://localhost:3001';
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export async function scrapeJobDetails(url: string): Promise<JobDetails> {
   try {
