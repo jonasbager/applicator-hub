@@ -5,9 +5,10 @@ import { Droppable, Draggable } from "@hello-pangea/dnd";
 export interface JobColumnProps {
   status: JobStatus;
   jobs: Job[];
+  onJobUpdate?: (updatedJob: Job) => void;
 }
 
-export function JobColumn({ status, jobs }: JobColumnProps) {
+export function JobColumn({ status, jobs, onJobUpdate }: JobColumnProps) {
   return (
     <div className="bg-muted p-4 rounded-lg">
       <div className="flex justify-between items-center mb-4">
@@ -33,7 +34,7 @@ export function JobColumn({ status, jobs }: JobColumnProps) {
                       opacity: snapshot.isDragging ? 0.8 : 1,
                     }}
                   >
-                    <JobCard job={job} />
+                    <JobCard job={job} onUpdate={onJobUpdate} />
                   </div>
                 )}
               </Draggable>

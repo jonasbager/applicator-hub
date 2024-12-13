@@ -27,6 +27,14 @@ export default function Index() {
     }
   };
 
+  const handleJobUpdate = (updatedJob: Job) => {
+    setJobs(prevJobs => 
+      prevJobs.map(job => 
+        job.id === updatedJob.id ? updatedJob : job
+      )
+    );
+  };
+
   const onDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
     
@@ -118,6 +126,7 @@ export default function Index() {
                   key={status}
                   status={status}
                   jobs={jobsByStatus[status]}
+                  onJobUpdate={handleJobUpdate}
                 />
               ))}
             </div>

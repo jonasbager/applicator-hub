@@ -12,12 +12,14 @@ export interface JobDetailsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   job: Job;
+  onUpdate?: (updatedJob: Job) => void;
 }
 
 export function JobDetailsModal({
   open,
   onOpenChange,
   job,
+  onUpdate,
 }: JobDetailsModalProps) {
   const [notes, setNotes] = useState(job.notes?.join('\n') || '');
   const [applicationUrl, setApplicationUrl] = useState(job.application_draft_url || '');
@@ -29,7 +31,10 @@ export function JobDetailsModal({
     try {
       // Split notes by newlines and filter out empty lines
       const notesArray = notes.split('\n').filter(note => note.trim() !== '');
-      await updateJobNotes(job.id, notesArray);
+      const updatedJob = await updateJobNotes(job.id, notesArray);
+      if (onUpdate) {
+        onUpdate(updatedJob);
+      }
       toast({
         title: "Success",
         description: "Notes saved successfully",
@@ -49,7 +54,10 @@ export function JobDetailsModal({
   const handleSaveApplicationUrl = async () => {
     setIsSaving(true);
     try {
-      await updateJobApplicationUrl(job.id, applicationUrl);
+      const updatedJob = await updateJobApplicationUrl(job.id, applicationUrl);
+      if (onUpdate) {
+        onUpdate(updatedJob);
+      }
       toast({
         title: "Success",
         description: "Application URL saved successfully",
