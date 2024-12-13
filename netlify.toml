@@ -18,9 +18,13 @@
   VITE_SITE_URL = "https://applymate.app"
   VITE_SUPABASE_URL = "https://qiowwdewasasyilriyfn.supabase.co"
   VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpb3d3ZGV3YXNhc3lpbHJpeWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM5Njg5NjgsImV4cCI6MjA0OTU0NDk2OH0.sBuZXEglaylseHuJjWuAQhmVcj6ipU85TsWzM2C4Owc"
-  OPENAI_API_KEY = "sk-..."  # Replace with your actual OpenAI API key
 
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
+[functions]
+  # Increase memory and timeout for job scraping
+  node_bundler = "esbuild"
+  external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio"]
+  included_files = ["package.json"]
+
+[functions.scrape-job]
+  memory = 1024
+  timeout = 30
