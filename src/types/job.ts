@@ -16,6 +16,8 @@ export interface Job {
   keywords: string[];
   url: string;
   status: JobStatus;
+  notes: string[];
+  application_draft_url?: string;
   created_at: string;
   updated_at: string;
 }
