@@ -11,26 +11,45 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="pt-32 pb-16 md:pt-40 md:pb-20">
         <div className="container px-4 mx-auto">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-              Your Job Search,
-              <br />
-              Simplified
-            </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Stop juggling spreadsheets and emails. Applymate helps you track job applications,
-              analyze requirements, and stay organized throughout your job search.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="group">
-                <Link to="/auth/signup">
-                  Get Started Free
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link to="/auth/login">Sign In</Link>
-              </Button>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left side - Text */}
+            <div className="text-left">
+              <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
+                Job Applications,{" "}
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+                  Simplified
+                </span>
+              </h1>
+              <p className="text-xl text-muted-foreground mb-8 max-w-2xl">
+                Stop juggling spreadsheets and emails. Track applications, analyze requirements,
+                and stay organized throughout your job search journey.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button asChild size="lg" className="group">
+                  <Link to="/auth/signup">
+                    Get Started Free
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link to="/auth/login">Sign In</Link>
+                </Button>
+              </div>
+            </div>
+
+            {/* Right side - Image */}
+            <div className="relative">
+              <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden shadow-2xl">
+                <img 
+                  src="/heromockup.png" 
+                  alt="Applymate Dashboard" 
+                  className="w-full h-full object-cover"
+                />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-background/20 to-transparent" />
+              </div>
+              {/* Decorative elements */}
+              <div className="absolute -z-10 inset-0 bg-gradient-to-tr from-primary/20 to-purple-500/20 blur-3xl" />
             </div>
           </div>
         </div>
