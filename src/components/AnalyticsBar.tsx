@@ -1,4 +1,4 @@
-import { BarChart3, Briefcase, Building2, LineChart, Users } from "lucide-react";
+import { BarChart, Briefcase, Building2, LineChart, Users } from "lucide-react";
 import { Job } from "@/types/job";
 import {
   Tooltip,
@@ -105,11 +105,11 @@ export function AnalyticsBar({ jobs }: AnalyticsBarProps) {
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                    <BarChart3 className="w-5 h-5 text-orange-500" />
+                    <BarChart className="w-5 h-5 text-orange-500" />
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm text-muted-foreground">Top Position</p>
-                    <p className="text-lg font-semibold truncate">
+                    <p className="text-sm font-medium truncate">
                       {mostCommonPosition ? mostCommonPosition[0] : 'N/A'}
                     </p>
                   </div>
@@ -133,9 +133,9 @@ export function AnalyticsBar({ jobs }: AnalyticsBarProps) {
                   <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
                     <Building2 className="w-5 h-5 text-purple-500" />
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm text-muted-foreground">Top Company</p>
-                    <p className="text-lg font-semibold truncate">
+                    <p className="text-sm font-medium truncate">
                       {mostCommonCompany ? mostCommonCompany[0] : 'N/A'}
                     </p>
                   </div>
