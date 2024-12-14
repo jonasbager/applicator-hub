@@ -6,6 +6,7 @@ import { getJobs, updateJobStatus } from "../lib/job-scraping";
 import { Job, JobStatus, JOB_STATUS_ORDER } from "../types/job";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { AppSidebar } from "../components/AppSidebar";
+import { AnalyticsBar } from "../components/AnalyticsBar";
 
 export default function Index() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -109,7 +110,7 @@ export default function Index() {
   return (
     <div className="min-h-screen flex w-full">
       <AppSidebar />
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 pb-32">
         <div className="max-w-[1600px] mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div>
@@ -144,6 +145,8 @@ export default function Index() {
         onOpenChange={setIsAddModalOpen}
         onJobAdded={loadJobs}
       />
+
+      <AnalyticsBar jobs={jobs} />
     </div>
   );
 }
