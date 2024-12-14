@@ -1,13 +1,18 @@
-import { Briefcase, LogOut, User } from "lucide-react";
+import { Briefcase, LogOut, User, Plus } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../hooks/use-auth";
+import { Button } from "./ui/button";
 
 const menuItems = [
   { title: "Applications", icon: Briefcase, url: "#", active: true },
   { title: "Profile", icon: User, url: "#" },
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  onAddClick: () => void;
+}
+
+export function AppSidebar({ onAddClick }: AppSidebarProps) {
   const { signOut } = useAuth();
 
   const handleLogout = async () => {
@@ -28,6 +33,15 @@ export function AppSidebar() {
             className="w-36"
           />
         </div>
+
+        <Button
+          onClick={onAddClick}
+          className="w-full mb-6"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Application
+        </Button>
+
         <nav>
           <ul className="space-y-2">
             {menuItems.map((item) => (

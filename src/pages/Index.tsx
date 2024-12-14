@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Button } from "../components/ui/button";
 import { JobColumn } from "../components/JobColumn";
 import { AddJobModal } from "../components/AddJobModal";
 import { getJobs, updateJobStatus } from "../lib/job-scraping";
@@ -109,19 +108,14 @@ export default function Index() {
 
   return (
     <div className="min-h-screen flex w-full">
-      <AppSidebar />
+      <AppSidebar onAddClick={() => setIsAddModalOpen(true)} />
       <main className="flex-1 p-8 pb-32">
         <div className="max-w-[1600px] mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold">Job Applications</h1>
-              <p className="text-muted-foreground">
-                Track and manage your applications with Applymate
-              </p>
-            </div>
-            <Button onClick={() => setIsAddModalOpen(true)}>
-              Add Application
-            </Button>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold">Job Applications</h1>
+            <p className="text-muted-foreground">
+              Track and manage your applications with Applymate
+            </p>
           </div>
           
           <DragDropContext onDragEnd={onDragEnd}>
