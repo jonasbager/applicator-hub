@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState, useRef } from 'react';
 import { User, AuthError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { useToast } from '../components/ui/use-toast';
@@ -20,6 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
   const { toast } = useToast();
   const navigate = useNavigate();
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     let mounted = true;
@@ -63,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (!mounted) return;
 
-      if (event === 'SIGNED_IN') {
+      if (event === 'SIGNED_IN' && !isInitialMount.current) {
         console.log('User signed in:', session?.user);
         setState(prev => ({
           ...prev,
@@ -97,6 +98,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }));
           navigate('/dashboard');
         }
+      }
+
+      // After first mount, set isInitialMount to false
+      if (isInitialMount.current) {
+        isInitialMount.current = false;
       }
     });
 
