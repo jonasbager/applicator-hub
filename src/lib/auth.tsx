@@ -87,8 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           description: "Successfully signed out of your account.",
         });
         navigate('/');
-      } else if (event === 'INITIAL_SESSION') {
-        console.log('Initial session:', session);
+      } else if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        console.log('Session updated:', session);
         if (session?.user) {
           setState(prev => ({
             ...prev,
@@ -197,7 +197,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      navigate('/');
     } catch (error) {
       handleAuthError(error as AuthError);
       throw error;

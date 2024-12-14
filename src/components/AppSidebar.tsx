@@ -24,7 +24,7 @@ export function AppSidebar({ onAddClick }: AppSidebarProps) {
   };
 
   return (
-    <aside className="w-64 border-r bg-muted/30 h-screen sticky top-0 flex flex-col">
+    <aside className="w-64 border-r bg-white h-screen sticky top-0 flex flex-col">
       <div className="p-6 flex-1">
         <div className="mb-8">
           <img 
