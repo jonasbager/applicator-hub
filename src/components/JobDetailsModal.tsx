@@ -6,9 +6,9 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
 import { Job } from "../types/job";
-import { updateJobNotes, updateJobApplicationUrl, deleteJob } from "../lib/job-scraping";
+import { updateJobNotes, updateJobApplicationUrl, archiveJob } from "../lib/job-scraping";
 import { useToast } from "./ui/use-toast";
-import { Trash2 } from "lucide-react";
+import { Archive } from "lucide-react";
 
 export interface JobDetailsModalProps {
   open: boolean;
@@ -28,8 +28,8 @@ export function JobDetailsModal({
   const [notes, setNotes] = useState(job.notes?.join('\n') || '');
   const [applicationUrl, setApplicationUrl] = useState(job.application_draft_url || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const { toast } = useToast();
 
   const handleSaveNotes = async () => {
@@ -80,28 +80,28 @@ export function JobDetailsModal({
     }
   };
 
-  const handleDelete = async () => {
-    setIsDeleting(true);
+  const handleArchive = async () => {
+    setIsArchiving(true);
     try {
-      await deleteJob(job.id);
+      const updatedJob = await archiveJob(job.id);
       toast({
         title: "Success",
-        description: "Job deleted successfully",
+        description: "Job archived successfully",
       });
       onOpenChange(false);
       if (onDelete) {
         onDelete();
       }
     } catch (error) {
-      console.error('Error deleting job:', error);
+      console.error('Error archiving job:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to delete job",
+        description: "Failed to archive job",
       });
     } finally {
-      setIsDeleting(false);
-      setShowDeleteConfirm(false);
+      setIsArchiving(false);
+      setShowArchiveConfirm(false);
     }
   };
 
@@ -209,33 +209,30 @@ export function JobDetailsModal({
               <Button 
                 variant="ghost" 
                 size="sm"
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={isDeleting}
-                className="text-muted-foreground hover:text-destructive"
+                onClick={() => setShowArchiveConfirm(true)}
+                disabled={isArchiving}
+                className="text-muted-foreground hover:text-primary"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Job
+                <Archive className="h-4 w-4 mr-2" />
+                Archive Job
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialog open={showArchiveConfirm} onOpenChange={setShowArchiveConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Archive this job?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this job application. This action cannot be undone.
+              This will move the job to your archives. You can restore it later if needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
+            <AlertDialogAction onClick={handleArchive}>
+              Archive
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

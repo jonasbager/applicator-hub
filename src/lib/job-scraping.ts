@@ -73,6 +73,7 @@ export async function saveJob(jobDetails: JobDetails) {
           status: 'Not Started',
           notes: [],
           application_draft_url: '',
+          archived: false,
         },
       ])
       .select()
@@ -220,6 +221,7 @@ export async function getJobs() {
       .from('jobs')
       .select('*')
       .eq('user_id', session.user.id)
+      .is('archived', false)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -233,6 +235,95 @@ export async function getJobs() {
       throw error;
     } else {
       throw new Error('Failed to fetch jobs');
+    }
+  }
+}
+
+export async function getArchivedJobs() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .eq('archived', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching archived jobs:', error);
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('Failed to fetch archived jobs');
+    }
+  }
+}
+
+export async function archiveJob(jobId: string) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ archived: true })
+      .eq('id', jobId)
+      .eq('user_id', session.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error archiving job:', error);
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('Failed to archive job');
+    }
+  }
+}
+
+export async function restoreJob(jobId: string) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ archived: false })
+      .eq('id', jobId)
+      .eq('user_id', session.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error restoring job:', error);
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('Failed to restore job');
     }
   }
 }

@@ -1,11 +1,12 @@
-import { Briefcase, LogOut, User, Plus } from "lucide-react";
+import { Archive, Briefcase, LogOut, Plus } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../hooks/use-auth";
 import { Button } from "./ui/button";
+import { Link, useLocation } from "react-router-dom";
 
 const menuItems = [
-  { title: "Applications", icon: Briefcase, url: "#", active: true },
-  { title: "Profile", icon: User, url: "#" },
+  { title: "Applications", icon: Briefcase, path: "/dashboard" },
+  { title: "Archived", icon: Archive, path: "/archived" }
 ];
 
 interface AppSidebarProps {
@@ -14,6 +15,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onAddClick }: AppSidebarProps) {
   const { signOut } = useAuth();
+  const location = useLocation();
 
   const handleLogout = async () => {
     try {
@@ -46,17 +48,17 @@ export function AppSidebar({ onAddClick }: AppSidebarProps) {
           <ul className="space-y-2">
             {menuItems.map((item) => (
               <li key={item.title}>
-                <a
-                  href={item.url}
+                <Link
+                  to={item.path}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
                     "hover:bg-muted",
-                    item.active && "bg-muted"
+                    location.pathname === item.path && "bg-muted"
                   )}
                 >
                   <item.icon className="h-5 w-5" />
                   <span>{item.title}</span>
-                </a>
+                </Link>
               </li>
             ))}
           </ul>

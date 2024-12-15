@@ -8,6 +8,7 @@ import Signup from "./pages/auth/signup";
 import Callback from "./pages/auth/callback";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import Archived from "./pages/Archived";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./hooks/use-auth";
 
@@ -37,6 +38,11 @@ function AppRoutes() {
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Index />
+        </ProtectedRoute>
+      } />
+      <Route path="/archived" element={
+        <ProtectedRoute>
+          <Archived />
         </ProtectedRoute>
       } />
 
