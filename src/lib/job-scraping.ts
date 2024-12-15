@@ -220,6 +220,7 @@ export async function getJobs() {
       .from('jobs')
       .select('*')
       .eq('user_id', session.user.id)
+      .is('archived', false)  // Only show non-archived jobs
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -237,6 +238,7 @@ export async function getJobs() {
   }
 }
 
+// New functions for archive functionality
 export async function getArchivedJobs() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -273,9 +275,14 @@ export async function archiveJob(jobId: string) {
       throw new Error('No active session');
     }
 
-    // Use raw SQL query instead
+    // Simple update query instead of function call
     const { data, error } = await supabase
-      .rpc('archive_job', { job_id: jobId, user_id: session.user.id });
+      .from('jobs')
+      .update({ archived: true })
+      .eq('id', jobId)
+      .eq('user_id', session.user.id)
+      .select()
+      .single();
 
     if (error) {
       throw error;
