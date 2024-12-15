@@ -37,8 +37,13 @@ export default function Landing() {
         </div>
 
         {/* Hero Image */}
-        <div className="absolute bottom-0 left-0 right-0 h-[400px] overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background z-10" />
+        <div className="absolute bottom-0 left-0 right-0 h-[500px] overflow-hidden">
+          <div 
+            className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background z-10"
+            style={{
+              background: 'linear-gradient(to bottom, transparent 70%, var(--background) 100%)'
+            }}
+          />
           <img 
             src="/heromockup.png" 
             alt="Applymate Dashboard" 
