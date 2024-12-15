@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { AddJobModal } from "@/components/AddJobModal";
 import { JobDetailsModal } from "@/components/JobDetailsModal";
 
-export default function Archived() {
+const Archived = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -123,4 +123,6 @@ export default function Archived() {
       )}
     </div>
   );
-}
+};
+
+export default Archived;
