@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-const Archived = () => {
+export default function Archived() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -143,6 +143,4 @@ const Archived = () => {
       )}
     </div>
   );
-};
-
-export default Archived;
+}
