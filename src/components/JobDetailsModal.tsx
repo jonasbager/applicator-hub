@@ -83,7 +83,7 @@ export function JobDetailsModal({
   const handleArchive = async () => {
     setIsArchiving(true);
     try {
-      const updatedJob = await archiveJob(job.id);
+      await archiveJob(job.id);
       toast({
         title: "Success",
         description: "Job archived successfully",
