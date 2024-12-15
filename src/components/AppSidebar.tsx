@@ -2,7 +2,7 @@ import { Archive, Briefcase, LogOut, Plus } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../hooks/use-auth";
 import { Button } from "./ui/button";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const menuItems = [
   { title: "Applications", icon: Briefcase, path: "/dashboard" },
@@ -16,6 +16,7 @@ interface AppSidebarProps {
 export function AppSidebar({ onAddClick }: AppSidebarProps) {
   const { signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
@@ -23,6 +24,10 @@ export function AppSidebar({ onAddClick }: AppSidebarProps) {
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
   };
 
   return (
@@ -48,17 +53,17 @@ export function AppSidebar({ onAddClick }: AppSidebarProps) {
           <ul className="space-y-2">
             {menuItems.map((item) => (
               <li key={item.title}>
-                <Link
-                  to={item.path}
+                <button
+                  onClick={() => handleNavigation(item.path)}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors w-full text-left",
                     "hover:bg-muted",
                     location.pathname === item.path && "bg-muted"
                   )}
                 >
                   <item.icon className="h-5 w-5" />
                   <span>{item.title}</span>
-                </Link>
+                </button>
               </li>
             ))}
           </ul>

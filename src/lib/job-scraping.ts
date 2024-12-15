@@ -237,37 +237,6 @@ export async function getJobs() {
   }
 }
 
-// New archive functions
-export async function archiveJob(jobId: string) {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      throw new Error('No active session');
-    }
-
-    const { data, error } = await supabase
-      .from('jobs')
-      .update({ archived: true })
-      .eq('id', jobId)
-      .eq('user_id', session.user.id)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error archiving job:', error);
-    if (error instanceof Error) {
-      throw error;
-    } else {
-      throw new Error('Failed to archive job');
-    }
-  }
-}
-
 export async function getArchivedJobs() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -293,6 +262,32 @@ export async function getArchivedJobs() {
       throw error;
     } else {
       throw new Error('Failed to fetch archived jobs');
+    }
+  }
+}
+
+export async function archiveJob(jobId: string) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    // Use raw SQL query instead
+    const { data, error } = await supabase
+      .rpc('archive_job', { job_id: jobId, user_id: session.user.id });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error archiving job:', error);
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('Failed to archive job');
     }
   }
 }

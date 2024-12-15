@@ -35,25 +35,19 @@ function AppRoutes() {
       <Route path="/terms" element={<Terms />} />
 
       {/* Protected routes */}
-      <Route 
-        path="/dashboard" 
-        element={
-          <ProtectedRoute>
-            <Index />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/archived" 
-        element={
-          <ProtectedRoute>
-            <Archived />
-          </ProtectedRoute>
-        } 
-      />
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <Index />
+        </ProtectedRoute>
+      } />
+      <Route path="/archived" element={
+        <ProtectedRoute>
+          <Archived />
+        </ProtectedRoute>
+      } />
 
       {/* Catch-all redirect */}
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="*" element={<Navigate to={user ? "/dashboard" : "/"} />} />
     </Routes>
   );
 }
