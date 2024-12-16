@@ -25,8 +25,8 @@ export default function AuthCallback() {
           // Verify we have a session before redirecting
           const { data: { session } } = await supabase.auth.getSession();
           if (session) {
-            console.log('Session verified, redirecting to home');
-            navigate('/', { replace: true });
+            console.log('Session verified, redirecting to dashboard');
+            navigate('/dashboard', { replace: true }); // Changed to redirect to dashboard instead of home
           } else {
             console.error('No session found after exchange');
             throw new Error('Failed to establish session');
@@ -58,8 +58,8 @@ export default function AuthCallback() {
             // Verify we have a session before redirecting
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
-              console.log('Session verified, redirecting to home');
-              navigate('/', { replace: true });
+              console.log('Session verified, redirecting to dashboard');
+              navigate('/dashboard', { replace: true }); // Changed to redirect to dashboard instead of home
             } else {
               console.error('No session found after setting');
               throw new Error('Failed to establish session');
@@ -71,8 +71,8 @@ export default function AuthCallback() {
         // If we get here, check if we already have a valid session
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          console.log('Found existing session, redirecting to home');
-          navigate('/', { replace: true });
+          console.log('Found existing session, redirecting to dashboard');
+          navigate('/dashboard', { replace: true }); // Changed to redirect to dashboard instead of home
           return;
         }
 
