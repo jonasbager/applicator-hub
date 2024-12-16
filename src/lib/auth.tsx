@@ -5,7 +5,11 @@ import { useToast } from '../components/ui/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from './auth-context';
 
-const SITE_URL = import.meta.env.VITE_SITE_URL || 'http://localhost:3000';
+// Use production URL in production, localhost in development
+const SITE_URL = import.meta.env.PROD 
+  ? 'https://applymate.app'
+  : 'http://localhost:3000';
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -151,7 +155,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${SITE_URL}/auth/v1/callback`,
+          emailRedirectTo: `${SITE_URL}/auth/callback`,
+          data: {
+            email_confirm_url: `${SITE_URL}/auth/callback`
+          }
         },
       });
       
