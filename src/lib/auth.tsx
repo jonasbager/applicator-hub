@@ -65,18 +65,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (!mounted) return;
 
-      if (event === 'SIGNED_IN' && !isInitialMount.current) {
+      if (event === 'SIGNED_IN') {
         console.log('User signed in:', session?.user);
         setState(prev => ({
           ...prev,
           user: session?.user ?? null,
           loading: false,
         }));
-        toast({
-          title: "Successfully signed in",
-          description: "Welcome back!",
-        });
-        navigate('/dashboard');
+        
+        // Only show toast and navigate if this is not the initial mount
+        // This prevents the toast from showing when just restoring the session
+        if (!isInitialMount.current) {
+          toast({
+            title: "Successfully signed in",
+            description: "Welcome back!",
+          });
+          navigate('/dashboard');
+        }
       } else if (event === 'SIGNED_OUT') {
         console.log('User signed out');
         setState(prev => ({
