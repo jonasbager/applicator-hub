@@ -2,7 +2,7 @@ import { useContext, useEffect, useState, useRef } from 'react';
 import { User, AuthError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { useToast } from '../components/ui/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from './auth-context';
 
 const SITE_URL = import.meta.env.VITE_SITE_URL || 'http://localhost:3000';
@@ -20,6 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const isInitialMount = useRef(true);
 
   useEffect(() => {
@@ -46,8 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             loading: false,
           }));
 
-          // Only redirect if we have a session
-          if (session?.user) {
+          // Only redirect if we're on the landing page
+          if (session?.user && location.pathname === '/') {
             navigate('/dashboard');
           }
         }
@@ -96,7 +97,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             user: session.user,
             loading: false,
           }));
-          navigate('/dashboard');
+          // Only navigate to dashboard if we're on the landing page
+          if (location.pathname === '/') {
+            navigate('/dashboard');
+          }
         }
       }
 
@@ -110,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [toast, navigate]);
+  }, [toast, navigate, location.pathname]);
 
   const handleAuthError = (error: AuthError) => {
     console.error('Auth error:', error);
