@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isInitialMount = useRef(true);
+  const hasShownWelcomeToast = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -73,9 +74,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           loading: false,
         }));
         
-        // Only show toast and navigate if this is not the initial mount
-        // This prevents the toast from showing when just restoring the session
-        if (!isInitialMount.current) {
+        // Only show toast and navigate if this is a new sign in
+        // and we haven't shown the welcome toast yet
+        if (!isInitialMount.current && !hasShownWelcomeToast.current) {
+          hasShownWelcomeToast.current = true;
           toast({
             title: "Successfully signed in",
             description: "Welcome back!",
@@ -89,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           user: null,
           loading: false,
         }));
+        hasShownWelcomeToast.current = false; // Reset the toast flag
         toast({
           title: "Signed out",
           description: "Successfully signed out of your account.",
@@ -175,6 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       if (error) throw error;
+      hasShownWelcomeToast.current = false; // Reset the toast flag before new sign in
     } catch (error) {
       handleAuthError(error as AuthError);
       throw error;
@@ -199,6 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       if (error) throw error;
+      hasShownWelcomeToast.current = false; // Reset the toast flag before new sign in
     } catch (error) {
       handleAuthError(error as AuthError);
       throw error;

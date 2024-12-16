@@ -1,14 +1,25 @@
 import { useEffect, useState } from "react";
 import { AppSidebar } from "../components/AppSidebar";
 import { Job } from "../types/job";
-import { getArchivedJobs, restoreJob } from "../lib/job-scraping";
+import { getArchivedJobs, restoreJob, deleteJob } from "../lib/job-scraping";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { AddJobModal } from "../components/AddJobModal";
 import { JobDetailsModal } from "../components/JobDetailsModal";
 import { Button } from "../components/ui/button";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Trash2 } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../components/ui/alert-dialog";
 
 export default function Archived() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -46,6 +57,24 @@ export default function Archived() {
         variant: "destructive",
         title: "Error",
         description: "Failed to restore job",
+      });
+    }
+  };
+
+  const handleDelete = async (jobId: string) => {
+    try {
+      await deleteJob(jobId);
+      setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
+      toast({
+        title: "Success",
+        description: "Job permanently deleted",
+      });
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete job",
       });
     }
   };
@@ -116,6 +145,36 @@ export default function Archived() {
                           <RotateCcw className="h-4 w-4 mr-2" />
                           Restore
                         </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the job application
+                                for {job.position} at {job.company}.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(job.id)}
+                                className="bg-destructive hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   </CardContent>
