@@ -40,7 +40,10 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     try {
       const details = await scrapeJobDetails(url);
       console.log('Scraped details:', details);
-      setJobDetails(details);
+      setJobDetails({
+        ...details,
+        url: url // Ensure we store the input URL
+      });
       toast({
         title: "Success",
         description: "Job details extracted successfully",
@@ -103,7 +106,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                 id="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://example.com/job-posting"
+                placeholder="Paste the job posting URL here"
                 disabled={loading}
               />
               <Button
