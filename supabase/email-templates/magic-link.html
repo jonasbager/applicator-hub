@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in to ApplyMate</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .email-wrapper {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo img {
+            width: 180px;
+            height: auto;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .button {
+            display: inline-block;
+            background-color: hsl(var(--primary, 221 83% 53%));
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            margin: 20px 0;
+        }
+        .button:hover {
+            background-color: hsl(var(--primary, 221 83% 47%));
+        }
+        .footer {
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 30px;
+        }
+        .footer a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        .security-notice {
+            background-color: #f3f4f6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 25px;
+            font-size: 14px;
+            color: #4b5563;
+        }
+        .expiry-notice {
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="email-wrapper">
+            <div class="logo">
+                <img src="https://applymate.app/logo.png" alt="ApplyMate Logo">
+            </div>
+            <div class="content">
+                <h1 style="margin-bottom: 20px; text-align: center;">Sign in to ApplyMate</h1>
+                <p>Hello,</p>
+                <p>Click the button below to securely sign in to your ApplyMate account. No password needed!</p>
+                
+                <div style="text-align: center;">
+                    <a href="{{ .ConfirmationURL }}" class="button">
+                        Sign In to ApplyMate
+                    </a>
+                </div>
+                
+                <p class="expiry-notice">This link will expire in 24 hours and can only be used once.</p>
+                
+                <div class="security-notice">
+                    <strong>Security Notice:</strong> If you didn't request this login link, you can safely ignore this email. Someone might have typed your email address by mistake.
+                </div>
+                
+                <p>Best regards,<br>The ApplyMate Team</p>
+            </div>
+            <div class="footer">
+                <p>Need help? Contact us at <a href="mailto:support@applymate.app">support@applymate.app</a></p>
+                <p>ApplyMate - Your Job Application Companion</p>
+                <p><a href="https://applymate.app/privacy">Privacy Policy</a> • <a href="https://applymate.app/terms">Terms of Service</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

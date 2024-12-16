@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import { Link } from "react-router-dom";
-import { Header } from "@/components/Header";
-import { ArrowRight, CheckCircle2, Sparkles, Target, Briefcase, LineChart, Users } from "lucide-react";
+import { Header } from "../components/Header";
+import { ArrowRight, CheckCircle2, Sparkles, Target, Star } from "lucide-react";
 
 export default function Landing() {
   return (
@@ -9,18 +9,23 @@ export default function Landing() {
       <Header />
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-48 md:pt-40 md:pb-64">
+      <section className="relative pt-32 pb-0 md:pt-40 overflow-hidden">
         <div className="container px-4 mx-auto">
-          <div className="max-w-3xl mx-auto text-center mb-24">
+          {/* Text content */}
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 mb-6 text-sm font-medium">
+              <Star className="h-4 w-4" />
+              Your Job Search, Organized
+            </div>
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-              Job Applications,{" "}
+              Track Applications with{" "}
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-                Simplified
+                Confidence
               </span>
             </h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              Stop juggling spreadsheets and emails. Track applications, analyze requirements,
-              and stay organized throughout your job search journey.
+            <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+              Stop juggling spreadsheets and emails. ApplyMate helps you track applications, 
+              analyze requirements, and stay organized throughout your job search journey.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="group">
@@ -34,47 +39,36 @@ export default function Landing() {
               </Button>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="container px-4 mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <Briefcase className="h-6 w-6 text-primary" />
-              </div>
-              <div className="text-3xl font-bold mb-2">1000+</div>
-              <div className="text-muted-foreground">Applications Tracked</div>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <LineChart className="h-6 w-6 text-primary" />
-              </div>
-              <div className="text-3xl font-bold mb-2">85%</div>
-              <div className="text-muted-foreground">Success Rate</div>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <Users className="h-6 w-6 text-primary" />
-              </div>
-              <div className="text-3xl font-bold mb-2">500+</div>
-              <div className="text-muted-foreground">Happy Users</div>
-            </div>
+          {/* Hero Image */}
+          <div className="relative w-full max-w-[1440px] mx-auto mt-20">
+            <img 
+              src="/heromockup.png" 
+              alt="ApplyMate Dashboard" 
+              className="w-full h-auto"
+            />
+            {/* Gradient overlay at bottom */}
+            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none" />
           </div>
+        </div>
+
+        {/* Background decorative elements */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-6xl -z-10">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-primary/30 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob" />
+          <div className="absolute top-0 right-0 w-72 h-72 bg-primary/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000" />
+          <div className="absolute bottom-0 left-1/2 w-72 h-72 bg-primary/40 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000" />
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-16 md:py-24">
+      <section className="py-24 md:py-32 bg-muted/30">
         <div className="container px-4 mx-auto">
           <div className="max-w-3xl mx-auto text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 mb-6 text-sm font-medium">
               <Target className="h-4 w-4" />
-              Features
+              Key Features
             </div>
-            <h2 className="text-3xl font-bold mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Everything you need to manage your job search
             </h2>
             <p className="text-lg text-muted-foreground">
@@ -82,8 +76,8 @@ export default function Landing() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-background/50 backdrop-blur-sm p-6 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+            <div className="group bg-background/50 backdrop-blur-sm p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                 <Sparkles className="h-6 w-6 text-primary" />
               </div>
               <h3 className="text-xl font-semibold mb-2">AI-Powered Analysis</h3>
@@ -92,8 +86,8 @@ export default function Landing() {
                 skills and qualifications.
               </p>
             </div>
-            <div className="bg-background/50 backdrop-blur-sm p-6 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+            <div className="group bg-background/50 backdrop-blur-sm p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                 <Target className="h-6 w-6 text-primary" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Progress Tracking</h3>
@@ -102,8 +96,8 @@ export default function Landing() {
                 Never lose track of where you stand.
               </p>
             </div>
-            <div className="bg-background/50 backdrop-blur-sm p-6 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+            <div className="group bg-background/50 backdrop-blur-sm p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                 <CheckCircle2 className="h-6 w-6 text-primary" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Stay Organized</h3>
@@ -116,60 +110,19 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="py-16 md:py-24 bg-muted/30">
-        <div className="container px-4 mx-auto">
-          <div className="max-w-3xl mx-auto text-center mb-16">
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 mb-6 text-sm font-medium">
-              <CheckCircle2 className="h-4 w-4" />
-              How It Works
-            </div>
-            <h2 className="text-3xl font-bold mb-4">
-              Simple as 1, 2, 3
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              Get started in minutes with our intuitive workflow
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary font-semibold">1</div>
-              <h3 className="font-semibold text-xl mb-2">Add Job URL</h3>
-              <p className="text-muted-foreground">
-                Paste any job posting URL and let our AI analyze it for you
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary font-semibold">2</div>
-              <h3 className="font-semibold text-xl mb-2">Track Progress</h3>
-              <p className="text-muted-foreground">
-                Move jobs through different stages as you apply and interview
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary font-semibold">3</div>
-              <h3 className="font-semibold text-xl mb-2">Stay Organized</h3>
-              <p className="text-muted-foreground">
-                Keep all your application materials and notes in one place
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
-      <section className="py-16 md:py-24">
+      <section className="py-24 md:py-32">
         <div className="container px-4 mx-auto">
-          <div className="max-w-3xl mx-auto text-center">
+          <div className="max-w-4xl mx-auto text-center bg-background/80 backdrop-blur-sm rounded-3xl border p-12">
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 mb-6 text-sm font-medium">
               <ArrowRight className="h-4 w-4" />
-              Get Started
+              Get Started Today
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
               Ready to streamline your job search?
             </h2>
             <p className="text-xl text-muted-foreground mb-8">
-              Join thousands of job seekers who are organizing their job search with Applymate.
+              Join other job seekers who are organizing their job search with ApplyMate.
             </p>
             <Button asChild size="lg" className="group">
               <Link to="/auth/signup">
@@ -186,7 +139,7 @@ export default function Landing() {
         <div className="container px-4 mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-sm text-muted-foreground">
-              © 2024 Applymate. All rights reserved.
+              © 2024 ApplyMate. All rights reserved.
             </div>
             <div className="flex gap-6">
               <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
