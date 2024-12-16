@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { AppSidebar } from "@/components/AppSidebar";
-import { Job } from "@/types/job";
-import { getArchivedJobs, restoreJob } from "@/lib/job-scraping";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { AddJobModal } from "@/components/AddJobModal";
-import { JobDetailsModal } from "@/components/JobDetailsModal";
-import { Button } from "@/components/ui/button";
+import { AppSidebar } from "../components/AppSidebar";
+import { Job } from "../types/job";
+import { getArchivedJobs, restoreJob } from "../lib/job-scraping";
+import { Card, CardContent } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { AddJobModal } from "../components/AddJobModal";
+import { JobDetailsModal } from "../components/JobDetailsModal";
+import { Button } from "../components/ui/button";
 import { RotateCcw } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "../components/ui/use-toast";
 
 export default function Archived() {
   const [jobs, setJobs] = useState<Job[]>([]);
