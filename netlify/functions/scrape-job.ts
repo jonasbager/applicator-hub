@@ -12,8 +12,9 @@ const jobSchema = z.object({
   description: z.string(),
   keywords: z.array(z.string()),
   url: z.string().url(),
+}).and(z.object({
   deadline: z.string().optional(),
-});
+}).partial());
 
 function trimContent(content: string): string {
   // Remove script and style tags content
@@ -107,7 +108,7 @@ export const handler: Handler = async (event) => {
       - "description": A brief one-sentence summary
       - "keywords": An array of 5-10 key skills, technologies, or requirements
       - "url": The provided URL
-      - "deadline": If found, the application deadline date in ISO format (YYYY-MM-DD). Look for phrases like "apply by", "deadline", "closing date", etc. Only include if a specific date is mentioned.
+      - "deadline": (Optional) If found, the application deadline date in ISO format (YYYY-MM-DD). Look for phrases like "apply by", "deadline", "closing date", etc. Only include if a specific date is mentioned.
 
       Make sure to follow the exact format specified in the instructions below:
 
@@ -133,20 +134,38 @@ export const handler: Handler = async (event) => {
     const responseText = response.content.toString();
     console.log('OpenAI response:', responseText);
 
-    // Parse the response into our schema
-    const parsedJob = await parser.parse(responseText);
+    try {
+      // Parse the response into our schema
+      const parsedJob = await parser.parse(responseText);
 
-    // Add the original URL if not present
-    const jobDetails = {
-      ...parsedJob,
-      url: parsedJob.url || url,
-    };
+      // Add the original URL if not present and ensure deadline is properly handled
+      const jobDetails = {
+        ...parsedJob,
+        url: parsedJob.url || url,
+        deadline: parsedJob.deadline || null, // Ensure deadline is null if not found
+      };
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(jobDetails),
-    };
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(jobDetails),
+      };
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
+      // Try to extract required fields even if parsing fails
+      const fallbackJob = {
+        position: responseText.match(/"position":\s*"([^"]+)"/)?.[1] || 'Unknown Position',
+        company: responseText.match(/"company":\s*"([^"]+)"/)?.[1] || 'Unknown Company',
+        description: responseText.match(/"description":\s*"([^"]+)"/)?.[1] || 'No description available',
+        keywords: [],
+        url: url,
+      };
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(fallbackJob),
+      };
+    }
   } catch (error) {
     console.error('Error details:', {
       name: error.name,
