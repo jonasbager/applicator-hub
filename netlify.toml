@@ -20,4 +20,4 @@
   VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpb3d3ZGV3YXNhc3lpbHJpeWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM5Njg5NjgsImV4cCI6MjA0OTU0NDk2OH0.sBuZXEglaylseHuJjWuAQhmVcj6ipU85TsWzM2C4Owc"
 
 [functions]
-  external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio"]
+  external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio", "zod"]
