@@ -6,8 +6,8 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Job, getDeadlineStatus, formatDate, DateValue } from "../types/job";
-import { updateJobNotes, updateJobApplicationUrl, archiveJob, updateJobDeadline } from "../lib/job-scraping";
+import { Job, getDeadlineStatus, formatDate } from "../types/job";
+import { updateJobNotes, updateJobApplicationUrl, archiveJob, updateJobDeadline, updateJobStartDate } from "../lib/job-scraping";
 import { useToast } from "./ui/use-toast";
 import { Archive, CalendarClock, CalendarDays } from "lucide-react";
 
@@ -19,8 +19,6 @@ export interface JobDetailsModalProps {
   onDelete?: () => void;
 }
 
-type DateInputValue = DateValue | 'custom';
-
 export function JobDetailsModal({
   open,
   onOpenChange,
@@ -30,14 +28,14 @@ export function JobDetailsModal({
 }: JobDetailsModalProps) {
   const [notes, setNotes] = useState(job.notes?.join('\n') || '');
   const [applicationUrl, setApplicationUrl] = useState(job.application_draft_url || '');
-  const [deadline, setDeadline] = useState<DateInputValue>(job.deadline || 'unknown');
-  const [startDate, setStartDate] = useState<DateInputValue>(job.start_date || 'unknown');
+  const [deadline, setDeadline] = useState(job.deadline || '');
+  const [startDate, setStartDate] = useState(job.start_date || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const { toast } = useToast();
 
-  const deadlineStatus = getDeadlineStatus(deadline === 'custom' ? null : deadline);
+  const deadlineStatus = getDeadlineStatus(deadline);
   const deadlineColors = {
     red: "bg-red-100 text-red-800",
     yellow: "bg-yellow-100 text-yellow-800",
@@ -118,6 +116,30 @@ export function JobDetailsModal({
     }
   };
 
+  const handleSaveStartDate = async () => {
+    setIsSaving(true);
+    try {
+      const startDateValue = startDate === 'unknown' ? null : startDate === 'custom' ? null : startDate;
+      const updatedJob = await updateJobStartDate(job.id, startDateValue);
+      if (onUpdate) {
+        onUpdate(updatedJob);
+      }
+      toast({
+        title: "Success",
+        description: "Start date saved successfully",
+      });
+    } catch (error) {
+      console.error('Error saving start date:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save start date",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleArchive = async () => {
     setIsArchiving(true);
     try {
@@ -187,11 +209,48 @@ export function JobDetailsModal({
               </div>
 
               <div className="flex-1">
+                <h3 className="font-semibold mb-2">Start Date</h3>
+                <div className="flex gap-2">
+                  <Select
+                    value={startDate === 'custom' ? 'custom' : (startDate || 'unknown')}
+                    onValueChange={(value) => setStartDate(value)}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unknown">Unknown</SelectItem>
+                      <SelectItem value="ASAP">ASAP</SelectItem>
+                      <SelectItem value="custom">Custom Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {startDate === "custom" && (
+                    <Input
+                      type="date"
+                      onChange={(e) => setStartDate(e.target.value || 'custom')}
+                    />
+                  )}
+                  <Button 
+                    onClick={handleSaveStartDate}
+                    disabled={isSaving}
+                  >
+                    Save
+                  </Button>
+                </div>
+                {startDate && startDate !== 'custom' && (
+                  <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-sm bg-gray-100 text-gray-800">
+                    <CalendarDays className="h-4 w-4" />
+                    <span>Starts {formatDate(startDate)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1">
                 <h3 className="font-semibold mb-2">Application Deadline</h3>
                 <div className="flex gap-2">
                   <Select
                     value={deadline === 'custom' ? 'custom' : (deadline || 'unknown')}
-                    onValueChange={(value) => setDeadline(value as DateInputValue)}
+                    onValueChange={(value) => setDeadline(value)}
                   >
                     <SelectTrigger className="w-[180px]">
                       <SelectValue />
@@ -221,43 +280,6 @@ export function JobDetailsModal({
                   }`}>
                     <CalendarClock className="h-4 w-4" />
                     <span>Due {formatDate(deadline)}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1">
-                <h3 className="font-semibold mb-2">Start Date</h3>
-                <div className="flex gap-2">
-                  <Select
-                    value={startDate === 'custom' ? 'custom' : (startDate || 'unknown')}
-                    onValueChange={(value) => setStartDate(value as DateInputValue)}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unknown">Unknown</SelectItem>
-                      <SelectItem value="ASAP">ASAP</SelectItem>
-                      <SelectItem value="custom">Custom Date</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {startDate === "custom" && (
-                    <Input
-                      type="date"
-                      onChange={(e) => setStartDate(e.target.value || 'custom')}
-                    />
-                  )}
-                  <Button 
-                    onClick={handleSaveDeadline}
-                    disabled={isSaving}
-                  >
-                    Save
-                  </Button>
-                </div>
-                {startDate && startDate !== 'custom' && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-sm bg-gray-100 text-gray-800">
-                    <CalendarDays className="h-4 w-4" />
-                    <span>Starts {formatDate(startDate)}</span>
                   </div>
                 )}
               </div>
