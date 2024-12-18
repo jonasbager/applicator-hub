@@ -21,3 +21,6 @@
 
 [functions]
   external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio", "zod"]
+  # Include OpenAI API key in function environment
+  [functions.environment]
+    OPENAI_API_KEY = "sk-xxxxxxxxxxxxxxxxxxxxxxxx"  # Replace with actual key in Netlify dashboard
