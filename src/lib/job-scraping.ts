@@ -7,7 +7,7 @@ export interface JobDetails {
   description: string;
   keywords: string[];
   url: string;
-  deadline?: string;
+  deadline?: string | null;  // Make it explicitly optional and allow null
 }
 
 // Use backend server in development, Netlify function in production
@@ -27,12 +27,16 @@ export async function scrapeJobDetails(url: string): Promise<JobDetails> {
       body: JSON.stringify({ url }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Failed to fetch job details: ${error.message || response.statusText}`);
-    }
-
     const data = await response.json();
+
+    if (!response.ok) {
+      // Log the full error response for debugging
+      console.error('Scraping error response:', data);
+      
+      // Extract error details from the response
+      const errorMessage = data.details || data.error || response.statusText;
+      throw new Error(`Failed to fetch job details: ${errorMessage}`);
+    }
 
     // Validate the response
     const jobDetails = data as JobDetails;
@@ -43,13 +47,23 @@ export async function scrapeJobDetails(url: string): Promise<JobDetails> {
       }
     }
 
-    return jobDetails;
+    // Ensure deadline is properly handled
+    return {
+      ...jobDetails,
+      deadline: jobDetails.deadline || null,  // Convert undefined to null
+    };
   } catch (error) {
     console.error('Error scraping job:', error);
+    
+    // Enhanced error logging
     if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       throw error;
     } else {
-      throw new Error('An unexpected error occurred');
+      console.error('Unknown error type:', error);
+      throw new Error('An unexpected error occurred while scraping the job details');
     }
   }
 }
@@ -71,7 +85,7 @@ export async function saveJob(jobDetails: JobDetails) {
           description: jobDetails.description,
           keywords: jobDetails.keywords,
           url: jobDetails.url,
-          deadline: jobDetails.deadline || null,
+          deadline: jobDetails.deadline || null,  // Ensure null if not provided
           status: 'Not Started',
           notes: [],
           application_draft_url: '',
