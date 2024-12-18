@@ -1,14 +1,23 @@
 import { useState } from "react";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Job, getDeadlineStatus, formatDate } from "../types/job";
+import { Job, getDeadlineStatus, DateValue } from "../types/job";
 import { JobDetailsModal } from "./JobDetailsModal";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, CalendarDays } from "lucide-react";
 
 export interface JobCardProps {
   job: Job;
   onUpdate?: (updatedJob: Job) => void;
   onDelete?: () => void;
+}
+
+function formatCardDate(date?: DateValue): string {
+  if (!date) return 'Unknown';
+  if (date === 'ASAP') return 'ASAP';
+  return new Date(date).toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric'
+  });
 }
 
 export function JobCard({ job, onUpdate, onDelete }: JobCardProps) {
@@ -37,19 +46,9 @@ export function JobCard({ job, onUpdate, onDelete }: JobCardProps) {
       >
         <CardContent className="p-4">
           <div className="space-y-2">
-            <div className="flex justify-between items-start gap-4">
-              <div className="min-w-0 flex-1">
-                <h3 className="font-semibold truncate">{job.position}</h3>
-                <p className="text-sm text-muted-foreground truncate">{job.company}</p>
-              </div>
-              {job.deadline && (
-                <div 
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs whitespace-nowrap ${deadlineColors[deadlineStatus]}`}
-                >
-                  <CalendarClock className="h-3.5 w-3.5" />
-                  <span>{formatDate(job.deadline)}</span>
-                </div>
-              )}
+            <div className="min-w-0">
+              <h3 className="font-semibold truncate">{job.position}</h3>
+              <p className="text-sm text-muted-foreground truncate">{job.company}</p>
             </div>
             <div className="flex flex-wrap gap-1">
               {job.keywords?.slice(0, 3).map((keyword, index) => (
@@ -70,17 +69,35 @@ export function JobCard({ job, onUpdate, onDelete }: JobCardProps) {
                 </Badge>
               )}
             </div>
-            <div className="flex gap-3 text-sm text-muted-foreground">
-              {job.notes?.length > 0 && (
-                <div>
-                  {job.notes.length} note{job.notes.length !== 1 ? 's' : ''}
-                </div>
-              )}
-              {job.application_draft_url && (
-                <div className="text-blue-500">
-                  Has application document
-                </div>
-              )}
+            <div className="flex flex-col gap-2 text-sm">
+              <div className="flex gap-3 text-muted-foreground">
+                {job.notes?.length > 0 && (
+                  <div>
+                    {job.notes.length} note{job.notes.length !== 1 ? 's' : ''}
+                  </div>
+                )}
+                {job.application_draft_url && (
+                  <div className="text-blue-500">
+                    Has application document
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {job.start_date && (
+                  <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs whitespace-nowrap bg-gray-100 text-gray-800 border-gray-200">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    <span>Starts {formatCardDate(job.start_date)}</span>
+                  </div>
+                )}
+                {job.deadline && (
+                  <div 
+                    className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs whitespace-nowrap ${deadlineColors[deadlineStatus]}`}
+                  >
+                    <CalendarClock className="h-3.5 w-3.5" />
+                    <span>Due {formatCardDate(job.deadline)}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
