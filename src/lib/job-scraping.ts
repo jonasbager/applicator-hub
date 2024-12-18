@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Job } from '../types/job';
+import { Job, DateValue } from '../types/job';
 
 export interface JobDetails {
   position: string;
@@ -7,7 +7,8 @@ export interface JobDetails {
   description: string;
   keywords: string[];
   url: string;
-  deadline?: string | null;  // Make it explicitly optional and allow null
+  deadline?: DateValue;
+  start_date?: DateValue;
 }
 
 // Use backend server in development, Netlify function in production
@@ -47,10 +48,11 @@ export async function scrapeJobDetails(url: string): Promise<JobDetails> {
       }
     }
 
-    // Ensure deadline is properly handled
+    // Ensure deadline and start_date are properly handled
     return {
       ...jobDetails,
-      deadline: jobDetails.deadline || null,  // Convert undefined to null
+      deadline: jobDetails.deadline || null,
+      start_date: jobDetails.start_date || null,
     };
   } catch (error) {
     console.error('Error scraping job:', error);
@@ -85,7 +87,8 @@ export async function saveJob(jobDetails: JobDetails) {
           description: jobDetails.description,
           keywords: jobDetails.keywords,
           url: jobDetails.url,
-          deadline: jobDetails.deadline || null,  // Ensure null if not provided
+          deadline: jobDetails.deadline || null,
+          start_date: jobDetails.start_date || null,
           status: 'Not Started',
           notes: [],
           application_draft_url: '',
@@ -139,7 +142,7 @@ export async function updateJobStatus(jobId: string, status: string) {
   }
 }
 
-export async function updateJobDeadline(jobId: string, deadline: string | null) {
+export async function updateJobDeadline(jobId: string, deadline: DateValue) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -165,6 +168,36 @@ export async function updateJobDeadline(jobId: string, deadline: string | null) 
       throw error;
     } else {
       throw new Error('Failed to update job deadline');
+    }
+  }
+}
+
+export async function updateJobStartDate(jobId: string, start_date: DateValue) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ start_date })
+      .eq('id', jobId)
+      .eq('user_id', session.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error updating job start date:', error);
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('Failed to update job start date');
     }
   }
 }
@@ -284,7 +317,6 @@ export async function getJobs() {
   }
 }
 
-// New functions for archive functionality
 export async function getArchivedJobs() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -321,7 +353,6 @@ export async function archiveJob(jobId: string) {
       throw new Error('No active session');
     }
 
-    // Simple update query instead of function call
     const { data, error } = await supabase
       .from('jobs')
       .update({ archived: true })

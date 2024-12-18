@@ -5,11 +5,11 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
-import { Job, getDeadlineStatus } from "../types/job";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Job, getDeadlineStatus, formatDate, DateValue } from "../types/job";
 import { updateJobNotes, updateJobApplicationUrl, archiveJob, updateJobDeadline } from "../lib/job-scraping";
 import { useToast } from "./ui/use-toast";
-import { Archive, CalendarClock } from "lucide-react";
-import { format } from "date-fns";
+import { Archive, CalendarClock, CalendarDays } from "lucide-react";
 
 export interface JobDetailsModalProps {
   open: boolean;
@@ -18,6 +18,8 @@ export interface JobDetailsModalProps {
   onUpdate?: (updatedJob: Job) => void;
   onDelete?: () => void;
 }
+
+type DateInputValue = DateValue | 'custom';
 
 export function JobDetailsModal({
   open,
@@ -28,17 +30,20 @@ export function JobDetailsModal({
 }: JobDetailsModalProps) {
   const [notes, setNotes] = useState(job.notes?.join('\n') || '');
   const [applicationUrl, setApplicationUrl] = useState(job.application_draft_url || '');
-  const [deadline, setDeadline] = useState(job.deadline || '');
+  const [deadline, setDeadline] = useState<DateInputValue>(job.deadline || 'unknown');
+  const [startDate, setStartDate] = useState<DateInputValue>(job.start_date || 'unknown');
   const [isSaving, setIsSaving] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const { toast } = useToast();
 
-  const deadlineStatus = getDeadlineStatus(deadline);
+  const deadlineStatus = getDeadlineStatus(deadline === 'custom' ? null : deadline);
   const deadlineColors = {
     red: "bg-red-100 text-red-800",
     yellow: "bg-yellow-100 text-yellow-800",
     green: "bg-green-100 text-green-800",
+    asap: "bg-red-100 text-red-800",
+    unknown: "bg-gray-100 text-gray-800"
   };
 
   const handleSaveNotes = async () => {
@@ -92,7 +97,8 @@ export function JobDetailsModal({
   const handleSaveDeadline = async () => {
     setIsSaving(true);
     try {
-      const updatedJob = await updateJobDeadline(job.id, deadline || null);
+      const deadlineValue = deadline === 'unknown' ? null : deadline === 'custom' ? null : deadline;
+      const updatedJob = await updateJobDeadline(job.id, deadlineValue);
       if (onUpdate) {
         onUpdate(updatedJob);
       }
@@ -183,11 +189,25 @@ export function JobDetailsModal({
               <div className="flex-1">
                 <h3 className="font-semibold mb-2">Application Deadline</h3>
                 <div className="flex gap-2">
-                  <Input
-                    type="date"
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                  />
+                  <Select
+                    value={deadline === 'custom' ? 'custom' : (deadline || 'unknown')}
+                    onValueChange={(value) => setDeadline(value as DateInputValue)}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unknown">Unknown</SelectItem>
+                      <SelectItem value="ASAP">ASAP</SelectItem>
+                      <SelectItem value="custom">Custom Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {deadline === "custom" && (
+                    <Input
+                      type="date"
+                      onChange={(e) => setDeadline(e.target.value || 'custom')}
+                    />
+                  )}
                   <Button 
                     onClick={handleSaveDeadline}
                     disabled={isSaving}
@@ -195,12 +215,49 @@ export function JobDetailsModal({
                     Save
                   </Button>
                 </div>
-                {deadline && (
+                {deadline && deadline !== 'custom' && (
                   <div className={`mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-sm ${
-                    deadlineStatus ? deadlineColors[deadlineStatus] : "bg-gray-100 text-gray-800"
+                    deadlineColors[deadlineStatus]
                   }`}>
                     <CalendarClock className="h-4 w-4" />
-                    <span>Due {format(new Date(deadline), 'MMM d, yyyy')}</span>
+                    <span>Due {formatDate(deadline)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1">
+                <h3 className="font-semibold mb-2">Start Date</h3>
+                <div className="flex gap-2">
+                  <Select
+                    value={startDate === 'custom' ? 'custom' : (startDate || 'unknown')}
+                    onValueChange={(value) => setStartDate(value as DateInputValue)}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unknown">Unknown</SelectItem>
+                      <SelectItem value="ASAP">ASAP</SelectItem>
+                      <SelectItem value="custom">Custom Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {startDate === "custom" && (
+                    <Input
+                      type="date"
+                      onChange={(e) => setStartDate(e.target.value || 'custom')}
+                    />
+                  )}
+                  <Button 
+                    onClick={handleSaveDeadline}
+                    disabled={isSaving}
+                  >
+                    Save
+                  </Button>
+                </div>
+                {startDate && startDate !== 'custom' && (
+                  <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-sm bg-gray-100 text-gray-800">
+                    <CalendarDays className="h-4 w-4" />
+                    <span>Starts {formatDate(startDate)}</span>
                   </div>
                 )}
               </div>

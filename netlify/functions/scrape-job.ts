@@ -12,9 +12,9 @@ const jobSchema = z.object({
   description: z.string(),
   keywords: z.array(z.string()),
   url: z.string().url(),
-}).and(z.object({
-  deadline: z.string().optional(),
-}).partial());
+  deadline: z.union([z.string(), z.literal('ASAP')]).optional(),
+  start_date: z.union([z.string(), z.literal('ASAP')]).optional(),
+});
 
 function trimContent(content: string): string {
   // Remove script and style tags content
@@ -108,7 +108,14 @@ export const handler: Handler = async (event) => {
       - "description": A brief one-sentence summary
       - "keywords": An array of 5-10 key skills, technologies, or requirements
       - "url": The provided URL
-      - "deadline": (Optional) If found, the application deadline date in ISO format (YYYY-MM-DD). Look for phrases like "apply by", "deadline", "closing date", etc. Only include if a specific date is mentioned.
+      - "deadline": (Optional) The application deadline. If a specific date is mentioned (like "apply by March 20"), use ISO format (YYYY-MM-DD). If it says "as soon as possible", "immediately", or similar urgency, use "ASAP". Omit if no deadline is mentioned.
+      - "start_date": (Optional) The job start date. If a specific date is mentioned, use ISO format (YYYY-MM-DD). If it says "immediate start", "start ASAP", or similar, use "ASAP". Omit if no start date is mentioned.
+
+      Look for phrases like:
+      - Deadline/Apply by/Applications close
+      - Start date/Starting/Commence
+      - Immediate start/Start ASAP
+      - Urgent/Immediate opening
 
       Make sure to follow the exact format specified in the instructions below:
 
@@ -138,11 +145,10 @@ export const handler: Handler = async (event) => {
       // Parse the response into our schema
       const parsedJob = await parser.parse(responseText);
 
-      // Add the original URL if not present and ensure deadline is properly handled
+      // Add the original URL if not present
       const jobDetails = {
         ...parsedJob,
         url: parsedJob.url || url,
-        deadline: parsedJob.deadline || null, // Ensure deadline is null if not found
       };
 
       return {

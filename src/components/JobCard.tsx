@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Job, getDeadlineStatus } from "../types/job";
+import { Job, getDeadlineStatus, formatDate } from "../types/job";
 import { JobDetailsModal } from "./JobDetailsModal";
 import { CalendarClock } from "lucide-react";
-import { format } from "date-fns";
 
 export interface JobCardProps {
   job: Job;
@@ -26,6 +25,8 @@ export function JobCard({ job, onUpdate, onDelete }: JobCardProps) {
     red: "bg-red-100 text-red-800 border-red-200",
     yellow: "bg-yellow-100 text-yellow-800 border-yellow-200",
     green: "bg-green-100 text-green-800 border-green-200",
+    asap: "bg-red-100 text-red-800 border-red-200",
+    unknown: "bg-gray-100 text-gray-800 border-gray-200"
   };
 
   return (
@@ -36,19 +37,17 @@ export function JobCard({ job, onUpdate, onDelete }: JobCardProps) {
       >
         <CardContent className="p-4">
           <div className="space-y-2">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-semibold">{job.position}</h3>
-                <p className="text-sm text-muted-foreground">{job.company}</p>
+            <div className="flex justify-between items-start gap-4">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold truncate">{job.position}</h3>
+                <p className="text-sm text-muted-foreground truncate">{job.company}</p>
               </div>
               {job.deadline && (
                 <div 
-                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs ${
-                    deadlineStatus ? deadlineColors[deadlineStatus] : "bg-gray-100 text-gray-800 border-gray-200"
-                  }`}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs whitespace-nowrap ${deadlineColors[deadlineStatus]}`}
                 >
                   <CalendarClock className="h-3.5 w-3.5" />
-                  <span>{format(new Date(job.deadline), 'MMM d')}</span>
+                  <span>{formatDate(job.deadline)}</span>
                 </div>
               )}
             </div>

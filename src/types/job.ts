@@ -7,7 +7,8 @@ export const JOB_STATUS_ORDER: JobStatus[] = [
   'Interview'
 ];
 
-export type DeadlineStatus = 'green' | 'yellow' | 'red' | null;
+export type DateValue = string | 'ASAP' | null;  // string for ISO dates, 'ASAP', or null for unknown
+export type DeadlineStatus = 'green' | 'yellow' | 'red' | 'asap' | 'unknown';
 
 export interface Job {
   id: string;
@@ -20,13 +21,15 @@ export interface Job {
   status: JobStatus;
   notes: string[];
   application_draft_url?: string;
-  deadline?: string;  // ISO date string
+  deadline?: DateValue;
+  start_date?: DateValue;
   created_at: string;
   updated_at: string;
 }
 
-export function getDeadlineStatus(deadline?: string): DeadlineStatus {
-  if (!deadline) return null;
+export function getDeadlineStatus(deadline?: DateValue): DeadlineStatus {
+  if (!deadline) return 'unknown';
+  if (deadline === 'ASAP') return 'asap';
   
   const now = new Date();
   const deadlineDate = new Date(deadline);
@@ -35,4 +38,14 @@ export function getDeadlineStatus(deadline?: string): DeadlineStatus {
   if (daysUntilDeadline <= 2) return 'red';
   if (daysUntilDeadline <= 7) return 'yellow';
   return 'green';
+}
+
+export function formatDate(date?: DateValue): string {
+  if (!date) return 'Unknown';
+  if (date === 'ASAP') return 'ASAP';
+  return new Date(date).toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    year: 'numeric'
+  });
 }
