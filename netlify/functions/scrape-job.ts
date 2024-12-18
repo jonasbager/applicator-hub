@@ -12,7 +12,6 @@ const jobSchema = z.object({
   description: z.string(),
   keywords: z.array(z.string()),
   url: z.string().url(),
-  deadline: z.string().optional().describe('ISO date string of the application deadline, if found'),
 });
 
 function trimContent(content: string): string {
@@ -57,10 +56,17 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    // Check for OpenAI API key
+    // Check OpenAI API key first
     if (!process.env.OPENAI_API_KEY) {
-      console.error('OPENAI_API_KEY is not set');
-      throw new Error('OpenAI API key is not configured');
+      console.error('OpenAI API key is missing');
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Configuration error',
+          details: 'OpenAI API key is not configured'
+        }),
+      };
     }
 
     const { url } = JSON.parse(event.body || '{}');
@@ -73,15 +79,20 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    console.log('Starting job scraping for URL:', url);
+    // Load webpage content first to fail fast if URL is invalid
+    console.log('Loading webpage content from:', url);
+    const loader = new CheerioWebBaseLoader(url);
+    const docs = await loader.load();
+    const htmlContent = trimContent(docs[0].pageContent);
+    console.log('Webpage content loaded, length:', htmlContent.length);
 
-    // Initialize OpenAI
+    // Initialize OpenAI with explicit configuration
+    console.log('Initializing OpenAI...');
     const model = new ChatOpenAI({
       modelName: 'gpt-3.5-turbo',
       temperature: 0,
+      openAIApiKey: process.env.OPENAI_API_KEY,
     });
-
-    console.log('OpenAI model initialized');
 
     // Create a parser for structured output
     const parser = StructuredOutputParser.fromZodSchema(jobSchema);
@@ -95,7 +106,6 @@ export const handler: Handler = async (event) => {
       - "description": A brief one-sentence summary
       - "keywords": An array of 5-10 key skills, technologies, or requirements
       - "url": The provided URL
-      - "deadline": If found, the application deadline date in ISO format (YYYY-MM-DD). Look for phrases like "apply by", "deadline", "closing date", etc. Only include if a specific date is mentioned.
 
       Make sure to follow the exact format specified in the instructions below:
 
@@ -108,29 +118,18 @@ export const handler: Handler = async (event) => {
       },
     });
 
-    console.log('Loading webpage content...');
-
-    // Load webpage content
-    const loader = new CheerioWebBaseLoader(url);
-    const docs = await loader.load();
-    const htmlContent = trimContent(docs[0].pageContent);
-
-    console.log('Webpage content loaded, length:', htmlContent.length);
-
     // Format the prompt with the HTML content
     const prompt = await promptTemplate.format({
       html_content: htmlContent,
     });
 
     console.log('Sending request to OpenAI...');
-
-    // Get structured output from OpenAI
     const response = await model.invoke(prompt);
-    
+    console.log('Received response from OpenAI');
+
     // Convert the response to a string
     const responseText = response.content.toString();
-
-    console.log('OpenAI Response:', responseText);
+    console.log('OpenAI response:', responseText);
 
     // Parse the response into our schema
     const parsedJob = await parser.parse(responseText);
@@ -141,27 +140,49 @@ export const handler: Handler = async (event) => {
       url: parsedJob.url || url,
     };
 
-    console.log('Parsed Job Details:', jobDetails);
-
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify(jobDetails),
     };
   } catch (error) {
-    console.error('Detailed error:', error);
-    if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      type: error.constructor.name,
+    });
+
+    // Check for specific error types
+    if (error.message?.includes('API key')) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'OpenAI API Error',
+          details: 'Invalid or missing API key'
+        }),
+      };
     }
+
+    if (error.message?.includes('fetch')) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Network Error',
+          details: 'Failed to fetch webpage content'
+        }),
+      };
+    }
+
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         error: 'Failed to scrape job details',
-        details: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
+        details: error.message,
+        type: error.constructor.name
       }),
     };
   }
