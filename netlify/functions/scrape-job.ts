@@ -12,6 +12,7 @@ const jobSchema = z.object({
   description: z.string(),
   keywords: z.array(z.string()),
   url: z.string().url(),
+  deadline: z.string().optional(),
 });
 
 function trimContent(content: string): string {
@@ -106,6 +107,7 @@ export const handler: Handler = async (event) => {
       - "description": A brief one-sentence summary
       - "keywords": An array of 5-10 key skills, technologies, or requirements
       - "url": The provided URL
+      - "deadline": If found, the application deadline date in ISO format (YYYY-MM-DD). Look for phrases like "apply by", "deadline", "closing date", etc. Only include if a specific date is mentioned.
 
       Make sure to follow the exact format specified in the instructions below:
 
