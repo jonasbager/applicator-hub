@@ -20,6 +20,12 @@ function formatCardDate(date?: DateValue): string {
   });
 }
 
+function getStartDateStyle(date?: DateValue): string {
+  if (!date) return "bg-gray-100 text-gray-800 border-gray-200";
+  if (date === 'ASAP') return "bg-red-100 text-red-800 border-red-200";
+  return "bg-blue-100 text-blue-800 border-blue-200";
+}
+
 export function JobCard({ job, onUpdate, onDelete }: JobCardProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
@@ -82,21 +88,19 @@ export function JobCard({ job, onUpdate, onDelete }: JobCardProps) {
                   </div>
                 )}
               </div>
-              <div className="flex gap-2">
-                {job.start_date && (
-                  <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs whitespace-nowrap bg-gray-100 text-gray-800 border-gray-200">
-                    <CalendarDays className="h-3.5 w-3.5" />
-                    <span>Starts {formatCardDate(job.start_date)}</span>
-                  </div>
-                )}
-                {job.deadline && (
-                  <div 
-                    className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs whitespace-nowrap ${deadlineColors[deadlineStatus]}`}
-                  >
-                    <CalendarClock className="h-3.5 w-3.5" />
-                    <span>Due {formatCardDate(job.deadline)}</span>
-                  </div>
-                )}
+              <div className="flex flex-wrap gap-2">
+                <div 
+                  className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs whitespace-nowrap ${getStartDateStyle(job.start_date)}`}
+                >
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  <span>Starts {formatCardDate(job.start_date)}</span>
+                </div>
+                <div 
+                  className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs whitespace-nowrap ${deadlineColors[deadlineStatus]}`}
+                >
+                  <CalendarClock className="h-3.5 w-3.5" />
+                  <span>Due {formatCardDate(job.deadline)}</span>
+                </div>
               </div>
             </div>
           </div>

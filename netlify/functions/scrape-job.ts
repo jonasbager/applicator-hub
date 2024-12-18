@@ -27,8 +27,8 @@ function trimContent(content: string): string {
   // Remove extra whitespace
   content = content.replace(/\s+/g, ' ').trim();
   
-  // Take first 4000 characters (roughly 1000 tokens)
-  return content.slice(0, 4000);
+  // Take first 8000 characters (roughly 2000 tokens) to capture more content
+  return content.slice(0, 8000);
 }
 
 export const handler: Handler = async (event) => {
@@ -106,16 +106,26 @@ export const handler: Handler = async (event) => {
       - "position": The job position or title
       - "company": The company name
       - "description": A brief one-sentence summary
-      - "keywords": An array of 5-10 key skills, technologies, or requirements
+      - "keywords": An array of 8-12 key skills, technologies, requirements, or qualifications. Look for:
+          * Required skills and competencies
+          * Technical requirements
+          * Years of experience requirements
+          * Education requirements
+          * Language requirements
+          * Industry knowledge
+          * Management/leadership requirements
       - "url": The provided URL
-      - "deadline": (Optional) The application deadline. If a specific date is mentioned (like "apply by March 20"), use ISO format (YYYY-MM-DD). If it says "as soon as possible", "immediately", or similar urgency, use "ASAP". Omit if no deadline is mentioned.
-      - "start_date": (Optional) The job start date. If a specific date is mentioned, use ISO format (YYYY-MM-DD). If it says "immediate start", "start ASAP", or similar, use "ASAP". Omit if no start date is mentioned.
+      - "deadline": (Optional) The application deadline. Look for:
+          * Explicit deadlines like "apply by March 20"
+          * Urgency indicators like "as soon as possible", "immediately", "urgent opening" (use "ASAP")
+          * If a specific date is found, use ISO format (YYYY-MM-DD)
+      - "start_date": (Optional) The job start date. Look for:
+          * Explicit start dates like "starting April 1"
+          * Phrases like "start date", "commencement date", "position starts"
+          * Immediate start indicators like "start immediately", "start ASAP" (use "ASAP")
+          * If a specific date is found, use ISO format (YYYY-MM-DD)
 
-      Look for phrases like:
-      - Deadline/Apply by/Applications close
-      - Start date/Starting/Commence
-      - Immediate start/Start ASAP
-      - Urgent/Immediate opening
+      Be thorough in extracting keywords and dates. Look through the entire content for relevant information.
 
       Make sure to follow the exact format specified in the instructions below:
 
