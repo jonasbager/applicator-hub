@@ -7,6 +7,7 @@ export interface JobDetails {
   description: string;
   keywords: string[];
   url: string;
+  deadline?: string;
 }
 
 // Use backend server in development, Netlify function in production
@@ -70,6 +71,7 @@ export async function saveJob(jobDetails: JobDetails) {
           description: jobDetails.description,
           keywords: jobDetails.keywords,
           url: jobDetails.url,
+          deadline: jobDetails.deadline || null,
           status: 'Not Started',
           notes: [],
           application_draft_url: '',
@@ -119,6 +121,36 @@ export async function updateJobStatus(jobId: string, status: string) {
       throw error;
     } else {
       throw new Error('Failed to update job status');
+    }
+  }
+}
+
+export async function updateJobDeadline(jobId: string, deadline: string | null) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ deadline })
+      .eq('id', jobId)
+      .eq('user_id', session.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error updating job deadline:', error);
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('Failed to update job deadline');
     }
   }
 }

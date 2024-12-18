@@ -5,10 +5,11 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
-import { Job } from "../types/job";
-import { updateJobNotes, updateJobApplicationUrl, archiveJob } from "../lib/job-scraping";
+import { Job, getDeadlineStatus } from "../types/job";
+import { updateJobNotes, updateJobApplicationUrl, archiveJob, updateJobDeadline } from "../lib/job-scraping";
 import { useToast } from "./ui/use-toast";
-import { Archive } from "lucide-react";
+import { Archive, CalendarClock } from "lucide-react";
+import { format } from "date-fns";
 
 export interface JobDetailsModalProps {
   open: boolean;
@@ -27,10 +28,18 @@ export function JobDetailsModal({
 }: JobDetailsModalProps) {
   const [notes, setNotes] = useState(job.notes?.join('\n') || '');
   const [applicationUrl, setApplicationUrl] = useState(job.application_draft_url || '');
+  const [deadline, setDeadline] = useState(job.deadline || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const { toast } = useToast();
+
+  const deadlineStatus = getDeadlineStatus(deadline);
+  const deadlineColors = {
+    red: "bg-red-100 text-red-800",
+    yellow: "bg-yellow-100 text-yellow-800",
+    green: "bg-green-100 text-green-800",
+  };
 
   const handleSaveNotes = async () => {
     setIsSaving(true);
@@ -74,6 +83,29 @@ export function JobDetailsModal({
         variant: "destructive",
         title: "Error",
         description: "Failed to save application URL",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveDeadline = async () => {
+    setIsSaving(true);
+    try {
+      const updatedJob = await updateJobDeadline(job.id, deadline || null);
+      if (onUpdate) {
+        onUpdate(updatedJob);
+      }
+      toast({
+        title: "Success",
+        description: "Deadline saved successfully",
+      });
+    } catch (error) {
+      console.error('Error saving deadline:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save deadline",
       });
     } finally {
       setIsSaving(false);
@@ -140,11 +172,38 @@ export function JobDetailsModal({
               </p>
             </div>
 
-            <div>
-              <h3 className="font-semibold mb-2">Status</h3>
-              <Badge variant="outline" className="text-sm">
-                {job.status}
-              </Badge>
+            <div className="flex justify-between items-start gap-4">
+              <div className="flex-1">
+                <h3 className="font-semibold mb-2">Status</h3>
+                <Badge variant="outline" className="text-sm">
+                  {job.status}
+                </Badge>
+              </div>
+
+              <div className="flex-1">
+                <h3 className="font-semibold mb-2">Application Deadline</h3>
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    value={deadline}
+                    onChange={(e) => setDeadline(e.target.value)}
+                  />
+                  <Button 
+                    onClick={handleSaveDeadline}
+                    disabled={isSaving}
+                  >
+                    Save
+                  </Button>
+                </div>
+                {deadline && (
+                  <div className={`mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-sm ${
+                    deadlineStatus ? deadlineColors[deadlineStatus] : "bg-gray-100 text-gray-800"
+                  }`}>
+                    <CalendarClock className="h-4 w-4" />
+                    <span>Due {format(new Date(deadline), 'MMM d, yyyy')}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
