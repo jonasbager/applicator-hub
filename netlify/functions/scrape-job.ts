@@ -57,6 +57,12 @@ export const handler: Handler = async (event) => {
   }
 
   try {
+    // Check for OpenAI API key
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('OPENAI_API_KEY is not set');
+      throw new Error('OpenAI API key is not configured');
+    }
+
     const { url } = JSON.parse(event.body || '{}');
 
     if (!url) {
@@ -67,11 +73,15 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    console.log('Starting job scraping for URL:', url);
+
     // Initialize OpenAI
     const model = new ChatOpenAI({
       modelName: 'gpt-3.5-turbo',
       temperature: 0,
     });
+
+    console.log('OpenAI model initialized');
 
     // Create a parser for structured output
     const parser = StructuredOutputParser.fromZodSchema(jobSchema);
@@ -98,15 +108,21 @@ export const handler: Handler = async (event) => {
       },
     });
 
+    console.log('Loading webpage content...');
+
     // Load webpage content
     const loader = new CheerioWebBaseLoader(url);
     const docs = await loader.load();
     const htmlContent = trimContent(docs[0].pageContent);
 
+    console.log('Webpage content loaded, length:', htmlContent.length);
+
     // Format the prompt with the HTML content
     const prompt = await promptTemplate.format({
       html_content: htmlContent,
     });
+
+    console.log('Sending request to OpenAI...');
 
     // Get structured output from OpenAI
     const response = await model.invoke(prompt);
@@ -133,13 +149,19 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify(jobDetails),
     };
   } catch (error) {
-    console.error('Error scraping job:', error);
+    console.error('Detailed error:', error);
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         error: 'Failed to scrape job details',
         details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
       }),
     };
   }
