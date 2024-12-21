@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }));
 
           // Only redirect if we're on the landing page and not in a recovery flow
-          if (session?.user && location.pathname === '/' && !location.search.includes('type=recovery')) {
+          if (session?.user && location.pathname === '/' && !location.search.includes('type=recovery') && !location.hash.includes('type=recovery')) {
             navigate('/dashboard');
           }
         }
@@ -80,7 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Check if this is a recovery flow
         const params = new URLSearchParams(window.location.search);
-        const type = params.get('type');
+        const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+        const type = params.get('type') || hashParams.get('type');
         
         if (type === 'recovery') {
           console.log('Recovery flow detected, redirecting to reset password');
@@ -120,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }));
           // Only navigate to dashboard if we're on the landing page
           // and not in a recovery flow
-          if (location.pathname === '/' && !location.search.includes('type=recovery')) {
+          if (location.pathname === '/' && !location.search.includes('type=recovery') && !location.hash.includes('type=recovery')) {
             navigate('/dashboard');
           }
         }
@@ -140,7 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [toast, navigate, location.pathname, location.search]);
+  }, [toast, navigate, location.pathname, location.search, location.hash]);
 
   const handleAuthError = (error: AuthError) => {
     console.error('Auth error:', error);
