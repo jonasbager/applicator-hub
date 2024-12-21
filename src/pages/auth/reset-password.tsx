@@ -46,6 +46,15 @@ export default function ResetPassword() {
           return;
         }
 
+        // Check if this is a recovery session
+        const params = new URLSearchParams(window.location.search);
+        const type = params.get('type');
+        if (type !== 'recovery') {
+          console.error('Not a recovery session');
+          navigate('/auth/login', { replace: true });
+          return;
+        }
+
         console.log('Recovery session verified for user:', user.email);
 
         toast({

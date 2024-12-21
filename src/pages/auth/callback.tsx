@@ -15,15 +15,16 @@ export default function AuthCallback() {
         const type = params.get('type');
         const error = params.get('error');
         const error_description = params.get('error_description');
-        const token = params.get('token');
+        const code = params.get('code');
 
         // Log URL parameters for debugging
         console.log('URL params:', {
           type,
           error,
           error_description,
-          token,
+          code,
           search: window.location.search,
+          hash: window.location.hash,
           href: window.location.href
         });
 
@@ -39,36 +40,7 @@ export default function AuthCallback() {
           return;
         }
 
-        // Handle recovery flow
-        if (type === 'recovery' && token) {
-          console.log('Recovery flow detected');
-          
-          // Exchange the token for a session
-          const { data, error: verifyError } = await supabase.auth.verifyOtp({
-            token_hash: token,
-            type: 'recovery'
-          });
-
-          if (verifyError) {
-            console.error('Error verifying recovery token:', verifyError);
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: "Invalid or expired recovery link. Please request a new one.",
-            });
-            navigate('/auth/login', { replace: true });
-            return;
-          }
-
-          console.log('Recovery token verified:', data);
-
-          // Redirect to reset password page
-          navigate('/auth/reset-password', { replace: true });
-          return;
-        }
-
-        // Handle normal sign in flow (email confirmation, OAuth, etc.)
-        const code = params.get('code');
+        // Handle code exchange first (this includes recovery flow)
         if (code) {
           console.log('Found auth code, exchanging for session...');
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -78,25 +50,41 @@ export default function AuthCallback() {
           }
           console.log('Successfully exchanged code for session:', data);
 
-          // Verify we have a session before redirecting
+          // Get the session to check if it's a recovery flow
           const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            console.log('Session verified, redirecting to dashboard');
-            toast({
-              title: "Successfully signed in",
-              description: "Welcome back!",
-            });
-            navigate('/dashboard', { replace: true });
-          } else {
+          if (!session) {
             console.error('No session found after exchange');
             throw new Error('Failed to establish session');
           }
+
+          // Check if this is a recovery flow
+          if (type === 'recovery') {
+            console.log('Recovery flow detected, redirecting to reset password');
+            navigate('/auth/reset-password', { replace: true });
+            return;
+          }
+
+          // Normal sign in flow
+          console.log('Session verified, redirecting to dashboard');
+          toast({
+            title: "Successfully signed in",
+            description: "Welcome back!",
+          });
+          navigate('/dashboard', { replace: true });
           return;
         }
 
         // If we get here, check if we already have a valid session
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
+          // Check if this is a recovery flow
+          if (type === 'recovery') {
+            console.log('Recovery flow detected, redirecting to reset password');
+            navigate('/auth/reset-password', { replace: true });
+            return;
+          }
+
+          // Normal session
           console.log('Found existing session, redirecting to dashboard');
           navigate('/dashboard', { replace: true });
           return;

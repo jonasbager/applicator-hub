@@ -205,7 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Send reset password email with callback URL
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${SITE_URL}/auth/callback`,
+        redirectTo: `${SITE_URL}/auth/callback?type=recovery`,
       });
       
       if (error) throw error;
