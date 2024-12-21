@@ -48,7 +48,7 @@ export default function ResetPassword() {
         }
 
         // Verify this is a recovery session
-        if (!user.user_metadata?.passwordResetRedirected) {
+        if (!user.user_metadata?.passwordResetRedirected || !user.user_metadata?.recoveryFlow) {
           console.error('Not a recovery session');
           navigate('/auth/login', { replace: true });
           return;
@@ -80,10 +80,13 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      // Update the password and clear the flag
+      // Update the password and clear both flags
       const { error: updateError } = await supabase.auth.updateUser({
         password: password,
-        data: { passwordResetRedirected: null }
+        data: { 
+          passwordResetRedirected: null,
+          recoveryFlow: null
+        }
       });
 
       if (updateError) throw updateError;
