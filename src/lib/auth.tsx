@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }));
 
           // Only redirect if we're on the landing page and not in a recovery flow
-          if (session?.user && location.pathname === '/' && !location.hash.includes('type=recovery')) {
+          if (session?.user && location.pathname === '/' && !location.search.includes('type=recovery')) {
             navigate('/dashboard');
           }
         }
@@ -79,9 +79,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }));
         
         // Check if this is a recovery flow
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.user_metadata?.reauthentication_token || user?.user_metadata?.passwordResetRedirected) {
-          console.log('Recovery session detected, redirecting to reset password');
+        const params = new URLSearchParams(window.location.search);
+        const type = params.get('type');
+        
+        if (type === 'recovery') {
+          console.log('Recovery flow detected, redirecting to reset password');
           navigate('/auth/reset-password', { replace: true });
           return;
         }
@@ -118,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }));
           // Only navigate to dashboard if we're on the landing page
           // and not in a recovery flow
-          if (location.pathname === '/' && !location.hash.includes('type=recovery')) {
+          if (location.pathname === '/' && !location.search.includes('type=recovery')) {
             navigate('/dashboard');
           }
         }
@@ -138,7 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [toast, navigate, location.pathname, location.hash]);
+  }, [toast, navigate, location.pathname, location.search]);
 
   const handleAuthError = (error: AuthError) => {
     console.error('Auth error:', error);
