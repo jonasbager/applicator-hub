@@ -204,7 +204,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
       // According to Supabase docs, we need to let Supabase handle the redirect
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      // but we need to specify the type parameter
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${SITE_URL}/auth/callback?type=recovery`,
+      });
       
       if (error) throw error;
 
