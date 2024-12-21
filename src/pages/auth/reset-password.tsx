@@ -31,60 +31,22 @@ export default function ResetPassword() {
           return;
         }
 
-        // If no session, check URL for recovery token
+        // Verify we have a session
         if (!session) {
-          const fragment = window.location.hash;
-          if (!fragment) {
-            console.error('No recovery session or token found');
-            navigate('/auth/login', { replace: true });
-            return;
-          }
-
-          // Parse the token from the URL fragment
-          const params = new URLSearchParams(fragment.substring(1));
-          const accessToken = params.get('access_token');
-          const refreshToken = params.get('refresh_token');
-          const type = params.get('type');
-
-          console.log('URL params:', { accessToken, refreshToken, type });
-
-          if (!accessToken || type !== 'recovery') {
-            console.error('Invalid recovery token');
-            navigate('/auth/login', { replace: true });
-            return;
-          }
-
-          // Set the recovery session
-          const { data: { session: recoverySession }, error: setSessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || '',
-          });
-
-          if (setSessionError || !recoverySession) {
-            console.error('Error setting recovery session:', setSessionError);
-            navigate('/auth/login', { replace: true });
-            return;
-          }
-
-          // Verify we have a user
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          if (userError || !user) {
-            console.error('Error getting user:', userError);
-            navigate('/auth/login', { replace: true });
-            return;
-          }
-
-          console.log('Recovery session established for user:', user.email);
-        } else {
-          // If we have a session but it's not a recovery session, redirect to login
-          const params = new URLSearchParams(window.location.search);
-          const type = params.get('type');
-          if (type !== 'recovery') {
-            console.error('Not a recovery session');
-            navigate('/auth/login', { replace: true });
-            return;
-          }
+          console.error('No session found');
+          navigate('/auth/login', { replace: true });
+          return;
         }
+
+        // Verify we have a user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+          console.error('Error getting user:', userError);
+          navigate('/auth/login', { replace: true });
+          return;
+        }
+
+        console.log('Recovery session verified for user:', user.email);
 
         toast({
           title: "Ready to reset password",
@@ -115,10 +77,10 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      // Get current session to verify we're still in recovery mode
+      // Get current session to verify we're still authenticated
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        throw new Error('Recovery session expired');
+        throw new Error('Session expired');
       }
 
       // Update the password
@@ -143,7 +105,7 @@ export default function ResetPassword() {
       setError(error instanceof Error ? error.message : "Failed to reset password");
       
       // If session expired, redirect to login
-      if (error instanceof Error && error.message === 'Recovery session expired') {
+      if (error instanceof Error && error.message === 'Session expired') {
         navigate('/auth/login', { replace: true });
       }
     } finally {

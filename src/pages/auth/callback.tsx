@@ -13,14 +13,12 @@ export default function AuthCallback() {
         // Get code and type from URL
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
-        const type = params.get('type');
         const error = params.get('error');
         const error_description = params.get('error_description');
 
         // Log URL parameters for debugging
         console.log('URL params:', {
           code,
-          type,
           error,
           error_description,
           hash: window.location.hash,
@@ -40,55 +38,7 @@ export default function AuthCallback() {
           return;
         }
 
-        // Handle recovery flow
-        if (type === 'recovery') {
-          // Get the recovery token from the URL
-          const fragment = window.location.hash;
-          if (!fragment) {
-            console.error('No recovery token found');
-            navigate('/auth/login', { replace: true });
-            return;
-          }
-
-          // Parse the token from the URL fragment
-          const hashParams = new URLSearchParams(fragment.substring(1));
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-
-          if (!accessToken) {
-            console.error('Invalid recovery token');
-            navigate('/auth/login', { replace: true });
-            return;
-          }
-
-          // Set the recovery session
-          const { data: { session }, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || '',
-          });
-
-          if (sessionError || !session) {
-            console.error('Error setting recovery session:', sessionError);
-            navigate('/auth/login', { replace: true });
-            return;
-          }
-
-          // Verify we have a user
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          if (userError || !user) {
-            console.error('Error getting user:', userError);
-            navigate('/auth/login', { replace: true });
-            return;
-          }
-
-          console.log('Recovery session established for user:', user.email);
-
-          // Redirect to reset password page
-          navigate('/auth/reset-password', { replace: true });
-          return;
-        }
-
-        // Handle code exchange
+        // Handle code exchange (for email confirmation, OAuth, etc.)
         if (code) {
           console.log('Found auth code, exchanging for session...');
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -98,9 +48,18 @@ export default function AuthCallback() {
           }
           console.log('Successfully exchanged code for session:', data);
 
-          // Verify we have a session before redirecting
+          // Get the session to check if it's a recovery flow
           const { data: { session } } = await supabase.auth.getSession();
           if (session) {
+            // Check if this is a recovery flow
+            const type = params.get('type');
+            if (type === 'recovery') {
+              console.log('Recovery flow detected, redirecting to reset password');
+              navigate('/auth/reset-password', { replace: true });
+              return;
+            }
+
+            // Normal sign in flow
             console.log('Session verified, redirecting to dashboard');
             toast({
               title: "Successfully signed in",
@@ -117,6 +76,15 @@ export default function AuthCallback() {
         // If we get here, check if we already have a valid session
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
+          // Check if this is a recovery flow
+          const type = params.get('type');
+          if (type === 'recovery') {
+            console.log('Recovery flow detected, redirecting to reset password');
+            navigate('/auth/reset-password', { replace: true });
+            return;
+          }
+
+          // Normal session
           console.log('Found existing session, redirecting to dashboard');
           navigate('/dashboard', { replace: true });
           return;
