@@ -12,12 +12,9 @@ export default function AuthCallback() {
       try {
         // Get URL parameters
         const params = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
-        const error = params.get('error') || hashParams.get('error');
-        const error_description = params.get('error_description') || hashParams.get('error_description');
-        const access_token = hashParams.get('access_token');
-        const refresh_token = hashParams.get('refresh_token');
-        const type = params.get('type') || hashParams.get('type');
+        const error = params.get('error');
+        const error_description = params.get('error_description');
+        const type = params.get('type');
 
         // Log URL parameters for debugging
         console.log('URL params:', {
@@ -41,22 +38,25 @@ export default function AuthCallback() {
           return;
         }
 
-        // Handle recovery flow with hash params
-        if (access_token && type === 'recovery') {
-          console.log('Recovery flow detected with hash params');
+        // Get current session (PKCE flow already handled by Supabase)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
+          navigate('/auth/login', { replace: true });
+          return;
+        }
+
+        // No session means something went wrong
+        if (!session) {
+          console.error('No session found');
+          navigate('/auth/login', { replace: true });
+          return;
+        }
+
+        // Check if this is a recovery flow
+        if (type === 'recovery') {
+          console.log('Recovery flow detected');
           
-          // Set the session
-          const { data: { session }, error: sessionError } = await supabase.auth.setSession({
-            access_token,
-            refresh_token: refresh_token || '',
-          });
-
-          if (sessionError || !session) {
-            console.error('Error setting recovery session:', sessionError);
-            navigate('/auth/login', { replace: true });
-            return;
-          }
-
           // Set flag and redirect
           await supabase.auth.updateUser({
             data: { passwordResetRedirected: true }
@@ -65,47 +65,13 @@ export default function AuthCallback() {
           return;
         }
 
-        // Handle normal sign in flow
-        const code = params.get('code');
-        if (code) {
-          console.log('Found auth code, exchanging for session...');
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) {
-            console.error('Error exchanging code for session:', error);
-            throw error;
-          }
-          console.log('Successfully exchanged code for session:', data);
-
-          // Get the session to check the user's state
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            console.error('No session found after exchange');
-            throw new Error('Failed to establish session');
-          }
-
-          // Check if this is a recovery flow
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user?.user_metadata?.reauthentication_token || user?.user_metadata?.passwordResetRedirected) {
-            console.log('Recovery session detected, redirecting to reset password');
-            navigate('/auth/reset-password', { replace: true });
-            return;
-          }
-
-          // Normal sign in flow
-          console.log('Session verified, redirecting to dashboard');
-          toast({
-            title: "Successfully signed in",
-            description: "Welcome back!",
-          });
-          navigate('/dashboard', { replace: true });
-          return;
-        }
-
-        // If we get here, no valid auth data was found
-        console.error('No valid authentication data found');
-        console.log('URL:', window.location.href);
-        console.log('Search params:', window.location.search);
-        navigate('/auth/login', { replace: true });
+        // Normal sign in flow
+        console.log('Session verified, redirecting to dashboard');
+        toast({
+          title: "Successfully signed in",
+          description: "Welcome back!",
+        });
+        navigate('/dashboard', { replace: true });
       } catch (error) {
         console.error('Authentication error:', error);
         toast({
