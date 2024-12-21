@@ -6,6 +6,7 @@ import Landing from "./pages/Landing";
 import Login from "./pages/auth/login";
 import Signup from "./pages/auth/signup";
 import Callback from "./pages/auth/callback";
+import ResetPassword from "./pages/auth/reset-password";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Archived from "./pages/Archived";
@@ -31,6 +32,7 @@ function AppRoutes() {
       <Route path="/auth/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
       <Route path="/auth/signup" element={user ? <Navigate to="/dashboard" /> : <Signup />} />
       <Route path="/auth/callback" element={<Callback />} />
+      <Route path="/auth/reset-password" element={<ResetPassword />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
 
