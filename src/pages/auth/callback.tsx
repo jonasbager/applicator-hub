@@ -24,7 +24,6 @@ export default function AuthCallback() {
           error_description,
           code,
           search: window.location.search,
-          hash: window.location.hash,
           href: window.location.href
         });
 
@@ -40,7 +39,7 @@ export default function AuthCallback() {
           return;
         }
 
-        // Handle code exchange first (this includes recovery flow)
+        // Exchange the code for a session
         if (code) {
           console.log('Found auth code, exchanging for session...');
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -49,13 +48,6 @@ export default function AuthCallback() {
             throw error;
           }
           console.log('Successfully exchanged code for session:', data);
-
-          // Get the session to check if it's a recovery flow
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            console.error('No session found after exchange');
-            throw new Error('Failed to establish session');
-          }
 
           // Check if this is a recovery flow
           if (type === 'recovery') {
@@ -70,22 +62,6 @@ export default function AuthCallback() {
             title: "Successfully signed in",
             description: "Welcome back!",
           });
-          navigate('/dashboard', { replace: true });
-          return;
-        }
-
-        // If we get here, check if we already have a valid session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          // Check if this is a recovery flow
-          if (type === 'recovery') {
-            console.log('Recovery flow detected, redirecting to reset password');
-            navigate('/auth/reset-password', { replace: true });
-            return;
-          }
-
-          // Normal session
-          console.log('Found existing session, redirecting to dashboard');
           navigate('/dashboard', { replace: true });
           return;
         }
