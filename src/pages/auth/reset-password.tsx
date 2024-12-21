@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -15,12 +15,22 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   // Verify we have a valid recovery session
   useEffect(() => {
     const checkSession = async () => {
       try {
+        // Check if this is a recovery flow
+        const params = new URLSearchParams(location.search);
+        const type = params.get('type');
+        if (type !== 'recovery') {
+          console.error('Not a recovery flow');
+          navigate('/auth/login', { replace: true });
+          return;
+        }
+
         // Get current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !session) {
@@ -52,7 +62,7 @@ export default function ResetPassword() {
     };
 
     checkSession();
-  }, [navigate]);
+  }, [navigate, location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
