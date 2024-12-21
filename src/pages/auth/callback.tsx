@@ -32,21 +32,22 @@ export default function AuthCallback() {
           // Sign out any existing session first
           await supabase.auth.signOut();
 
-          // If we have a code, exchange it
-          if (code) {
-            console.log('Found auth code, exchanging for recovery session...');
-            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-            if (error) {
-              console.error('Error exchanging code for session:', error);
-              throw error;
-            }
-            console.log('Successfully exchanged code for recovery session');
-
-            // Set flag and redirect
-            await supabase.auth.updateUser({
-              data: { passwordResetRedirected: true }
-            });
+          // Let Supabase handle the PKCE flow
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) {
+            console.error('Error getting recovery session:', sessionError);
+            throw sessionError;
           }
+
+          if (!session) {
+            console.error('No recovery session found');
+            throw new Error('No recovery session found');
+          }
+
+          // Set flag and redirect
+          await supabase.auth.updateUser({
+            data: { passwordResetRedirected: true }
+          });
 
           // Now redirect to reset password
           console.log('Redirecting to reset password');
