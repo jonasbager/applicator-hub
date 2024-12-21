@@ -51,7 +51,8 @@ export default function AuthCallback() {
           const { error: updateError } = await supabase.auth.updateUser({
             data: { 
               passwordResetRedirected: true,
-              recoveryFlow: true
+              recoveryFlow: true,
+              recoveryTimestamp: Date.now()
             }
           });
 
