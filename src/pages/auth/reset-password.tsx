@@ -35,7 +35,8 @@ export default function ResetPassword() {
     try {
       // Update the password
       const { error: updateError } = await supabase.auth.updateUser({
-        password: password
+        password: password,
+        data: { passwordResetRedirected: null } // Clear the flag
       });
 
       if (updateError) throw updateError;
