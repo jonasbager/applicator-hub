@@ -17,22 +17,25 @@ export default function AuthCallback() {
         // Handle password reset flow
         if (type === 'recovery') {
           // Get the access token from the URL
-          const accessToken = new URLSearchParams(window.location.hash.substring(1)).get('access_token');
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+
           if (!accessToken) {
             throw new Error('No access token found in recovery URL');
           }
 
-          // Set the session with the recovery token
+          // Set the recovery session
           const { error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
-            refresh_token: '',
+            refresh_token: refreshToken || '',
           });
 
           if (sessionError) {
             throw sessionError;
           }
 
-          // Redirect to a password reset page or show password reset UI
+          // Redirect to password reset page
           toast({
             title: "Ready to reset password",
             description: "Please enter your new password.",
