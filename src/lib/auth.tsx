@@ -34,6 +34,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get initial session
     const initializeAuth = async () => {
       try {
+        // Check if this is a recovery flow
+        const params = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+        const type = params.get('type') || hashParams.get('type');
+
+        // If it's a recovery flow, let the callback page handle it
+        if (type === 'recovery') {
+          console.log('Recovery flow detected, skipping auto-redirect');
+          if (mounted) {
+            setState(prev => ({ ...prev, loading: false }));
+          }
+          return;
+        }
+
+        // Normal session check
         const { data: { session }, error } = await supabase.auth.getSession();
         console.log('Initial session check:', session);
         
@@ -52,8 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             loading: false,
           }));
 
-          // Only redirect if we're on the landing page and not in a recovery flow
-          if (session?.user && location.pathname === '/' && !location.search.includes('type=recovery') && !location.hash.includes('type=recovery')) {
+          // Only redirect if we're on the landing page
+          if (session?.user && location.pathname === '/') {
             navigate('/dashboard');
           }
         }
@@ -70,65 +85,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (!mounted) return;
 
-      if (event === 'SIGNED_IN') {
-        console.log('User signed in:', session?.user);
-        setState(prev => ({
-          ...prev,
-          user: session?.user ?? null,
-          loading: false,
-        }));
-        
-        // Check if this is a recovery flow
-        const params = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
-        const type = params.get('type') || hashParams.get('type');
-        
-        if (type === 'recovery') {
-          console.log('Recovery flow detected, redirecting to reset password');
-          navigate('/auth/reset-password', { replace: true });
-          return;
-        }
-        
-        // Normal sign in flow
-        if (!isInitialMount.current && !hasShownWelcomeToast.current) {
-          hasShownWelcomeToast.current = true;
-          toast({
-            title: "Successfully signed in",
-            description: "Welcome back!",
-          });
-          navigate('/dashboard');
-        }
-      } else if (event === 'SIGNED_OUT') {
-        console.log('User signed out');
-        setState(prev => ({
-          ...prev,
-          user: null,
-          loading: false,
-        }));
-        hasShownWelcomeToast.current = false; // Reset the toast flag
-        toast({
-          title: "Signed out",
-          description: "Successfully signed out of your account.",
-        });
-        navigate('/');
-      } else if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-        console.log('Session updated:', session);
-        if (session?.user) {
-          setState(prev => ({
-            ...prev,
-            user: session.user,
-            loading: false,
-          }));
-          // Only navigate to dashboard if we're on the landing page
-          // and not in a recovery flow
-          if (location.pathname === '/' && !location.search.includes('type=recovery') && !location.hash.includes('type=recovery')) {
+      // Update state first
+      setState(prev => ({
+        ...prev,
+        user: session?.user ?? null,
+        loading: false,
+      }));
+
+      // Check if this is a recovery flow
+      const params = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+      const type = params.get('type') || hashParams.get('type');
+
+      // Handle different auth events
+      switch (event) {
+        case 'SIGNED_IN':
+          console.log('User signed in:', session?.user);
+          
+          // If it's a recovery flow, don't redirect to dashboard
+          if (type === 'recovery') {
+            console.log('Recovery flow detected, redirecting to reset password');
+            navigate('/auth/reset-password', { replace: true });
+            return;
+          }
+          
+          // Normal sign in flow
+          if (!isInitialMount.current && !hasShownWelcomeToast.current) {
+            hasShownWelcomeToast.current = true;
+            toast({
+              title: "Successfully signed in",
+              description: "Welcome back!",
+            });
             navigate('/dashboard');
           }
-        }
-      } else if (event === 'PASSWORD_RECOVERY') {
-        // Handle password recovery event
-        console.log('Password recovery event received');
-        navigate('/auth/reset-password');
+          break;
+
+        case 'SIGNED_OUT':
+          console.log('User signed out');
+          hasShownWelcomeToast.current = false; // Reset the toast flag
+          toast({
+            title: "Signed out",
+            description: "Successfully signed out of your account.",
+          });
+          navigate('/');
+          break;
+
+        case 'PASSWORD_RECOVERY':
+          console.log('Password recovery event received');
+          navigate('/auth/reset-password');
+          break;
+
+        case 'TOKEN_REFRESHED':
+        case 'INITIAL_SESSION':
+          console.log('Session updated:', session);
+          // Only redirect if we're on the landing page and not in recovery flow
+          if (session?.user && location.pathname === '/' && type !== 'recovery') {
+            navigate('/dashboard');
+          }
+          break;
       }
 
       // After first mount, set isInitialMount to false
@@ -141,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [toast, navigate, location.pathname, location.search, location.hash]);
+  }, [toast, navigate, location.pathname]);
 
   const handleAuthError = (error: AuthError) => {
     console.error('Auth error:', error);
