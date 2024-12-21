@@ -35,16 +35,27 @@ export default function AuthCallback() {
           // Wait for Supabase to initialize
           await new Promise(resolve => setTimeout(resolve, 100));
 
-          // Get the recovery session
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-          if (sessionError) {
-            console.error('Error getting recovery session:', sessionError);
-            throw sessionError;
-          }
+          // Exchange code for session if present
+          if (code) {
+            console.log('Found auth code, exchanging for recovery session...');
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+            if (error) {
+              console.error('Error exchanging code for session:', error);
+              throw error;
+            }
+            console.log('Successfully exchanged code for recovery session');
+          } else {
+            // Get the recovery session
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) {
+              console.error('Error getting recovery session:', sessionError);
+              throw sessionError;
+            }
 
-          if (!session) {
-            console.error('No recovery session found');
-            throw new Error('No recovery session found');
+            if (!session) {
+              console.error('No recovery session found');
+              throw new Error('No recovery session found');
+            }
           }
 
           // Update user metadata to indicate recovery flow
