@@ -10,40 +10,45 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // Get URL parameters
+        // Get URL parameters from both search and hash
         const params = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
         const type = params.get('type') || hashParams.get('type');
-        const token = params.get('token') || hashParams.get('token');
+        const access_token = hashParams.get('access_token');
+        const refresh_token = hashParams.get('refresh_token');
         
         // Log URL parameters for debugging
         console.log('URL params:', {
           type,
-          token,
+          access_token: access_token ? '[REDACTED]' : undefined,
+          refresh_token: refresh_token ? '[REDACTED]' : undefined,
           search: window.location.search,
-          hash: window.location.hash,
-          href: window.location.href
+          hash: window.location.hash.replace(/token=[^&]+/g, 'token=[REDACTED]'),
+          href: window.location.href.replace(/token=[^&]+/g, 'token=[REDACTED]')
         });
 
-        // If it's a recovery flow with a PKCE token
-        if (type === 'recovery' && token?.startsWith('pkce_')) {
-          console.log('Recovery flow with PKCE token detected');
+        // If it's a recovery flow with tokens
+        if (type === 'recovery' && access_token) {
+          console.log('Recovery flow with access token detected');
           
           // Sign out any existing session first
           await supabase.auth.signOut();
 
-          // Verify the token
-          const { data, error } = await supabase.auth.verifyOtp({
-            token_hash: token,
-            type: 'recovery'
+          // Set up the recovery session
+          const { data: { session }, error: sessionError } = await supabase.auth.setSession({
+            access_token,
+            refresh_token: refresh_token || ''
           });
 
-          if (error) {
-            console.error('Error verifying recovery token:', error);
-            throw error;
+          if (sessionError || !session) {
+            console.error('Error setting recovery session:', sessionError);
+            throw sessionError || new Error('No session created');
           }
 
-          console.log('Recovery token verified:', data);
+          // Set flag and redirect
+          await supabase.auth.updateUser({
+            data: { passwordResetRedirected: true }
+          });
 
           // Now redirect to reset password
           console.log('Redirecting to reset password');
