@@ -10,7 +10,7 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // Get code from URL (for email confirmation, OAuth, etc.)
+        // Get code and type from URL
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
         const type = params.get('type');
@@ -62,16 +62,26 @@ export default function AuthCallback() {
           }
 
           // Set the recovery session
-          const { error: sessionError } = await supabase.auth.setSession({
+          const { data: { session }, error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || '',
           });
 
-          if (sessionError) {
+          if (sessionError || !session) {
             console.error('Error setting recovery session:', sessionError);
             navigate('/auth/login', { replace: true });
             return;
           }
+
+          // Verify we have a user
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (userError || !user) {
+            console.error('Error getting user:', userError);
+            navigate('/auth/login', { replace: true });
+            return;
+          }
+
+          console.log('Recovery session established for user:', user.email);
 
           // Redirect to reset password page
           navigate('/auth/reset-password', { replace: true });

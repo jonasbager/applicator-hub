@@ -55,24 +55,26 @@ export default function ResetPassword() {
           }
 
           // Set the recovery session
-          const { error: setSessionError } = await supabase.auth.setSession({
+          const { data: { session: recoverySession }, error: setSessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || '',
           });
 
-          if (setSessionError) {
+          if (setSessionError || !recoverySession) {
             console.error('Error setting recovery session:', setSessionError);
             navigate('/auth/login', { replace: true });
             return;
           }
 
-          // Get the session again to verify
-          const { data: { session: newSession }, error: verifyError } = await supabase.auth.getSession();
-          if (verifyError || !newSession) {
-            console.error('Error verifying recovery session:', verifyError);
+          // Verify we have a user
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (userError || !user) {
+            console.error('Error getting user:', userError);
             navigate('/auth/login', { replace: true });
             return;
           }
+
+          console.log('Recovery session established for user:', user.email);
         }
 
         toast({
@@ -104,6 +106,12 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
+      // Get current session to verify we're still in recovery mode
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Recovery session expired');
+      }
+
       // Update the password
       const { error: updateError } = await supabase.auth.updateUser({
         password: password
@@ -124,6 +132,11 @@ export default function ResetPassword() {
     } catch (error) {
       console.error('Error resetting password:', error);
       setError(error instanceof Error ? error.message : "Failed to reset password");
+      
+      // If session expired, redirect to login
+      if (error instanceof Error && error.message === 'Recovery session expired') {
+        navigate('/auth/login', { replace: true });
+      }
     } finally {
       setLoading(false);
     }
