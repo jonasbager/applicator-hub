@@ -14,41 +14,39 @@ export default function AuthCallback() {
         const params = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
         const type = params.get('type') || hashParams.get('type');
-        const access_token = hashParams.get('access_token');
-        const refresh_token = hashParams.get('refresh_token');
+        const code = params.get('code');
         
         // Log URL parameters for debugging
         console.log('URL params:', {
           type,
-          access_token: access_token ? '[REDACTED]' : undefined,
-          refresh_token: refresh_token ? '[REDACTED]' : undefined,
+          code: code ? '[REDACTED]' : undefined,
           search: window.location.search,
           hash: window.location.hash.replace(/token=[^&]+/g, 'token=[REDACTED]'),
           href: window.location.href.replace(/token=[^&]+/g, 'token=[REDACTED]')
         });
 
-        // If it's a recovery flow with tokens
-        if (type === 'recovery' && access_token) {
-          console.log('Recovery flow with access token detected');
+        // If it's a recovery flow
+        if (type === 'recovery') {
+          console.log('Recovery flow detected');
           
           // Sign out any existing session first
           await supabase.auth.signOut();
 
-          // Set up the recovery session
-          const { data: { session }, error: sessionError } = await supabase.auth.setSession({
-            access_token,
-            refresh_token: refresh_token || ''
-          });
+          // If we have a code, exchange it
+          if (code) {
+            console.log('Found auth code, exchanging for recovery session...');
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+            if (error) {
+              console.error('Error exchanging code for session:', error);
+              throw error;
+            }
+            console.log('Successfully exchanged code for recovery session');
 
-          if (sessionError || !session) {
-            console.error('Error setting recovery session:', sessionError);
-            throw sessionError || new Error('No session created');
+            // Set flag and redirect
+            await supabase.auth.updateUser({
+              data: { passwordResetRedirected: true }
+            });
           }
-
-          // Set flag and redirect
-          await supabase.auth.updateUser({
-            data: { passwordResetRedirected: true }
-          });
 
           // Now redirect to reset password
           console.log('Redirecting to reset password');
@@ -57,7 +55,6 @@ export default function AuthCallback() {
         }
 
         // For non-recovery flows, handle normal auth
-        const code = params.get('code');
         if (code) {
           console.log('Found auth code, exchanging for session...');
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
