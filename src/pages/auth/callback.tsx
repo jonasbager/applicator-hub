@@ -12,14 +12,12 @@ export default function AuthCallback() {
       try {
         // Get URL parameters
         const params = new URLSearchParams(window.location.search);
-        const type = params.get('type');
         const error = params.get('error');
         const error_description = params.get('error_description');
         const code = params.get('code');
 
         // Log URL parameters for debugging
         console.log('URL params:', {
-          type,
           error,
           error_description,
           code,
@@ -49,9 +47,17 @@ export default function AuthCallback() {
           }
           console.log('Successfully exchanged code for session:', data);
 
-          // Check if this is a recovery flow
-          if (type === 'recovery') {
-            console.log('Recovery flow detected, redirecting to reset password');
+          // Get the session to check the user's state
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            console.error('No session found after exchange');
+            throw new Error('Failed to establish session');
+          }
+
+          // Check if the user needs to reset their password
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user?.user_metadata?.reauthentication_token) {
+            console.log('Recovery session detected, redirecting to reset password');
             navigate('/auth/reset-password', { replace: true });
             return;
           }
