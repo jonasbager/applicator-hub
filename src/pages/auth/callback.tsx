@@ -32,6 +32,9 @@ export default function AuthCallback() {
           // Sign out any existing session first
           await supabase.auth.signOut();
 
+          // Wait a moment for Supabase to initialize
+          await new Promise(resolve => setTimeout(resolve, 100));
+
           // Let Supabase handle the PKCE flow
           const { data: { session }, error: sessionError } = await supabase.auth.getSession();
           if (sessionError) {
