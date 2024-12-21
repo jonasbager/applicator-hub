@@ -20,29 +20,45 @@ export default function ResetPassword() {
   // Check for recovery token on mount
   useEffect(() => {
     const handleRecoveryToken = async () => {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
+      try {
+        // Get the recovery token from the URL
+        const fragment = window.location.hash;
+        if (!fragment) {
+          console.error('No recovery token found');
+          navigate('/auth/login', { replace: true });
+          return;
+        }
 
-      if (accessToken) {
-        try {
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || '',
-          });
+        // Parse the token from the URL fragment
+        const params = new URLSearchParams(fragment.substring(1));
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        const type = params.get('type');
 
-          if (error) throw error;
+        if (!accessToken || type !== 'recovery') {
+          console.error('Invalid recovery token');
+          navigate('/auth/login', { replace: true });
+          return;
+        }
 
-          toast({
-            title: "Ready to reset password",
-            description: "Please enter your new password.",
-          });
-        } catch (error) {
+        // Set the recovery session
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || '',
+        });
+
+        if (error) {
           console.error('Error setting recovery session:', error);
           navigate('/auth/login', { replace: true });
+          return;
         }
-      } else {
-        // No recovery token found, redirect to login
+
+        toast({
+          title: "Ready to reset password",
+          description: "Please enter your new password.",
+        });
+      } catch (error) {
+        console.error('Error handling recovery token:', error);
         navigate('/auth/login', { replace: true });
       }
     };

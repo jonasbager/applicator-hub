@@ -52,8 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             loading: false,
           }));
 
-          // Only redirect if we're on the landing page
-          if (session?.user && location.pathname === '/') {
+          // Only redirect if we're on the landing page and not in a recovery flow
+          if (session?.user && location.pathname === '/' && !location.hash.includes('type=recovery')) {
             navigate('/dashboard');
           }
         }
@@ -80,7 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Only show toast and navigate if this is a new sign in
         // and we haven't shown the welcome toast yet
-        if (!isInitialMount.current && !hasShownWelcomeToast.current) {
+        // and we're not in a recovery flow
+        if (!isInitialMount.current && !hasShownWelcomeToast.current && !location.hash.includes('type=recovery')) {
           hasShownWelcomeToast.current = true;
           toast({
             title: "Successfully signed in",
@@ -110,7 +111,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             loading: false,
           }));
           // Only navigate to dashboard if we're on the landing page
-          if (location.pathname === '/') {
+          // and not in a recovery flow
+          if (location.pathname === '/' && !location.hash.includes('type=recovery')) {
             navigate('/dashboard');
           }
         }
@@ -129,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [toast, navigate, location.pathname]);
+  }, [toast, navigate, location.pathname, location.hash]);
 
   const handleAuthError = (error: AuthError) => {
     console.error('Auth error:', error);
@@ -201,7 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${SITE_URL}/auth/callback?type=recovery`,
+        redirectTo: `${SITE_URL}/auth/reset-password`,
       });
       
       if (error) throw error;
