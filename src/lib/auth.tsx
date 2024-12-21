@@ -39,16 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
         const type = params.get('type') || hashParams.get('type');
 
-        // If it's a recovery flow, let the callback page handle it
-        if (type === 'recovery') {
-          console.log('Recovery flow detected, skipping auto-redirect');
-          if (mounted) {
-            setState(prev => ({ ...prev, loading: false }));
-          }
-          return;
-        }
-
-        // Normal session check
+        // Get current session
         const { data: { session }, error } = await supabase.auth.getSession();
         console.log('Initial session check:', session);
         
@@ -67,8 +58,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             loading: false,
           }));
 
-          // Only redirect if we're on the landing page
-          if (session?.user && location.pathname === '/') {
+          // If we have a session and it's a recovery flow
+          if (session?.user && type === 'recovery') {
+            console.log('Recovery flow detected, redirecting to reset password');
+            navigate('/auth/reset-password?type=recovery', { replace: true });
+            return;
+          }
+
+          // Only redirect if we're on the landing page and not in recovery
+          if (session?.user && location.pathname === '/' && type !== 'recovery') {
             navigate('/dashboard');
           }
         }
@@ -105,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // If it's a recovery flow, don't redirect to dashboard
           if (type === 'recovery') {
             console.log('Recovery flow detected, redirecting to reset password');
-            navigate('/auth/reset-password', { replace: true });
+            navigate('/auth/reset-password?type=recovery', { replace: true });
             return;
           }
           
@@ -132,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         case 'PASSWORD_RECOVERY':
           console.log('Password recovery event received');
-          navigate('/auth/reset-password');
+          navigate('/auth/reset-password?type=recovery');
           break;
 
         case 'TOKEN_REFRESHED':
