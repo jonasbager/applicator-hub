@@ -75,6 +75,15 @@ export default function ResetPassword() {
           }
 
           console.log('Recovery session established for user:', user.email);
+        } else {
+          // If we have a session but it's not a recovery session, redirect to login
+          const params = new URLSearchParams(window.location.search);
+          const type = params.get('type');
+          if (type !== 'recovery') {
+            console.error('Not a recovery session');
+            navigate('/auth/login', { replace: true });
+            return;
+          }
         }
 
         toast({
@@ -121,7 +130,7 @@ export default function ResetPassword() {
 
       toast({
         title: "Password updated",
-        description: "Your password has been successfully reset.",
+        description: "Your password has been successfully reset. Please sign in with your new password.",
       });
 
       // Sign out to clear the recovery session
