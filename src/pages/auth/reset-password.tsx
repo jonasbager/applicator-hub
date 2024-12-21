@@ -24,8 +24,13 @@ export default function ResetPassword() {
         // Get the recovery token from the URL
         const fragment = window.location.hash;
         if (!fragment) {
-          console.error('No recovery token found');
-          navigate('/auth/login', { replace: true });
+          // If no hash, check if we have a recovery session
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            console.error('No recovery session found');
+            navigate('/auth/login', { replace: true });
+            return;
+          }
           return;
         }
 
@@ -126,6 +131,7 @@ export default function ResetPassword() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                autoComplete="new-password"
               />
             </div>
             <div className="space-y-2">
@@ -137,6 +143,7 @@ export default function ResetPassword() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={6}
+                autoComplete="new-password"
               />
             </div>
 

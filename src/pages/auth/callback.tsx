@@ -17,8 +17,39 @@ export default function AuthCallback() {
 
         // If this is a recovery flow, redirect to reset password with the hash
         if (type === 'recovery') {
-          const hash = window.location.hash;
-          navigate(`/auth/reset-password${hash}`, { replace: true });
+          // Get the recovery token from the URL
+          const fragment = window.location.hash;
+          if (!fragment) {
+            console.error('No recovery token found');
+            navigate('/auth/login', { replace: true });
+            return;
+          }
+
+          // Parse the token from the URL fragment
+          const hashParams = new URLSearchParams(fragment.substring(1));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+
+          if (!accessToken) {
+            console.error('Invalid recovery token');
+            navigate('/auth/login', { replace: true });
+            return;
+          }
+
+          // Set the recovery session
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          });
+
+          if (error) {
+            console.error('Error setting recovery session:', error);
+            navigate('/auth/login', { replace: true });
+            return;
+          }
+
+          // Redirect to reset password page
+          navigate('/auth/reset-password', { replace: true });
           return;
         }
 
