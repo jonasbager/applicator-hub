@@ -54,10 +54,14 @@ export default function AuthCallback() {
             throw new Error('Failed to establish session');
           }
 
-          // Check if the user needs to reset their password
+          // Check if this is a recovery flow by checking the user's metadata
           const { data: { user } } = await supabase.auth.getUser();
-          if (user?.user_metadata?.reauthentication_token) {
+          if (user?.user_metadata?.reauthentication_token || user?.user_metadata?.passwordResetRedirected) {
             console.log('Recovery session detected, redirecting to reset password');
+            // Set a flag to prevent infinite redirects
+            await supabase.auth.updateUser({
+              data: { passwordResetRedirected: true }
+            });
             navigate('/auth/reset-password', { replace: true });
             return;
           }
