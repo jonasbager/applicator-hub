@@ -9,6 +9,9 @@ import { Alert, AlertDescription } from "../../components/ui/alert";
 import { Loader2 } from "lucide-react";
 import { useToast } from "../../components/ui/use-toast";
 
+// Maximum age of recovery session in milliseconds (15 minutes)
+const MAX_RECOVERY_AGE = 15 * 60 * 1000;
+
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -54,6 +57,15 @@ export default function ResetPassword() {
           return;
         }
 
+        // Check recovery timestamp
+        const timestamp = user.user_metadata?.recoveryTimestamp;
+        if (!timestamp || Date.now() - timestamp > MAX_RECOVERY_AGE) {
+          console.error('Recovery session expired');
+          await supabase.auth.signOut();
+          navigate('/auth/login', { replace: true });
+          return;
+        }
+
         console.log('Recovery session verified for user:', user.email);
       } catch (error) {
         console.error('Error checking session:', error);
@@ -80,12 +92,13 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      // Update the password and clear both flags
+      // Update the password and clear all recovery flags
       const { error: updateError } = await supabase.auth.updateUser({
         password: password,
         data: { 
           passwordResetRedirected: null,
-          recoveryFlow: null
+          recoveryFlow: null,
+          recoveryTimestamp: null
         }
       });
 
