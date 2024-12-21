@@ -32,10 +32,10 @@ export default function AuthCallback() {
           // Sign out any existing session first
           await supabase.auth.signOut();
 
-          // Wait a moment for Supabase to initialize
+          // Wait for Supabase to initialize
           await new Promise(resolve => setTimeout(resolve, 100));
 
-          // Let Supabase handle the PKCE flow
+          // Get the recovery session
           const { data: { session }, error: sessionError } = await supabase.auth.getSession();
           if (sessionError) {
             console.error('Error getting recovery session:', sessionError);
@@ -47,10 +47,18 @@ export default function AuthCallback() {
             throw new Error('No recovery session found');
           }
 
-          // Set flag and redirect
-          await supabase.auth.updateUser({
-            data: { passwordResetRedirected: true }
+          // Update user metadata to indicate recovery flow
+          const { error: updateError } = await supabase.auth.updateUser({
+            data: { 
+              passwordResetRedirected: true,
+              recoveryFlow: true
+            }
           });
+
+          if (updateError) {
+            console.error('Error updating user metadata:', updateError);
+            throw updateError;
+          }
 
           // Now redirect to reset password
           console.log('Redirecting to reset password');
