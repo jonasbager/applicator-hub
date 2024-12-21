@@ -78,10 +78,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           loading: false,
         }));
         
-        // Only show toast and navigate if this is a new sign in
-        // and we haven't shown the welcome toast yet
-        // and we're not in a recovery flow
-        if (!isInitialMount.current && !hasShownWelcomeToast.current && !location.hash.includes('type=recovery')) {
+        // Check if this is a recovery flow
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.user_metadata?.reauthentication_token || user?.user_metadata?.passwordResetRedirected) {
+          console.log('Recovery session detected, redirecting to reset password');
+          navigate('/auth/reset-password', { replace: true });
+          return;
+        }
+        
+        // Normal sign in flow
+        if (!isInitialMount.current && !hasShownWelcomeToast.current) {
           hasShownWelcomeToast.current = true;
           toast({
             title: "Successfully signed in",
