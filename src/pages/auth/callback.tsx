@@ -12,16 +12,20 @@ export default function AuthCallback() {
       try {
         // Get URL parameters
         const params = new URLSearchParams(window.location.search);
-        const error = params.get('error');
-        const error_description = params.get('error_description');
-        const code = params.get('code');
+        const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+        const error = params.get('error') || hashParams.get('error');
+        const error_description = params.get('error_description') || hashParams.get('error_description');
+        const access_token = hashParams.get('access_token');
+        const refresh_token = hashParams.get('refresh_token');
+        const type = params.get('type') || hashParams.get('type');
 
         // Log URL parameters for debugging
         console.log('URL params:', {
           error,
           error_description,
-          code,
+          type,
           search: window.location.search,
+          hash: window.location.hash,
           href: window.location.href
         });
 
@@ -37,7 +41,32 @@ export default function AuthCallback() {
           return;
         }
 
-        // Exchange the code for a session
+        // Handle recovery flow with hash params
+        if (access_token && type === 'recovery') {
+          console.log('Recovery flow detected with hash params');
+          
+          // Set the session
+          const { data: { session }, error: sessionError } = await supabase.auth.setSession({
+            access_token,
+            refresh_token: refresh_token || '',
+          });
+
+          if (sessionError || !session) {
+            console.error('Error setting recovery session:', sessionError);
+            navigate('/auth/login', { replace: true });
+            return;
+          }
+
+          // Set flag and redirect
+          await supabase.auth.updateUser({
+            data: { passwordResetRedirected: true }
+          });
+          navigate('/auth/reset-password', { replace: true });
+          return;
+        }
+
+        // Handle normal sign in flow
+        const code = params.get('code');
         if (code) {
           console.log('Found auth code, exchanging for session...');
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -54,14 +83,10 @@ export default function AuthCallback() {
             throw new Error('Failed to establish session');
           }
 
-          // Check if this is a recovery flow by checking the user's metadata
+          // Check if this is a recovery flow
           const { data: { user } } = await supabase.auth.getUser();
           if (user?.user_metadata?.reauthentication_token || user?.user_metadata?.passwordResetRedirected) {
             console.log('Recovery session detected, redirecting to reset password');
-            // Set a flag to prevent infinite redirects
-            await supabase.auth.updateUser({
-              data: { passwordResetRedirected: true }
-            });
             navigate('/auth/reset-password', { replace: true });
             return;
           }
