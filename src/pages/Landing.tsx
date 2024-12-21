@@ -15,12 +15,12 @@ export default function Landing() {
           <div className="max-w-3xl mx-auto text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 mb-6 text-sm font-medium">
               <Star className="h-4 w-4" />
-              Your Job Search, Organized
+              Track applications with confidence
             </div>
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-              Track Applications with{" "}
+            Your Job Search,{" "}
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-                Confidence
+                Organized
               </span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8 leading-relaxed">

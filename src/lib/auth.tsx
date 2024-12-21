@@ -114,6 +114,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             navigate('/dashboard');
           }
         }
+      } else if (event === 'PASSWORD_RECOVERY') {
+        // Handle password recovery event
+        navigate('/auth/reset-password');
       }
 
       // After first mount, set isInitialMount to false
@@ -198,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${SITE_URL}/auth/reset-password?type=recovery`,
+        redirectTo: `${SITE_URL}/auth/callback?type=recovery`,
       });
       
       if (error) throw error;
