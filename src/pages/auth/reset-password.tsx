@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { Button } from "../../components/ui/button";
@@ -17,6 +17,43 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Verify we have a valid recovery session
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        // Get current session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session) {
+          console.error('No valid session found:', sessionError);
+          navigate('/auth/login', { replace: true });
+          return;
+        }
+
+        // Get user metadata
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+          console.error('Error getting user:', userError);
+          navigate('/auth/login', { replace: true });
+          return;
+        }
+
+        // Verify this is a recovery session
+        if (!user.user_metadata?.passwordResetRedirected) {
+          console.error('Not a recovery session');
+          navigate('/auth/login', { replace: true });
+          return;
+        }
+
+        console.log('Recovery session verified for user:', user.email);
+      } catch (error) {
+        console.error('Error checking session:', error);
+        navigate('/auth/login', { replace: true });
+      }
+    };
+
+    checkSession();
+  }, [navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -33,10 +70,10 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      // Update the password
+      // Update the password and clear the flag
       const { error: updateError } = await supabase.auth.updateUser({
         password: password,
-        data: { passwordResetRedirected: null } // Clear the flag
+        data: { passwordResetRedirected: null }
       });
 
       if (updateError) throw updateError;
@@ -46,7 +83,7 @@ export default function ResetPassword() {
         description: "Your password has been successfully reset. Please sign in with your new password.",
       });
 
-      // Sign out to clear the session
+      // Sign out to clear the recovery session
       await supabase.auth.signOut();
       
       // Redirect to login
@@ -54,6 +91,11 @@ export default function ResetPassword() {
     } catch (error) {
       console.error('Error resetting password:', error);
       setError(error instanceof Error ? error.message : "Failed to reset password");
+      
+      // If session expired, redirect to login
+      if (error instanceof Error && error.message.includes('session')) {
+        navigate('/auth/login', { replace: true });
+      }
     } finally {
       setLoading(false);
     }
