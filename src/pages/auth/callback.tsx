@@ -10,12 +10,37 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // First check if this is a recovery flow
+        // Get code from URL (for email confirmation, OAuth, etc.)
         const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
         const type = params.get('type');
-        console.log('Auth callback type:', type);
+        const error = params.get('error');
+        const error_description = params.get('error_description');
 
-        // If this is a recovery flow, redirect to reset password with the hash
+        // Log URL parameters for debugging
+        console.log('URL params:', {
+          code,
+          type,
+          error,
+          error_description,
+          hash: window.location.hash,
+          search: window.location.search,
+          href: window.location.href
+        });
+
+        // Handle errors
+        if (error) {
+          console.error('Auth error:', error, error_description);
+          toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: error_description || "Failed to authenticate",
+          });
+          navigate('/auth/login', { replace: true });
+          return;
+        }
+
+        // Handle recovery flow
         if (type === 'recovery') {
           // Get the recovery token from the URL
           const fragment = window.location.hash;
@@ -37,13 +62,13 @@ export default function AuthCallback() {
           }
 
           // Set the recovery session
-          const { error } = await supabase.auth.setSession({
+          const { error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || '',
           });
 
-          if (error) {
-            console.error('Error setting recovery session:', error);
+          if (sessionError) {
+            console.error('Error setting recovery session:', sessionError);
             navigate('/auth/login', { replace: true });
             return;
           }
@@ -53,8 +78,7 @@ export default function AuthCallback() {
           return;
         }
 
-        // Get code from URL (for email confirmation, OAuth, etc.)
-        const code = params.get('code');
+        // Handle code exchange
         if (code) {
           console.log('Found auth code, exchanging for session...');
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -63,9 +87,6 @@ export default function AuthCallback() {
             throw error;
           }
           console.log('Successfully exchanged code for session:', data);
-
-          // Wait a moment for the session to be properly set
-          await new Promise(resolve => setTimeout(resolve, 1000));
 
           // Verify we have a session before redirecting
           const { data: { session } } = await supabase.auth.getSession();

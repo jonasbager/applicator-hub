@@ -118,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else if (event === 'PASSWORD_RECOVERY') {
         // Handle password recovery event
+        console.log('Password recovery event received');
         navigate('/auth/reset-password');
       }
 
@@ -202,9 +203,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = async (email: string) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${SITE_URL}/auth/reset-password`,
-      });
+      // According to Supabase docs, we need to let Supabase handle the redirect
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
       
       if (error) throw error;
 

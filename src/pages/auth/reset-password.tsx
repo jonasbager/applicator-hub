@@ -17,45 +17,62 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check for recovery token on mount
+  // Check for recovery session on mount
   useEffect(() => {
-    const handleRecoveryToken = async () => {
+    const checkRecoverySession = async () => {
       try {
-        // Get the recovery token from the URL
-        const fragment = window.location.hash;
-        if (!fragment) {
-          // If no hash, check if we have a recovery session
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            console.error('No recovery session found');
+        // Get current session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.log('Current session:', session);
+        
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
+          navigate('/auth/login', { replace: true });
+          return;
+        }
+
+        // If no session, check URL for recovery token
+        if (!session) {
+          const fragment = window.location.hash;
+          if (!fragment) {
+            console.error('No recovery session or token found');
             navigate('/auth/login', { replace: true });
             return;
           }
-          return;
-        }
 
-        // Parse the token from the URL fragment
-        const params = new URLSearchParams(fragment.substring(1));
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-        const type = params.get('type');
+          // Parse the token from the URL fragment
+          const params = new URLSearchParams(fragment.substring(1));
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+          const type = params.get('type');
 
-        if (!accessToken || type !== 'recovery') {
-          console.error('Invalid recovery token');
-          navigate('/auth/login', { replace: true });
-          return;
-        }
+          console.log('URL params:', { accessToken, refreshToken, type });
 
-        // Set the recovery session
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken || '',
-        });
+          if (!accessToken || type !== 'recovery') {
+            console.error('Invalid recovery token');
+            navigate('/auth/login', { replace: true });
+            return;
+          }
 
-        if (error) {
-          console.error('Error setting recovery session:', error);
-          navigate('/auth/login', { replace: true });
-          return;
+          // Set the recovery session
+          const { error: setSessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          });
+
+          if (setSessionError) {
+            console.error('Error setting recovery session:', setSessionError);
+            navigate('/auth/login', { replace: true });
+            return;
+          }
+
+          // Get the session again to verify
+          const { data: { session: newSession }, error: verifyError } = await supabase.auth.getSession();
+          if (verifyError || !newSession) {
+            console.error('Error verifying recovery session:', verifyError);
+            navigate('/auth/login', { replace: true });
+            return;
+          }
         }
 
         toast({
@@ -63,12 +80,12 @@ export default function ResetPassword() {
           description: "Please enter your new password.",
         });
       } catch (error) {
-        console.error('Error handling recovery token:', error);
+        console.error('Error handling recovery session:', error);
         navigate('/auth/login', { replace: true });
       }
     };
 
-    handleRecoveryToken();
+    checkRecoverySession();
   }, [navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,11 +104,12 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
+      // Update the password
+      const { error: updateError } = await supabase.auth.updateUser({
         password: password
       });
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       toast({
         title: "Password updated",
