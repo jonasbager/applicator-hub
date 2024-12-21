@@ -10,27 +10,40 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // First, check if this is a recovery flow
+        // Get URL parameters
         const params = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
         const type = params.get('type') || hashParams.get('type');
-        const code = params.get('code');
+        const token = params.get('token') || hashParams.get('token');
         
         // Log URL parameters for debugging
         console.log('URL params:', {
           type,
-          code,
+          token,
           search: window.location.search,
           hash: window.location.hash,
           href: window.location.href
         });
 
-        // If it's a recovery flow, handle it before any session checks
-        if (type === 'recovery') {
-          console.log('Recovery flow detected');
+        // If it's a recovery flow with a PKCE token
+        if (type === 'recovery' && token?.startsWith('pkce_')) {
+          console.log('Recovery flow with PKCE token detected');
           
           // Sign out any existing session first
           await supabase.auth.signOut();
+
+          // Verify the token
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: 'recovery'
+          });
+
+          if (error) {
+            console.error('Error verifying recovery token:', error);
+            throw error;
+          }
+
+          console.log('Recovery token verified:', data);
 
           // Now redirect to reset password
           console.log('Redirecting to reset password');
@@ -39,6 +52,7 @@ export default function AuthCallback() {
         }
 
         // For non-recovery flows, handle normal auth
+        const code = params.get('code');
         if (code) {
           console.log('Found auth code, exchanging for session...');
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
