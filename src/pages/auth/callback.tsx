@@ -8,7 +8,8 @@ export default function AuthCallback() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const handleAuth = async () => {
+    // Wait for Supabase to initialize
+    const timer = setTimeout(async () => {
       try {
         // Get URL parameters from both search and hash
         const params = new URLSearchParams(window.location.search);
@@ -31,9 +32,6 @@ export default function AuthCallback() {
           
           // Sign out any existing session first
           await supabase.auth.signOut();
-
-          // Wait for Supabase to initialize
-          await new Promise(resolve => setTimeout(resolve, 100));
 
           // Exchange code for session if present
           if (code) {
@@ -110,9 +108,9 @@ export default function AuthCallback() {
         });
         navigate('/auth/login', { replace: true });
       }
-    };
+    }, 100); // Wait 100ms for Supabase to initialize
 
-    handleAuth();
+    return () => clearTimeout(timer);
   }, [navigate, toast]);
 
   return (
