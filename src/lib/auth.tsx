@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const isInitialMount = useRef(true);
   const hasShownWelcomeToast = useRef(false);
+  const isHandlingAuth = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -66,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           // Only redirect if we're on the landing page and not in recovery
-          if (session?.user && location.pathname === '/' && type !== 'recovery') {
+          if (session?.user && location.pathname === '/' && type !== 'recovery' && !isHandlingAuth.current) {
             navigate('/dashboard');
           }
         }
@@ -99,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       switch (event) {
         case 'SIGNED_IN':
           console.log('User signed in:', session?.user);
+          isHandlingAuth.current = true;
           
           // If it's a recovery flow, don't redirect to dashboard
           if (type === 'recovery') {
@@ -116,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
             navigate('/dashboard');
           }
+          isHandlingAuth.current = false;
           break;
 
         case 'SIGNED_OUT':
@@ -137,7 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         case 'INITIAL_SESSION':
           console.log('Session updated:', session);
           // Only redirect if we're on the landing page and not in recovery flow
-          if (session?.user && location.pathname === '/' && type !== 'recovery') {
+          if (session?.user && location.pathname === '/' && type !== 'recovery' && !isHandlingAuth.current) {
             navigate('/dashboard');
           }
           break;
