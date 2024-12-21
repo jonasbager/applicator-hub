@@ -10,11 +10,12 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // Get URL parameters
+        // Get URL parameters from both search and hash
         const params = new URLSearchParams(window.location.search);
-        const error = params.get('error');
-        const error_description = params.get('error_description');
-        const type = params.get('type');
+        const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+        const error = params.get('error') || hashParams.get('error');
+        const error_description = params.get('error_description') || hashParams.get('error_description');
+        const type = params.get('type') || hashParams.get('type');
 
         // Log URL parameters for debugging
         console.log('URL params:', {
@@ -61,7 +62,9 @@ export default function AuthCallback() {
           await supabase.auth.updateUser({
             data: { passwordResetRedirected: true }
           });
-          navigate('/auth/reset-password', { replace: true });
+
+          // Redirect to reset password page with type parameter
+          navigate('/auth/reset-password?type=recovery', { replace: true });
           return;
         }
 
