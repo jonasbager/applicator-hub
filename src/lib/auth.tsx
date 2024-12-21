@@ -155,9 +155,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${SITE_URL}/auth/v1/callback`,
+          emailRedirectTo: `${SITE_URL}/auth/callback`,
           data: {
-            email_confirm_url: `${SITE_URL}/auth/v1/callback`
+            email_confirm_url: `${SITE_URL}/auth/callback`
           }
         },
       });
@@ -198,7 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${SITE_URL}/auth/v1/callback`,
+        redirectTo: `${SITE_URL}/auth/reset-password?type=recovery`,
       });
       
       if (error) throw error;
@@ -222,9 +222,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin_oidc',
         options: {
-          redirectTo: `${SUPABASE_URL}/auth/v1/callback`,
+          redirectTo: `${SUPABASE_URL}/auth/callback`,
           queryParams: {
-            redirect_uri: `${SUPABASE_URL}/auth/v1/callback`
+            redirect_uri: `${SUPABASE_URL}/auth/callback`
           },
           scopes: 'openid profile email',
         },

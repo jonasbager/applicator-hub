@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { Button } from "../../components/ui/button";
@@ -16,6 +16,39 @@ export default function ResetPassword() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Check for recovery token on mount
+  useEffect(() => {
+    const handleRecoveryToken = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+
+      if (accessToken) {
+        try {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          });
+
+          if (error) throw error;
+
+          toast({
+            title: "Ready to reset password",
+            description: "Please enter your new password.",
+          });
+        } catch (error) {
+          console.error('Error setting recovery session:', error);
+          navigate('/auth/login', { replace: true });
+        }
+      } else {
+        // No recovery token found, redirect to login
+        navigate('/auth/login', { replace: true });
+      }
+    };
+
+    handleRecoveryToken();
+  }, [navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
