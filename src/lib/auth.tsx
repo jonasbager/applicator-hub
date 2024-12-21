@@ -194,6 +194,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${SITE_URL}/auth/v1/callback`,
+      });
+      
+      if (error) throw error;
+
+      toast({
+        title: "Password reset email sent",
+        description: "Please check your email for the password reset link.",
+      });
+    } catch (error) {
+      handleAuthError(error as AuthError);
+      throw error;
+    } finally {
+      setState(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   const signInWithLinkedIn = async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
@@ -238,6 +259,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signInWithLinkedIn,
     signOut,
+    resetPassword,
   };
 
   return (
