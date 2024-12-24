@@ -1,5 +1,5 @@
 import { BarChart, Briefcase, Building2, LineChart, Users, Clock, Calendar } from "lucide-react";
-import { Job, JobStatus } from "../types/job";
+import { Job } from "../types/job";
 import {
   Tooltip,
   TooltipContent,
@@ -86,7 +86,7 @@ export function AnalyticsBar({ jobs, loading = false }: AnalyticsBarProps) {
       icon: LineChart,
       colorClass: "bg-blue-500/10",
       iconColorClass: "text-blue-500",
-      tooltip: "Jobs marked as "Submitted"",
+      tooltip: 'Jobs marked as "Submitted"',
     },
     {
       title: "Interviews",
