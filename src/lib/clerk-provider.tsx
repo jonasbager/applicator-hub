@@ -8,7 +8,8 @@ import {
 } from '@clerk/clerk-react';
 import { Loader2 } from 'lucide-react';
 
-if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
+const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+if (!publishableKey) {
   throw new Error('Missing Clerk Publishable Key');
 }
 
@@ -23,7 +24,7 @@ interface Props {
 export function AuthProvider({ children }: Props) {
   return (
     <ClerkProvider
-      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+      publishableKey={publishableKey}
       appearance={{
         // Use system colors instead of Clerk themes for better integration
         variables: {
