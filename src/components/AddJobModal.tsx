@@ -4,9 +4,24 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { useToast } from "./ui/use-toast";
-import { scrapeJobDetails, saveJob } from "../lib/job-scraping";
+import { scrapeJobDetails } from "../lib/job-scraping";
 import { Loader2 } from "lucide-react";
 import { Badge } from "./ui/badge";
+import { useAuthBridge } from "../hooks/use-auth-bridge";
+import { JobStatus, DateValue } from "../types/job";
+
+interface JobFormState {
+  position: string;
+  company: string;
+  description: string;
+  keywords: string[];
+  url: string;
+  status: JobStatus;
+  notes: string[];
+  application_draft_url: string;
+  deadline: DateValue;
+  start_date: DateValue;
+}
 
 interface AddJobModalProps {
   open: boolean;
@@ -14,17 +29,25 @@ interface AddJobModalProps {
   onJobAdded: () => void;
 }
 
+const initialJobState: JobFormState = {
+  position: "",
+  company: "",
+  description: "",
+  keywords: [],
+  url: "",
+  status: 'Not Started',
+  notes: [],
+  application_draft_url: "",
+  deadline: null,
+  start_date: null
+};
+
 export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps) {
+  const { bridge } = useAuthBridge();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const [jobDetails, setJobDetails] = useState({
-    position: "",
-    company: "",
-    description: "",
-    keywords: [] as string[],
-    url: "",
-  });
+  const [jobDetails, setJobDetails] = useState<JobFormState>(initialJobState);
 
   const fetchDetails = async () => {
     if (!url) {
@@ -41,6 +64,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
       const details = await scrapeJobDetails(url);
       console.log('Scraped details:', details);
       setJobDetails({
+        ...jobDetails,
         ...details,
         url: url // Ensure we store the input URL
       });
@@ -62,24 +86,16 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!bridge) return;
+    
     setLoading(true);
 
     try {
-      await saveJob(jobDetails);
-      toast({
-        title: "Success",
-        description: "Job added successfully",
-      });
+      await bridge.createJob(jobDetails);
       onJobAdded();
       onOpenChange(false);
       setUrl("");
-      setJobDetails({
-        position: "",
-        company: "",
-        description: "",
-        keywords: [],
-        url: "",
-      });
+      setJobDetails(initialJobState);
     } catch (error) {
       console.error("Error saving job:", error);
       toast({
@@ -133,6 +149,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                 setJobDetails({ ...jobDetails, position: e.target.value })
               }
               disabled={loading}
+              required
             />
           </div>
 
@@ -145,6 +162,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                 setJobDetails({ ...jobDetails, company: e.target.value })
               }
               disabled={loading}
+              required
             />
           </div>
 
@@ -178,7 +196,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !bridge}>
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}

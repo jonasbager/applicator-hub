@@ -25,6 +25,7 @@ export interface Job {
   start_date?: DateValue;
   created_at: string;
   updated_at: string;
+  archived?: boolean;
 }
 
 export function getDeadlineStatus(deadline?: DateValue): DeadlineStatus {

@@ -1,21 +1,23 @@
 import { SignIn } from '@clerk/clerk-react';
-import { useSearchParams } from 'react-router-dom';
 
-export function ResetPasswordPage() {
-  const [searchParams] = useSearchParams();
-  const isRecovery = searchParams.get('type') === 'recovery';
-
+export function SignInPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <SignIn
         appearance={{
           layout: {
+            socialButtonsPlacement: 'bottom',
+            socialButtonsVariant: 'blockButton',
             shimmer: true
           },
           elements: {
             formButtonPrimary: 'bg-primary hover:bg-primary/90 text-primary-foreground',
             formFieldInput: 'bg-background border-input',
             formFieldLabel: 'text-foreground',
+            socialButtonsBlockButton: 'border-border bg-background hover:bg-muted',
+            socialButtonsBlockButtonText: 'text-foreground',
+            dividerLine: 'bg-border',
+            dividerText: 'text-muted-foreground',
             formFieldError: 'text-destructive text-sm',
             footerActionLink: 'text-primary hover:text-primary/90',
             card: 'bg-background border-border shadow-md',
@@ -27,9 +29,10 @@ export function ResetPasswordPage() {
           }
         }}
         routing="path"
-        path="/reset-password"
+        path="/sign-in"
         signUpUrl="/sign-up"
         redirectUrl="/jobs"
+        afterSignInUrl="/jobs"
       />
     </div>
   );

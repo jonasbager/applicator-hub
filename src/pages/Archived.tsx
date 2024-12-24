@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { AppSidebar } from "../components/AppSidebar";
 import { Job } from "../types/job";
-import { getArchivedJobs, restoreJob, deleteJob } from "../lib/job-scraping";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { AddJobModal } from "../components/AddJobModal";
 import { JobDetailsModal } from "../components/JobDetailsModal";
 import { Button } from "../components/ui/button";
-import { RotateCcw, Trash2 } from "lucide-react";
+import { Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
+import { useAuthBridge } from "../hooks/use-auth-bridge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +21,8 @@ import {
   AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
 
-export default function Archived() {
+export function Archived() {
+  const { bridge } = useAuthBridge();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -29,23 +30,32 @@ export default function Archived() {
   const { toast } = useToast();
 
   useEffect(() => {
-    loadJobs();
-  }, []);
+    if (bridge) {
+      loadJobs();
+    }
+  }, [bridge]);
 
   const loadJobs = async () => {
+    if (!bridge) return;
     try {
-      const fetchedJobs = await getArchivedJobs();
+      const fetchedJobs = await bridge.getArchivedJobs();
       setJobs(fetchedJobs);
     } catch (error) {
       console.error("Error loading archived jobs:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to load archived jobs",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleRestore = async (jobId: string) => {
+    if (!bridge) return;
     try {
-      await restoreJob(jobId);
+      await bridge.toggleJobArchive(jobId, false);
       setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
       toast({
         title: "Success",
@@ -56,14 +66,15 @@ export default function Archived() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to restore job",
+        description: error instanceof Error ? error.message : "Failed to restore job",
       });
     }
   };
 
   const handleDelete = async (jobId: string) => {
+    if (!bridge) return;
     try {
-      await deleteJob(jobId);
+      await bridge.deleteJob(jobId);
       setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
       toast({
         title: "Success",
@@ -74,7 +85,7 @@ export default function Archived() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to delete job",
+        description: error instanceof Error ? error.message : "Failed to delete job",
       });
     }
   };
@@ -82,7 +93,7 @@ export default function Archived() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -140,6 +151,7 @@ export default function Archived() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRestore(job.id)}
+                          disabled={!bridge}
                           className="text-muted-foreground hover:text-primary"
                         >
                           <RotateCcw className="h-4 w-4 mr-2" />
@@ -150,6 +162,7 @@ export default function Archived() {
                             <Button
                               variant="ghost"
                               size="sm"
+                              disabled={!bridge}
                               className="text-muted-foreground hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />

@@ -1,0 +1,26 @@
+{
+  "name": "applymate-migration-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "chmod +x setup.sh && ./setup.sh",
+    "test": "NODE_OPTIONS='--loader ts-node/esm' node --experimental-specifier-resolution=node test-migration.ts",
+    "migrate": "NODE_OPTIONS='--loader ts-node/esm' node --experimental-specifier-resolution=node migrate-users.ts",
+    "migrate:dry": "npm run migrate -- --dry-run",
+    "rollback": "NODE_OPTIONS='--loader ts-node/esm' node --experimental-specifier-resolution=node rollback.ts",
+    "rollback:dry": "npm run rollback -- --dry-run",
+    "backup": "mkdir -p backups && NODE_OPTIONS='--loader ts-node/esm' node --experimental-specifier-resolution=node backup.ts",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "npm i -g typescript @types/node"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.3",
+    "dotenv": "^16.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.16",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

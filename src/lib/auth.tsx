@@ -1,294 +1,100 @@
-import { useContext, useEffect, useState, useRef } from 'react';
-import { User, AuthError } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { useContext } from 'react';
+import { ClerkProvider, useAuth, useUser } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/ui/use-toast';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from './auth-context';
+import type { User } from '@supabase/supabase-js';
 
-// Use production URL in production, localhost in development
-const SITE_URL = import.meta.env.PROD 
-  ? 'https://applymate.app'
-  : 'http://localhost:3000';
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+if (!CLERK_PUBLISHABLE_KEY) {
+  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<{
-    user: User | null;
-    loading: boolean;
-    error: AuthError | null;
-  }>({
-    user: null,
-    loading: true,
-    error: null,
-  });
+  return (
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+      <AuthStateProvider>{children}</AuthStateProvider>
+    </ClerkProvider>
+  );
+}
+
+function AuthStateProvider({ children }: { children: React.ReactNode }) {
+  const { isLoaded, signOut } = useAuth();
+  const { user: clerkUser } = useUser();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
-  const isInitialMount = useRef(true);
-  const hasShownWelcomeToast = useRef(false);
-  const isHandlingAuth = useRef(false);
 
-  useEffect(() => {
-    let mounted = true;
+  // Convert Clerk user to minimal Supabase user shape for compatibility
+  const user: User | null = clerkUser ? {
+    id: clerkUser.id,
+    email: clerkUser.primaryEmailAddress?.emailAddress || '',
+    created_at: clerkUser.createdAt?.toISOString() || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    app_metadata: {},
+    user_metadata: {},
+    aud: 'authenticated',
+    role: 'authenticated',
+    email_confirmed_at: clerkUser.primaryEmailAddress?.emailAddress ? new Date().toISOString() : undefined,
+    phone: clerkUser.primaryPhoneNumber?.phoneNumber || undefined,
+    confirmation_sent_at: new Date().toISOString(),
+    confirmed_at: clerkUser.createdAt?.toISOString() || new Date().toISOString(),
+    last_sign_in_at: clerkUser.lastSignInAt?.toISOString() || new Date().toISOString(),
+    recovery_sent_at: new Date().toISOString(),
+    identities: [],
+    factors: []
+  } : null;
 
-    // Get initial session
-    const initializeAuth = async () => {
-      try {
-        // Check if this is a recovery flow
-        const params = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
-        const type = params.get('type') || hashParams.get('type');
-
-        // Get current session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        console.log('Initial session check:', session);
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          if (mounted) {
-            setState(prev => ({ ...prev, error, loading: false }));
-          }
-          return;
-        }
-
-        if (mounted) {
-          setState(prev => ({
-            ...prev,
-            user: session?.user ?? null,
-            loading: false,
-          }));
-
-          // If we have a session and it's a recovery flow
-          if (session?.user && type === 'recovery') {
-            console.log('Recovery flow detected, redirecting to reset password');
-            navigate('/auth/reset-password?type=recovery', { replace: true });
-            return;
-          }
-
-          // Only redirect if we're on the landing page and not in recovery
-          if (session?.user && location.pathname === '/' && type !== 'recovery' && !isHandlingAuth.current) {
-            navigate('/dashboard');
-          }
-        }
-      } catch (error) {
-        console.error('Error during auth initialization:', error);
-      }
-    };
-
-    initializeAuth();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session);
-      
-      if (!mounted) return;
-
-      // Update state first
-      setState(prev => ({
-        ...prev,
-        user: session?.user ?? null,
-        loading: false,
-      }));
-
-      // Check if this is a recovery flow
-      const params = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
-      const type = params.get('type') || hashParams.get('type');
-
-      // Handle different auth events
-      switch (event) {
-        case 'SIGNED_IN':
-          console.log('User signed in:', session?.user);
-          isHandlingAuth.current = true;
-          
-          // If it's a recovery flow, don't redirect to dashboard
-          if (type === 'recovery') {
-            console.log('Recovery flow detected, redirecting to reset password');
-            navigate('/auth/reset-password?type=recovery', { replace: true });
-            return;
-          }
-          
-          // Normal sign in flow
-          if (!isInitialMount.current && !hasShownWelcomeToast.current) {
-            hasShownWelcomeToast.current = true;
-            toast({
-              title: "Successfully signed in",
-              description: "Welcome back!",
-            });
-            navigate('/dashboard');
-          }
-          isHandlingAuth.current = false;
-          break;
-
-        case 'SIGNED_OUT':
-          console.log('User signed out');
-          hasShownWelcomeToast.current = false; // Reset the toast flag
-          toast({
-            title: "Signed out",
-            description: "Successfully signed out of your account.",
-          });
-          navigate('/');
-          break;
-
-        case 'PASSWORD_RECOVERY':
-          console.log('Password recovery event received');
-          navigate('/auth/reset-password?type=recovery');
-          break;
-
-        case 'TOKEN_REFRESHED':
-        case 'INITIAL_SESSION':
-          console.log('Session updated:', session);
-          // Only redirect if we're on the landing page and not in recovery flow
-          if (session?.user && location.pathname === '/' && type !== 'recovery' && !isHandlingAuth.current) {
-            navigate('/dashboard');
-          }
-          break;
-      }
-
-      // After first mount, set isInitialMount to false
-      if (isInitialMount.current) {
-        isInitialMount.current = false;
-      }
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, [toast, navigate, location.pathname]);
-
-  const handleAuthError = (error: AuthError) => {
-    console.error('Auth error:', error);
-    setState(prev => ({ ...prev, error }));
-    
-    let description = 'Please try again.';
-    if (error.message.includes('Email not confirmed')) {
-      description = 'Please check your email for the confirmation link.';
-    } else if (error.message.includes('Invalid login credentials')) {
-      description = 'Invalid email or password.';
-    } else if (error.message.includes('provider')) {
-      description = 'LinkedIn login is not properly configured. Please try again later.';
-    }
-
-    toast({
-      variant: "destructive",
-      title: "Authentication Error",
-      description,
-    });
-  };
-
-  const signUp = async (email: string, password: string) => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${SITE_URL}/auth/callback`,
-          data: {
-            email_confirm_url: `${SITE_URL}/auth/callback`
-          }
-        },
-      });
-      
-      if (error) throw error;
-
-      toast({
-        title: "Verification email sent",
-        description: "Please check your email to confirm your account.",
-      });
-    } catch (error) {
-      handleAuthError(error as AuthError);
-      throw error;
-    } finally {
-      setState(prev => ({ ...prev, loading: false }));
-    }
-  };
-
-  const signIn = async (email: string, password: string) => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) throw error;
-      hasShownWelcomeToast.current = false; // Reset the toast flag before new sign in
-    } catch (error) {
-      handleAuthError(error as AuthError);
-      throw error;
-    } finally {
-      setState(prev => ({ ...prev, loading: false }));
-    }
-  };
-
-  const resetPassword = async (email: string) => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
-    try {
-      // Send reset password email with callback URL
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      
-      if (error) throw error;
-
-      toast({
-        title: "Password reset email sent",
-        description: "Please check your email for the password reset link.",
-      });
-    } catch (error) {
-      handleAuthError(error as AuthError);
-      throw error;
-    } finally {
-      setState(prev => ({ ...prev, loading: false }));
-    }
-  };
-
-  const signInWithLinkedIn = async () => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
-    try {
-      console.log('Starting LinkedIn sign in...');
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'linkedin_oidc',
-        options: {
-          redirectTo: `${SUPABASE_URL}/auth/callback`,
-          queryParams: {
-            redirect_uri: `${SUPABASE_URL}/auth/callback`
-          },
-          scopes: 'openid profile email',
-        },
-      });
-      
-      if (error) throw error;
-      hasShownWelcomeToast.current = false; // Reset the toast flag before new sign in
-    } catch (error) {
-      handleAuthError(error as AuthError);
-      throw error;
-    } finally {
-      setState(prev => ({ ...prev, loading: false }));
-    }
-  };
-
-  const signOut = async () => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    } catch (error) {
-      handleAuthError(error as AuthError);
-      throw error;
-    } finally {
-      setState(prev => ({ ...prev, loading: false }));
-    }
-  };
-
+  // Provide auth state and methods through context
   const value = {
-    ...state,
-    signUp,
-    signIn,
-    signInWithLinkedIn,
-    signOut,
-    resetPassword,
+    user,
+    loading: !isLoaded,
+    error: null,
+    signUp: async () => {
+      // Handled by Clerk UI components
+      toast({
+        title: "Please use the sign up form",
+        description: "The sign up process is handled through our secure form.",
+      });
+    },
+    signIn: async () => {
+      // Handled by Clerk UI components
+      toast({
+        title: "Please use the sign in form",
+        description: "The sign in process is handled through our secure form.",
+      });
+    },
+    signInWithLinkedIn: async () => {
+      // Handled by Clerk UI components
+      toast({
+        title: "Please use the sign in form",
+        description: "Social login is available through our secure form.",
+      });
+    },
+    signOut: async () => {
+      try {
+        await signOut();
+        toast({
+          title: "Signed out",
+          description: "Successfully signed out of your account.",
+        });
+        navigate('/');
+      } catch (error) {
+        console.error('Error signing out:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to sign out. Please try again.",
+        });
+      }
+    },
+    resetPassword: async () => {
+      // Handled by Clerk UI components
+      toast({
+        title: "Please use the reset password form",
+        description: "The password reset process is handled through our secure form.",
+      });
+    },
   };
 
   return (
@@ -297,3 +103,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
+// Export hook for easy access to auth context
+export const useAppAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAppAuth must be used within an AuthProvider');
+  }
+  return context;
+};

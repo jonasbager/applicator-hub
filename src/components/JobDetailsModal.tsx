@@ -7,9 +7,9 @@ import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Job, getDeadlineStatus, formatDate } from "../types/job";
-import { updateJobNotes, updateJobApplicationUrl, archiveJob, updateJobDeadline, updateJobStartDate } from "../lib/job-scraping";
 import { useToast } from "./ui/use-toast";
 import { Archive, CalendarClock, CalendarDays } from "lucide-react";
+import { useAuthBridge } from "../hooks/use-auth-bridge";
 
 export interface JobDetailsModalProps {
   open: boolean;
@@ -26,6 +26,7 @@ export function JobDetailsModal({
   onUpdate,
   onDelete,
 }: JobDetailsModalProps) {
+  const { bridge } = useAuthBridge();
   const [notes, setNotes] = useState(job.notes?.join('\n') || '');
   const [applicationUrl, setApplicationUrl] = useState(job.application_draft_url || '');
   const [deadline, setDeadline] = useState(job.deadline || '');
@@ -45,11 +46,12 @@ export function JobDetailsModal({
   };
 
   const handleSaveNotes = async () => {
+    if (!bridge) return;
     setIsSaving(true);
     try {
       // Split notes by newlines and filter out empty lines
       const notesArray = notes.split('\n').filter(note => note.trim() !== '');
-      const updatedJob = await updateJobNotes(job.id, notesArray);
+      const updatedJob = await bridge.updateJob(job.id, { notes: notesArray });
       if (onUpdate) {
         onUpdate(updatedJob);
       }
@@ -62,7 +64,7 @@ export function JobDetailsModal({
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to save notes",
+        description: error instanceof Error ? error.message : "Failed to save notes",
       });
     } finally {
       setIsSaving(false);
@@ -70,9 +72,10 @@ export function JobDetailsModal({
   };
 
   const handleSaveApplicationUrl = async () => {
+    if (!bridge) return;
     setIsSaving(true);
     try {
-      const updatedJob = await updateJobApplicationUrl(job.id, applicationUrl);
+      const updatedJob = await bridge.updateJob(job.id, { application_draft_url: applicationUrl });
       if (onUpdate) {
         onUpdate(updatedJob);
       }
@@ -85,7 +88,7 @@ export function JobDetailsModal({
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to save application URL",
+        description: error instanceof Error ? error.message : "Failed to save application URL",
       });
     } finally {
       setIsSaving(false);
@@ -93,10 +96,11 @@ export function JobDetailsModal({
   };
 
   const handleSaveDeadline = async () => {
+    if (!bridge) return;
     setIsSaving(true);
     try {
       const deadlineValue = deadline === 'unknown' ? null : deadline === 'custom' ? null : deadline;
-      const updatedJob = await updateJobDeadline(job.id, deadlineValue);
+      const updatedJob = await bridge.updateJob(job.id, { deadline: deadlineValue });
       if (onUpdate) {
         onUpdate(updatedJob);
       }
@@ -109,7 +113,7 @@ export function JobDetailsModal({
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to save deadline",
+        description: error instanceof Error ? error.message : "Failed to save deadline",
       });
     } finally {
       setIsSaving(false);
@@ -117,10 +121,11 @@ export function JobDetailsModal({
   };
 
   const handleSaveStartDate = async () => {
+    if (!bridge) return;
     setIsSaving(true);
     try {
       const startDateValue = startDate === 'unknown' ? null : startDate === 'custom' ? null : startDate;
-      const updatedJob = await updateJobStartDate(job.id, startDateValue);
+      const updatedJob = await bridge.updateJob(job.id, { start_date: startDateValue });
       if (onUpdate) {
         onUpdate(updatedJob);
       }
@@ -133,7 +138,7 @@ export function JobDetailsModal({
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to save start date",
+        description: error instanceof Error ? error.message : "Failed to save start date",
       });
     } finally {
       setIsSaving(false);
@@ -141,9 +146,10 @@ export function JobDetailsModal({
   };
 
   const handleArchive = async () => {
+    if (!bridge) return;
     setIsArchiving(true);
     try {
-      await archiveJob(job.id);
+      await bridge.toggleJobArchive(job.id, true);
       toast({
         title: "Success",
         description: "Job archived successfully",
@@ -157,7 +163,7 @@ export function JobDetailsModal({
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to archive job",
+        description: error instanceof Error ? error.message : "Failed to archive job",
       });
     } finally {
       setIsArchiving(false);
@@ -232,7 +238,7 @@ export function JobDetailsModal({
                   )}
                   <Button 
                     onClick={handleSaveStartDate}
-                    disabled={isSaving}
+                    disabled={isSaving || !bridge}
                   >
                     Save
                   </Button>
@@ -269,7 +275,7 @@ export function JobDetailsModal({
                   )}
                   <Button 
                     onClick={handleSaveDeadline}
-                    disabled={isSaving}
+                    disabled={isSaving || !bridge}
                   >
                     Save
                   </Button>
@@ -307,7 +313,7 @@ export function JobDetailsModal({
                 />
                 <Button 
                   onClick={handleSaveApplicationUrl}
-                  disabled={isSaving}
+                  disabled={isSaving || !bridge}
                 >
                   Save
                 </Button>
@@ -335,7 +341,7 @@ export function JobDetailsModal({
                 />
                 <Button 
                   onClick={handleSaveNotes}
-                  disabled={isSaving}
+                  disabled={isSaving || !bridge}
                   className="self-end"
                 >
                   Save Notes
@@ -348,7 +354,7 @@ export function JobDetailsModal({
                 variant="ghost" 
                 size="sm"
                 onClick={() => setShowArchiveConfirm(true)}
-                disabled={isArchiving}
+                disabled={isArchiving || !bridge}
                 className="text-muted-foreground hover:text-primary"
               >
                 <Archive className="h-4 w-4 mr-2" />

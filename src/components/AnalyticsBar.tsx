@@ -1,155 +1,158 @@
-import { BarChart, Briefcase, Building2, LineChart, Users } from "lucide-react";
-import { Job } from "@/types/job";
+import { BarChart, Briefcase, Building2, LineChart, Users, Clock, Calendar } from "lucide-react";
+import { Job, JobStatus } from "../types/job";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "./ui/tooltip";
+import { Skeleton } from "./ui/skeleton";
+import { cn } from "../lib/utils";
 
 interface AnalyticsBarProps {
   jobs: Job[];
+  loading?: boolean;
 }
 
-export function AnalyticsBar({ jobs }: AnalyticsBarProps) {
+interface Metric {
+  title: string;
+  value: number;
+  icon: React.ComponentType<{ className?: string }>;
+  colorClass: string;
+  iconColorClass: string;
+  tooltip: string;
+  percentage?: number;
+  subtitle?: string;
+}
+
+export function AnalyticsBar({ jobs, loading = false }: AnalyticsBarProps) {
+  if (loading) {
+    return (
+      <div className="fixed bottom-6 right-6 w-[calc(100%-288px-48px)]">
+        <div className="bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg p-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="w-10 h-10 rounded-lg" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-6 w-16" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Calculate statistics
   const totalJobs = jobs.length;
   const appliedJobs = jobs.filter(job => job.status === 'Submitted').length;
   const interviewJobs = jobs.filter(job => job.status === 'Interview').length;
+  const successRate = totalJobs ? Math.round((interviewJobs / totalJobs) * 100) : 0;
 
-  // Calculate most common position
-  const positionCounts = jobs.reduce((acc, job) => {
-    acc[job.position] = (acc[job.position] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Calculate deadlines
+  const upcomingDeadlines = jobs.filter(job => {
+    if (!job.deadline || job.deadline === 'ASAP') return false;
+    const deadline = new Date(job.deadline);
+    const now = new Date();
+    const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return daysUntil >= 0 && daysUntil <= 7;
+  }).length;
 
-  const mostCommonPosition = Object.entries(positionCounts)
-    .sort(([, a], [, b]) => b - a)[0];
+  // Calculate upcoming start dates
+  const upcomingStarts = jobs.filter(job => {
+    if (!job.start_date || job.start_date === 'ASAP') return false;
+    const startDate = new Date(job.start_date);
+    const now = new Date();
+    const daysUntil = Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return daysUntil >= 0 && daysUntil <= 14;
+  }).length;
 
-  // Calculate most common company (as a proxy for industry)
-  const companyCounts = jobs.reduce((acc, job) => {
-    acc[job.company] = (acc[job.company] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const mostCommonCompany = Object.entries(companyCounts)
-    .sort(([, a], [, b]) => b - a)[0];
+  const metrics: Metric[] = [
+    {
+      title: "Total Jobs",
+      value: totalJobs,
+      icon: Briefcase,
+      colorClass: "bg-primary/10",
+      iconColorClass: "text-primary",
+      tooltip: "Total number of active jobs",
+    },
+    {
+      title: "Applied",
+      value: appliedJobs,
+      percentage: totalJobs ? Math.round((appliedJobs / totalJobs) * 100) : 0,
+      icon: LineChart,
+      colorClass: "bg-blue-500/10",
+      iconColorClass: "text-blue-500",
+      tooltip: "Jobs marked as "Submitted"",
+    },
+    {
+      title: "Interviews",
+      value: interviewJobs,
+      percentage: successRate,
+      icon: Users,
+      colorClass: "bg-green-500/10",
+      iconColorClass: "text-green-500",
+      tooltip: `Jobs in "Interview" status (${successRate}% success rate)`,
+    },
+    {
+      title: "Deadlines",
+      value: upcomingDeadlines,
+      icon: Clock,
+      colorClass: "bg-yellow-500/10",
+      iconColorClass: "text-yellow-500",
+      tooltip: "Applications due in the next 7 days",
+      subtitle: upcomingDeadlines === 1 ? "due soon" : "due soon",
+    },
+    {
+      title: "Start Dates",
+      value: upcomingStarts,
+      icon: Calendar,
+      colorClass: "bg-purple-500/10",
+      iconColorClass: "text-purple-500",
+      tooltip: "Jobs starting in the next 14 days",
+      subtitle: upcomingStarts === 1 ? "upcoming" : "upcoming",
+    },
+  ];
 
   return (
     <div className="fixed bottom-6 right-6 w-[calc(100%-288px-48px)]">
       <div className="bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg p-4">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-          {/* Total Jobs */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Briefcase className="w-5 h-5 text-primary" />
+          {metrics.map((metric, index) => (
+            <TooltipProvider key={index}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-3">
+                    <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", metric.colorClass)}>
+                      <metric.icon className={cn("w-5 h-5", metric.iconColorClass)} />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">{metric.title}</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-lg font-semibold">{metric.value}</p>
+                        {metric.percentage !== undefined && (
+                          <p className="text-xs text-muted-foreground">
+                            {metric.percentage}%
+                          </p>
+                        )}
+                        {metric.subtitle && (
+                          <p className="text-xs text-muted-foreground">
+                            {metric.subtitle}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Jobs</p>
-                    <p className="text-lg font-semibold">{totalJobs}</p>
-                  </div>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Total number of jobs added to your board</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Applied Jobs */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                    <LineChart className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Applied</p>
-                    <p className="text-lg font-semibold">{appliedJobs}</p>
-                  </div>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Jobs marked as "Submitted"</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Interviews */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Interviews</p>
-                    <p className="text-lg font-semibold">{interviewJobs}</p>
-                  </div>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Jobs in "Interview" status</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Most Common Position */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                    <BarChart className="w-5 h-5 text-orange-500" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-muted-foreground">Top Position</p>
-                    <p className="text-sm font-medium truncate">
-                      {mostCommonPosition ? mostCommonPosition[0] : 'N/A'}
-                    </p>
-                  </div>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                {mostCommonPosition ? (
-                  <p>Applied to {mostCommonPosition[1]} times</p>
-                ) : (
-                  <p>No positions added yet</p>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Most Common Company */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                    <Building2 className="w-5 h-5 text-purple-500" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-muted-foreground">Top Company</p>
-                    <p className="text-sm font-medium truncate">
-                      {mostCommonCompany ? mostCommonCompany[0] : 'N/A'}
-                    </p>
-                  </div>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                {mostCommonCompany ? (
-                  <p>Applied to {mostCommonCompany[1]} times</p>
-                ) : (
-                  <p>No companies added yet</p>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{metric.tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ))}
         </div>
       </div>
     </div>

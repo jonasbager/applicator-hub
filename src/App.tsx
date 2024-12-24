@@ -1,74 +1,85 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./lib/auth";
-import { Toaster } from "./components/ui/toaster";
-import Index from "./pages/Index";
-import Landing from "./pages/Landing";
-import Login from "./pages/auth/login";
-import Signup from "./pages/auth/signup";
-import Callback from "./pages/auth/callback";
-import ResetPassword from "./pages/auth/reset-password";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import Archived from "./pages/Archived";
-import { ProtectedRoute } from "./components/ProtectedRoute";
-import { useAuth } from "./hooks/use-auth";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from './components/ui/toaster';
+import { ThemeProvider } from './lib/theme';
+import { AuthProvider, Protected, Public } from './lib/clerk-provider';
 
-function AppRoutes() {
-  const { user, loading } = useAuth();
+// Pages
+import Landing from './pages/Landing';
+import { Index } from './pages/Index';
+import { Archived } from './pages/Archived';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
+import { SignInPage } from './pages/auth/sign-in';
+import { SignUpPage } from './pages/auth/sign-up';
+import { CallbackPage } from './pages/auth/callback';
+import { ResetPasswordPage } from './pages/auth/reset-password';
 
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary"></div>
-      </div>
-    );
-  }
-
+export default function App() {
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
-      <Route path="/auth/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
-      <Route path="/auth/signup" element={user ? <Navigate to="/dashboard" /> : <Signup />} />
-      <Route path="/auth/callback" element={<Callback />} />
-      <Route path="/auth/reset-password" element={<ResetPassword />} />
-      <Route path="/privacy" element={<Privacy />} />
-      <Route path="/terms" element={<Terms />} />
-
-      {/* Protected routes */}
-      <Route 
-        path="/dashboard" 
-        element={
-          <ProtectedRoute>
-            <Index />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/archived" 
-        element={
-          <ProtectedRoute>
-            <Archived />
-          </ProtectedRoute>
-        } 
-      />
-
-      {/* Catch-all redirect */}
-      <Route path="*" element={<Navigate to={user ? "/dashboard" : "/"} />} />
-    </Routes>
-  );
-}
-
-function App() {
-  return (
-    <Router>
+    <ThemeProvider>
       <AuthProvider>
-        <AppRoutes />
+        <Router>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            
+            {/* Auth routes */}
+            <Route
+              path="/"
+              element={
+                <Public>
+                  <Landing />
+                </Public>
+              }
+            />
+            <Route
+              path="/sign-in/*"
+              element={
+                <Public>
+                  <SignInPage />
+                </Public>
+              }
+            />
+            <Route
+              path="/sign-up/*"
+              element={
+                <Public>
+                  <SignUpPage />
+                </Public>
+              }
+            />
+            <Route
+              path="/reset-password/*"
+              element={
+                <Public>
+                  <ResetPasswordPage />
+                </Public>
+              }
+            />
+            <Route path="/auth/callback" element={<CallbackPage />} />
+
+            {/* Protected routes */}
+            <Route
+              path="/jobs"
+              element={
+                <Protected>
+                  <Index />
+                </Protected>
+              }
+            />
+            <Route
+              path="/archived"
+              element={
+                <Protected>
+                  <Archived />
+                </Protected>
+              }
+            />
+          </Routes>
+        </Router>
         <Toaster />
       </AuthProvider>
-    </Router>
+    </ThemeProvider>
   );
 }
-
-export default App;
