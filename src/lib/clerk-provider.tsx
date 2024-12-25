@@ -8,9 +8,12 @@ import {
 } from '@clerk/clerk-react';
 import { Loader2 } from 'lucide-react';
 
+// Get environment variables
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+// Ensure we have required configuration
 if (!publishableKey) {
-  throw new Error('Missing Clerk Publishable Key');
+  console.error('Missing Clerk configuration. Please check your environment variables.');
 }
 
 interface Props {
@@ -22,6 +25,18 @@ interface Props {
  * Handles loading states and theme synchronization
  */
 export function AuthProvider({ children }: Props) {
+  // Show error UI if configuration is missing
+  if (!publishableKey) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-4 text-center">
+        <h1 className="text-xl font-semibold text-destructive">Authentication Error</h1>
+        <p className="text-muted-foreground">
+          Missing authentication configuration. Please check your environment variables.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <ClerkProvider
       publishableKey={publishableKey}
