@@ -11,9 +11,16 @@ import { Loader2 } from 'lucide-react';
 // Get environment variables
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
+// Validate publishable key format
+const isValidKey = (key: string | undefined): boolean => {
+  if (!key) return false;
+  // Should start with pk_test_ or pk_live_
+  return /^pk_(test|live)_[a-zA-Z0-9]+$/.test(key);
+};
+
 // Ensure we have required configuration
-if (!publishableKey) {
-  console.error('Missing Clerk configuration. Please check your environment variables.');
+if (!isValidKey(publishableKey)) {
+  console.error('Invalid Clerk publishable key. Key should start with pk_test_ or pk_live_');
 }
 
 interface Props {
@@ -25,13 +32,16 @@ interface Props {
  * Handles loading states and theme synchronization
  */
 export function AuthProvider({ children }: Props) {
-  // Show error UI if configuration is missing
-  if (!publishableKey) {
+  // Show error UI if configuration is missing or invalid
+  if (!isValidKey(publishableKey)) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-4 text-center">
         <h1 className="text-xl font-semibold text-destructive">Authentication Error</h1>
         <p className="text-muted-foreground">
-          Missing authentication configuration. Please check your environment variables.
+          Invalid authentication configuration. Please check your environment variables.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Publishable key should start with pk_test_ or pk_live_
         </p>
       </div>
     );
