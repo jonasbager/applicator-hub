@@ -16,15 +16,40 @@ import { ResetPasswordPage } from './pages/auth/reset-password';
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <Router>
+    <Router>
+      <ThemeProvider>
+        <AuthProvider>
           <Routes>
+            {/* Auth routes - must come first */}
+            <Route path="/auth/callback" element={<CallbackPage />} />
+            <Route
+              path="/sign-in"
+              element={
+                <Public>
+                  <SignInPage />
+                </Public>
+              }
+            />
+            <Route
+              path="/sign-up"
+              element={
+                <Public>
+                  <SignUpPage />
+                </Public>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <Public>
+                  <ResetPasswordPage />
+                </Public>
+              }
+            />
+
             {/* Public routes */}
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
-            
-            {/* Auth routes */}
             <Route
               path="/"
               element={
@@ -33,31 +58,6 @@ export default function App() {
                 </Public>
               }
             />
-            <Route
-              path="/sign-in/*"
-              element={
-                <Public>
-                  <SignInPage />
-                </Public>
-              }
-            />
-            <Route
-              path="/sign-up/*"
-              element={
-                <Public>
-                  <SignUpPage />
-                </Public>
-              }
-            />
-            <Route
-              path="/reset-password/*"
-              element={
-                <Public>
-                  <ResetPasswordPage />
-                </Public>
-              }
-            />
-            <Route path="/auth/callback" element={<CallbackPage />} />
 
             {/* Protected routes */}
             <Route
@@ -77,9 +77,9 @@ export default function App() {
               }
             />
           </Routes>
-        </Router>
-        <Toaster />
-      </AuthProvider>
-    </ThemeProvider>
+          <Toaster />
+        </AuthProvider>
+      </ThemeProvider>
+    </Router>
   );
 }
