@@ -6,7 +6,7 @@ This guide explains how to set up Clerk authentication for Applymate.
 
 1. Go to [clerk.com](https://clerk.com) and sign up for an account
 2. Create a new application in the Clerk dashboard
-3. Note your Publishable Key from the dashboard
+3. Note your Publishable Key and Frontend API from the dashboard
 
 ## 2. Configure Application URLs
 
@@ -42,23 +42,23 @@ In your Clerk Dashboard:
 
 ## 4. Environment Variables
 
-Add these variables to your `.env` file:
+Add these variables to your `.env` file for development:
 
 ```bash
 # Clerk Authentication
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_your-publishable-key
-VITE_CLERK_SIGN_IN_URL=/sign-in
-VITE_CLERK_SIGN_UP_URL=/sign-up
-VITE_CLERK_AFTER_SIGN_IN_URL=/jobs
-VITE_CLERK_AFTER_SIGN_UP_URL=/jobs
-
-# Supabase (for database only)
-VITE_SUPABASE_URL=your-project-url
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_CLERK_FRONTEND_API=your-frontend-api
 
 # URLs
-VITE_DEV_URL=http://localhost:3000
-VITE_PROD_URL=https://applymate.app
+VITE_SITE_URL=http://localhost:3000
+```
+
+For production, add these variables in your Netlify dashboard:
+
+```bash
+VITE_CLERK_PUBLISHABLE_KEY=pk_live_your-publishable-key
+VITE_CLERK_FRONTEND_API=your-frontend-api
+VITE_SITE_URL=https://applymate.app
 ```
 
 ## 5. Development Setup
@@ -83,7 +83,7 @@ VITE_PROD_URL=https://applymate.app
 ## 6. Production Setup
 
 1. Configure production environment:
-   - Add production environment variables
+   - Add environment variables in Netlify dashboard
    - Update Clerk dashboard with production URLs
    - Configure production OAuth credentials
 
@@ -128,3 +128,8 @@ VITE_PROD_URL=https://applymate.app
    - Clear browser cache/cookies
    - Check Clerk session status
    - Verify environment variables
+
+4. **Token Errors**:
+   - Ensure FRONTEND_API is set correctly
+   - Check publishable key format
+   - Verify domain configuration
