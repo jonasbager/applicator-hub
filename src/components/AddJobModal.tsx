@@ -9,7 +9,7 @@ import { Loader2 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { useAuth } from "@clerk/clerk-react";
 import { JobStatus, DateValue } from "../types/job";
-import { supabase } from "../lib/supabase";
+import { useSupabase } from "../lib/supabase";
 
 interface JobFormState {
   position: string;
@@ -45,6 +45,7 @@ const initialJobState: JobFormState = {
 
 export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps) {
   const { userId } = useAuth();
+  const { supabase } = useSupabase();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -92,16 +93,27 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     setLoading(true);
 
     try {
-      const { error } = await supabase
+      const newJob = {
+        ...jobDetails,
+        user_id: userId,
+        archived: false,
+        created_at: new Date().toISOString()
+      };
+      
+      console.log('Creating job with data:', newJob);
+      
+      const { data, error } = await supabase
         .from('jobs')
-        .insert([{
-          ...jobDetails,
-          user_id: userId,
-          archived: false,
-          created_at: new Date().toISOString()
-        }]);
+        .insert([newJob])
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw error;
+      }
+
+      console.log('Job created successfully:', data);
 
       onJobAdded();
       onOpenChange(false);

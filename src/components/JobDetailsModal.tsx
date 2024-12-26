@@ -10,7 +10,7 @@ import { Job, getDeadlineStatus, formatDate } from "../types/job";
 import { useToast } from "./ui/use-toast";
 import { Archive, CalendarClock, CalendarDays } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
-import { supabase } from "../lib/supabase";
+import { useSupabase } from "../lib/supabase";
 
 export interface JobDetailsModalProps {
   open: boolean;
@@ -28,6 +28,7 @@ export function JobDetailsModal({
   onDelete,
 }: JobDetailsModalProps) {
   const { userId } = useAuth();
+  const { supabase } = useSupabase();
   const [notes, setNotes] = useState(job.notes?.join('\n') || '');
   const [applicationUrl, setApplicationUrl] = useState(job.application_draft_url || '');
   const [deadline, setDeadline] = useState(job.deadline || '');

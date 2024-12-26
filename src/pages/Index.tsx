@@ -8,10 +8,11 @@ import { AnalyticsBar } from "../components/AnalyticsBar";
 import { useAuth } from "@clerk/clerk-react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
-import { supabase } from "../lib/supabase";
+import { useSupabase } from "../lib/supabase";
 
 export function Index() {
   const { userId, isLoaded } = useAuth();
+  const { supabase } = useSupabase();
   const { toast } = useToast();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -32,8 +33,12 @@ export function Index() {
         .from('jobs')
         .select('*')
         .eq('user_id', userId)
-        .eq('archived', false)
         .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw error;
+      }
 
       if (error) throw error;
       setJobs(fetchedJobs || []);
