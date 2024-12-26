@@ -10,6 +10,11 @@ import { Loader2 } from 'lucide-react';
 
 // Get environment variables
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const signInUrl = import.meta.env.VITE_CLERK_SIGN_IN_URL;
+const signUpUrl = import.meta.env.VITE_CLERK_SIGN_UP_URL;
+const afterSignInUrl = import.meta.env.VITE_CLERK_AFTER_SIGN_IN_URL;
+const afterSignUpUrl = import.meta.env.VITE_CLERK_AFTER_SIGN_UP_URL;
+const afterSignOutUrl = import.meta.env.VITE_CLERK_AFTER_SIGN_OUT_URL;
 
 // Validate publishable key format
 const isValidKey = (key: string | undefined): boolean => {
@@ -48,6 +53,11 @@ export function AuthProvider({ children }: Props) {
   return (
     <ClerkProvider
       publishableKey={publishableKey}
+      signInUrl={signInUrl}
+      signUpUrl={signUpUrl}
+      afterSignInUrl={afterSignInUrl}
+      afterSignUpUrl={afterSignUpUrl}
+      afterSignOutUrl={afterSignOutUrl}
       appearance={{
         // Use system colors instead of Clerk themes for better integration
         variables: {
@@ -119,18 +129,4 @@ export function Public({ children }: Props) {
       {children}
     </SignedOut>
   );
-}
-
-/**
- * Hook to get the current auth state
- * Provides a simpler interface than Clerk's useAuth
- */
-export function useAuthState() {
-  const { isLoaded, isSignedIn, userId } = useAuth();
-  
-  return {
-    isLoaded,
-    isAuthenticated: isLoaded && isSignedIn,
-    userId
-  };
 }

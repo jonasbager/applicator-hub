@@ -18,13 +18,17 @@ export default defineConfig(({ mode }) => {
       port: 3000,
     },
     build: {
-      // Ensure we handle environment variables
-      rollupOptions: {
-        external: ['@clerk/clerk-react'],
-      },
       // Improve error reporting
       minify: mode === 'development' ? false : 'esbuild',
       sourcemap: true,
+      // Handle environment variables
+      rollupOptions: {
+        // Ensure external dependencies are properly handled
+        external: [],
+      },
+    },
+    optimizeDeps: {
+      include: ['@clerk/clerk-react'],
     },
     // Define environment variables
     define: {
