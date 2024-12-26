@@ -23,8 +23,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
         signInUrl="/sign-in"
         signUpUrl="/sign-up"
-        afterSignInUrl="/jobs"
-        afterSignUpUrl="/jobs"
+        redirectUrl="/jobs"
         appearance={{
           layout: {
             shimmer: true
