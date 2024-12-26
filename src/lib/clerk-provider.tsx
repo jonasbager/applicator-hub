@@ -13,14 +13,12 @@ const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 // Validate publishable key format
 const isValidKey = (key: string | undefined): boolean => {
-  if (!key) return false;
-  // Should start with pk_test_ or pk_live_
-  return /^pk_(test|live)_[a-zA-Z0-9]+$/.test(key);
+  return typeof key === 'string' && key.length > 0;
 };
 
 // Ensure we have required configuration
 if (!isValidKey(publishableKey)) {
-  console.error('Invalid Clerk publishable key. Key should start with pk_test_ or pk_live_');
+  console.error('Missing Clerk publishable key');
 }
 
 interface Props {
@@ -38,10 +36,10 @@ export function AuthProvider({ children }: Props) {
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-4 text-center">
         <h1 className="text-xl font-semibold text-destructive">Authentication Error</h1>
         <p className="text-muted-foreground">
-          Invalid authentication configuration. Please check your environment variables.
+          Missing authentication configuration. Please check your environment variables.
         </p>
         <p className="text-sm text-muted-foreground">
-          Publishable key should start with pk_test_ or pk_live_
+          VITE_CLERK_PUBLISHABLE_KEY is required
         </p>
       </div>
     );
