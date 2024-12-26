@@ -3,6 +3,7 @@ import { Toaster } from './components/ui/toaster';
 import { ThemeProvider } from './lib/theme';
 import { Protected, Public } from './lib/clerk-provider';
 import { useAuthState } from './hooks/use-auth-state';
+import { NotFound } from './pages/NotFound';
 
 // Pages
 function RootRoute() {
@@ -83,6 +84,9 @@ export default function App() {
             </Protected>
           }
         />
+
+        {/* 404 catch-all route */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
     </ThemeProvider>
