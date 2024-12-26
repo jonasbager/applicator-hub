@@ -159,7 +159,10 @@ export function Index() {
 
   return (
     <div className="min-h-screen flex w-full">
-      <AppSidebar onAddClick={() => setIsAddModalOpen(true)} />
+      <AppSidebar 
+        onAddClick={() => setIsAddModalOpen(true)} 
+        hasJobs={jobs.length > 0}
+      />
       <main className="flex-1 p-8 pb-32">
         <div className="max-w-[1600px] mx-auto">
           <div className="mb-8">
@@ -173,15 +176,17 @@ export function Index() {
             <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${
               isUpdating ? 'opacity-75' : ''
             }`}>
-              {JOB_STATUS_ORDER.map((status) => (
-                <JobColumn 
-                  key={status}
-                  status={status}
-                  jobs={jobsByStatus[status]}
-                  onJobUpdate={handleJobUpdate}
-                  onJobDelete={handleJobDelete}
-                />
-              ))}
+            {JOB_STATUS_ORDER.map((status, index) => (
+              <JobColumn 
+                key={status}
+                status={status}
+                jobs={jobsByStatus[status]}
+                onJobUpdate={handleJobUpdate}
+                onJobDelete={handleJobDelete}
+                isSecondColumn={index === 1}
+                hasJobsInFirstColumn={jobsByStatus[JOB_STATUS_ORDER[0]].length > 0}
+              />
+            ))}
             </div>
           </DragDropContext>
         </div>

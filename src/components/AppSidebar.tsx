@@ -11,9 +11,10 @@ const menuItems = [
 
 interface AppSidebarProps {
   onAddClick: () => void;
+  hasJobs: boolean;
 }
 
-export function AppSidebar({ onAddClick }: AppSidebarProps) {
+export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
   const { signOut } = useClerk();
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,11 +41,51 @@ export function AppSidebar({ onAddClick }: AppSidebarProps) {
 
         <Button
           onClick={onAddClick}
-          className="w-full mb-6"
+          className={cn(
+            "w-full mb-6 relative",
+            !hasJobs && "animate-pulse-ring"
+          )}
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Application
+          {!hasJobs && (
+            <span className="absolute inset-0 rounded-md animate-pulse-border" />
+          )}
         </Button>
+
+        {/* Add animations */}
+        <style>
+          {`
+            @keyframes pulseRing {
+              0% {
+                box-shadow: 0 0 0 0 rgba(var(--primary), 0.7);
+              }
+              70% {
+                box-shadow: 0 0 0 10px rgba(var(--primary), 0);
+              }
+              100% {
+                box-shadow: 0 0 0 0 rgba(var(--primary), 0);
+              }
+            }
+            @keyframes pulseBorder {
+              0% {
+                border: 2px solid rgba(var(--primary), 0.7);
+              }
+              70% {
+                border: 2px solid rgba(var(--primary), 0);
+              }
+              100% {
+                border: 2px solid rgba(var(--primary), 0.7);
+              }
+            }
+            .animate-pulse-ring {
+              animation: pulseRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+            .animate-pulse-border {
+              animation: pulseBorder 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+          `}
+        </style>
 
         <nav>
           <ul className="space-y-2">
