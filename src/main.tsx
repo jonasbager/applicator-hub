@@ -15,8 +15,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
-      signInFallbackRedirectUrl="/jobs"
-      signUpFallbackRedirectUrl="/jobs"
+      afterSignInUrl="/jobs"
+      afterSignUpUrl="/jobs"
     >
       <BrowserRouter>
         <App />
