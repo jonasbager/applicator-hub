@@ -29,13 +29,13 @@ export default function Landing() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="group">
-                <Link to="/auth/signup">
+                <Link to="/sign-up">
                   Get Started Free
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link to="/auth/login">Sign In</Link>
+                <Link to="/sign-in">Sign In</Link>
               </Button>
             </div>
           </div>
@@ -125,7 +125,7 @@ export default function Landing() {
               Join other job seekers who are organizing their job search with ApplyMate.
             </p>
             <Button asChild size="lg" className="group">
-              <Link to="/auth/signup">
+              <Link to="/sign-up">
                 Get Started Free
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Link>

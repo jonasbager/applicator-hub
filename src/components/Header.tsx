@@ -15,10 +15,10 @@ export function Header() {
           {/* Navigation */}
           <nav className="flex items-center space-x-4">
             <Button asChild variant="ghost" className="text-base">
-              <Link to="/auth/login">Log in</Link>
+              <Link to="/sign-in">Log in</Link>
             </Button>
             <Button asChild className="text-base">
-              <Link to="/auth/signup">Sign up free</Link>
+              <Link to="/sign-up">Sign up free</Link>
             </Button>
           </nav>
         </div>

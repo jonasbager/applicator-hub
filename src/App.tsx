@@ -1,9 +1,20 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from './components/ui/toaster';
 import { ThemeProvider } from './lib/theme';
 import { Protected, Public } from './lib/clerk-provider';
+import { useAuthState } from './hooks/use-auth-state';
 
 // Pages
+function RootRoute() {
+  const { isAuthenticated, isLoaded } = useAuthState();
+  
+  if (!isLoaded) {
+    return null; // or a loading spinner
+  }
+  
+  return isAuthenticated ? <Navigate to="/jobs" replace /> : <Landing />;
+}
+
 import Landing from './pages/Landing';
 import { Index } from './pages/Index';
 import { Archived } from './pages/Archived';
@@ -51,9 +62,7 @@ export default function App() {
         <Route
           path="/"
           element={
-            <Public>
-              <Landing />
-            </Public>
+            <RootRoute />
           }
         />
 
