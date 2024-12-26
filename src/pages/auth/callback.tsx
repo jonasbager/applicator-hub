@@ -11,7 +11,6 @@ export function CallbackPage() {
     async function handleCallback() {
       try {
         await handleRedirectCallback({
-          redirectUrl: window.location.href,
           afterSignInUrl: '/jobs',
           afterSignUpUrl: '/jobs'
         });
