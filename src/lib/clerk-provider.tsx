@@ -55,8 +55,8 @@ export function AuthProvider({ children }: Props) {
       publishableKey={publishableKey}
       signInUrl={signInUrl}
       signUpUrl={signUpUrl}
-      afterSignInUrl={afterSignInUrl}
-      afterSignUpUrl={afterSignUpUrl}
+      signInFallbackRedirectUrl={afterSignInUrl}
+      signUpFallbackRedirectUrl={afterSignUpUrl}
       afterSignOutUrl={afterSignOutUrl}
       appearance={{
         // Use system colors instead of Clerk themes for better integration
