@@ -7,8 +7,9 @@ import { useToast } from "./ui/use-toast";
 import { scrapeJobDetails } from "../lib/job-scraping";
 import { Loader2 } from "lucide-react";
 import { Badge } from "./ui/badge";
-import { useAuthBridge } from "../hooks/use-auth-bridge";
+import { useAuth } from "@clerk/clerk-react";
 import { JobStatus, DateValue } from "../types/job";
+import { supabase } from "../lib/supabase";
 
 interface JobFormState {
   position: string;
@@ -43,7 +44,7 @@ const initialJobState: JobFormState = {
 };
 
 export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps) {
-  const { bridge } = useAuthBridge();
+  const { userId } = useAuth();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -86,16 +87,31 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bridge) return;
+    if (!userId) return;
     
     setLoading(true);
 
     try {
-      await bridge.createJob(jobDetails);
+      const { error } = await supabase
+        .from('jobs')
+        .insert([{
+          ...jobDetails,
+          user_id: userId,
+          archived: false,
+          created_at: new Date().toISOString()
+        }]);
+
+      if (error) throw error;
+
       onJobAdded();
       onOpenChange(false);
       setUrl("");
       setJobDetails(initialJobState);
+      
+      toast({
+        title: "Success",
+        description: "Job added successfully",
+      });
     } catch (error) {
       console.error("Error saving job:", error);
       toast({
@@ -196,7 +212,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !bridge}>
+            <Button type="submit" disabled={loading || !userId}>
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}

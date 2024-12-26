@@ -1,11 +1,11 @@
 import { Archive, Briefcase, LogOut, Plus } from "lucide-react";
 import { cn } from "../lib/utils";
-import { useAuth } from "../hooks/use-auth";
+import { useClerk } from "@clerk/clerk-react";
 import { Button } from "./ui/button";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const menuItems = [
-  { title: "Applications", icon: Briefcase, path: "/dashboard" },
+  { title: "Applications", icon: Briefcase, path: "/jobs" },
   { title: "Archived", icon: Archive, path: "/archived" }
 ];
 
@@ -14,12 +14,14 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ onAddClick }: AppSidebarProps) {
-  const { signOut } = useAuth();
+  const { signOut } = useClerk();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = async () => {
     try {
       await signOut();
+      navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }

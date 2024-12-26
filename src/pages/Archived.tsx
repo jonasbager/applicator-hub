@@ -8,7 +8,8 @@ import { JobDetailsModal } from "../components/JobDetailsModal";
 import { Button } from "../components/ui/button";
 import { Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
-import { useAuthBridge } from "../hooks/use-auth-bridge";
+import { useAuth } from "@clerk/clerk-react";
+import { supabase } from "../lib/supabase";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +23,7 @@ import {
 } from "../components/ui/alert-dialog";
 
 export function Archived() {
-  const { bridge } = useAuthBridge();
+  const { userId } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -30,16 +31,23 @@ export function Archived() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (bridge) {
+    if (userId) {
       loadJobs();
     }
-  }, [bridge]);
+  }, [userId]);
 
   const loadJobs = async () => {
-    if (!bridge) return;
+    if (!userId) return;
     try {
-      const fetchedJobs = await bridge.getArchivedJobs();
-      setJobs(fetchedJobs);
+      const { data: fetchedJobs, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('archived', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setJobs(fetchedJobs || []);
     } catch (error) {
       console.error("Error loading archived jobs:", error);
       toast({
@@ -53,9 +61,16 @@ export function Archived() {
   };
 
   const handleRestore = async (jobId: string) => {
-    if (!bridge) return;
+    if (!userId) return;
     try {
-      await bridge.toggleJobArchive(jobId, false);
+      const { error } = await supabase
+        .from('jobs')
+        .update({ archived: false })
+        .eq('id', jobId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
       setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
       toast({
         title: "Success",
@@ -72,9 +87,16 @@ export function Archived() {
   };
 
   const handleDelete = async (jobId: string) => {
-    if (!bridge) return;
+    if (!userId) return;
     try {
-      await bridge.deleteJob(jobId);
+      const { error } = await supabase
+        .from('jobs')
+        .delete()
+        .eq('id', jobId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
       setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
       toast({
         title: "Success",
@@ -151,7 +173,7 @@ export function Archived() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRestore(job.id)}
-                          disabled={!bridge}
+                          disabled={!userId}
                           className="text-muted-foreground hover:text-primary"
                         >
                           <RotateCcw className="h-4 w-4 mr-2" />
@@ -162,7 +184,7 @@ export function Archived() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              disabled={!bridge}
+                              disabled={!userId}
                               className="text-muted-foreground hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />

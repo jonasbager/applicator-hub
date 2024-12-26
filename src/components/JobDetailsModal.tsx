@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Job, getDeadlineStatus, formatDate } from "../types/job";
 import { useToast } from "./ui/use-toast";
 import { Archive, CalendarClock, CalendarDays } from "lucide-react";
-import { useAuthBridge } from "../hooks/use-auth-bridge";
+import { useAuth } from "@clerk/clerk-react";
+import { supabase } from "../lib/supabase";
 
 export interface JobDetailsModalProps {
   open: boolean;
@@ -26,7 +27,7 @@ export function JobDetailsModal({
   onUpdate,
   onDelete,
 }: JobDetailsModalProps) {
-  const { bridge } = useAuthBridge();
+  const { userId } = useAuth();
   const [notes, setNotes] = useState(job.notes?.join('\n') || '');
   const [applicationUrl, setApplicationUrl] = useState(job.application_draft_url || '');
   const [deadline, setDeadline] = useState(job.deadline || '');
@@ -46,15 +47,25 @@ export function JobDetailsModal({
   };
 
   const handleSaveNotes = async () => {
-    if (!bridge) return;
+    if (!userId) return;
     setIsSaving(true);
     try {
       // Split notes by newlines and filter out empty lines
       const notesArray = notes.split('\n').filter(note => note.trim() !== '');
-      const updatedJob = await bridge.updateJob(job.id, { notes: notesArray });
-      if (onUpdate) {
+      
+      const { data: updatedJob, error } = await supabase
+        .from('jobs')
+        .update({ notes: notesArray })
+        .eq('id', job.id)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (onUpdate && updatedJob) {
         onUpdate(updatedJob);
       }
+
       toast({
         title: "Success",
         description: "Notes saved successfully",
@@ -72,13 +83,22 @@ export function JobDetailsModal({
   };
 
   const handleSaveApplicationUrl = async () => {
-    if (!bridge) return;
+    if (!userId) return;
     setIsSaving(true);
     try {
-      const updatedJob = await bridge.updateJob(job.id, { application_draft_url: applicationUrl });
-      if (onUpdate) {
+      const { data: updatedJob, error } = await supabase
+        .from('jobs')
+        .update({ application_draft_url: applicationUrl })
+        .eq('id', job.id)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (onUpdate && updatedJob) {
         onUpdate(updatedJob);
       }
+
       toast({
         title: "Success",
         description: "Application URL saved successfully",
@@ -96,14 +116,24 @@ export function JobDetailsModal({
   };
 
   const handleSaveDeadline = async () => {
-    if (!bridge) return;
+    if (!userId) return;
     setIsSaving(true);
     try {
       const deadlineValue = deadline === 'unknown' ? null : deadline === 'custom' ? null : deadline;
-      const updatedJob = await bridge.updateJob(job.id, { deadline: deadlineValue });
-      if (onUpdate) {
+      
+      const { data: updatedJob, error } = await supabase
+        .from('jobs')
+        .update({ deadline: deadlineValue })
+        .eq('id', job.id)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (onUpdate && updatedJob) {
         onUpdate(updatedJob);
       }
+
       toast({
         title: "Success",
         description: "Deadline saved successfully",
@@ -121,14 +151,24 @@ export function JobDetailsModal({
   };
 
   const handleSaveStartDate = async () => {
-    if (!bridge) return;
+    if (!userId) return;
     setIsSaving(true);
     try {
       const startDateValue = startDate === 'unknown' ? null : startDate === 'custom' ? null : startDate;
-      const updatedJob = await bridge.updateJob(job.id, { start_date: startDateValue });
-      if (onUpdate) {
+      
+      const { data: updatedJob, error } = await supabase
+        .from('jobs')
+        .update({ start_date: startDateValue })
+        .eq('id', job.id)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (onUpdate && updatedJob) {
         onUpdate(updatedJob);
       }
+
       toast({
         title: "Success",
         description: "Start date saved successfully",
@@ -146,10 +186,17 @@ export function JobDetailsModal({
   };
 
   const handleArchive = async () => {
-    if (!bridge) return;
+    if (!userId) return;
     setIsArchiving(true);
     try {
-      await bridge.toggleJobArchive(job.id, true);
+      const { error } = await supabase
+        .from('jobs')
+        .update({ archived: true })
+        .eq('id', job.id)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
       toast({
         title: "Success",
         description: "Job archived successfully",
@@ -238,7 +285,7 @@ export function JobDetailsModal({
                   )}
                   <Button 
                     onClick={handleSaveStartDate}
-                    disabled={isSaving || !bridge}
+                    disabled={isSaving || !userId}
                   >
                     Save
                   </Button>
@@ -275,7 +322,7 @@ export function JobDetailsModal({
                   )}
                   <Button 
                     onClick={handleSaveDeadline}
-                    disabled={isSaving || !bridge}
+                    disabled={isSaving || !userId}
                   >
                     Save
                   </Button>
@@ -313,7 +360,7 @@ export function JobDetailsModal({
                 />
                 <Button 
                   onClick={handleSaveApplicationUrl}
-                  disabled={isSaving || !bridge}
+                  disabled={isSaving || !userId}
                 >
                   Save
                 </Button>
@@ -341,7 +388,7 @@ export function JobDetailsModal({
                 />
                 <Button 
                   onClick={handleSaveNotes}
-                  disabled={isSaving || !bridge}
+                  disabled={isSaving || !userId}
                   className="self-end"
                 >
                   Save Notes
@@ -354,7 +401,7 @@ export function JobDetailsModal({
                 variant="ghost" 
                 size="sm"
                 onClick={() => setShowArchiveConfirm(true)}
-                disabled={isArchiving || !bridge}
+                disabled={isArchiving || !userId}
                 className="text-muted-foreground hover:text-primary"
               >
                 <Archive className="h-4 w-4 mr-2" />

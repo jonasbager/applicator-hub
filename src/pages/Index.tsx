@@ -5,12 +5,13 @@ import { Job, JobStatus, JOB_STATUS_ORDER } from "../types/job";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { AppSidebar } from "../components/AppSidebar";
 import { AnalyticsBar } from "../components/AnalyticsBar";
-import { useAuthBridge } from "../hooks/use-auth-bridge";
+import { useAuth } from "@clerk/clerk-react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
+import { supabase } from "../lib/supabase";
 
 export function Index() {
-  const { bridge, isLoaded } = useAuthBridge();
+  const { userId, isLoaded } = useAuth();
   const { toast } = useToast();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -18,17 +19,24 @@ export function Index() {
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
-    if (isLoaded && bridge) {
+    if (isLoaded && userId) {
       loadJobs();
     }
-  }, [isLoaded, bridge]);
+  }, [isLoaded, userId]);
 
   const loadJobs = async () => {
-    if (!bridge) return;
+    if (!userId) return;
     
     try {
-      const fetchedJobs = await bridge.getJobs();
-      setJobs(fetchedJobs);
+      const { data: fetchedJobs, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('archived', false)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setJobs(fetchedJobs || []);
     } catch (error) {
       console.error("Error loading jobs:", error);
       toast({
@@ -54,7 +62,7 @@ export function Index() {
   };
 
   const onDragEnd = async (result: DropResult) => {
-    if (!bridge) return;
+    if (!userId) return;
     
     const { source, destination, draggableId } = result;
     
@@ -102,7 +110,14 @@ export function Index() {
 
     // Update the backend without blocking the UI
     try {
-      await bridge.updateJob(draggableId, { status: newStatus });
+      const { error } = await supabase
+        .from('jobs')
+        .update({ status: newStatus })
+        .eq('id', draggableId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
       toast({
         title: "Success",
         description: "Job status updated successfully",
