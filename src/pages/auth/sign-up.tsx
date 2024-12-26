@@ -28,7 +28,10 @@ export function SignUpPage() {
             formFieldInputPlaceholder: 'text-muted-foreground'
           }
         }}
-        redirectUrl={import.meta.env.VITE_SITE_URL + '/jobs'}
+        redirectUrl={import.meta.env.VITE_CLERK_AFTER_SIGN_UP_URL}
+        routing="path"
+        path="/sign-up"
+        signInUrl="/sign-in"
       />
     </div>
   );
