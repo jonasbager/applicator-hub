@@ -3,7 +3,7 @@ import { SignUp } from '@clerk/clerk-react';
 export function SignUpPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <SignUp
+      <SignUp 
         appearance={{
           layout: {
             socialButtonsPlacement: 'bottom',
@@ -28,8 +28,8 @@ export function SignUpPage() {
             formFieldInputPlaceholder: 'text-muted-foreground'
           }
         }}
-        afterSignUpUrl="/jobs"
-        signInUrl="/sign-in"
+        routing="path"
+        path="/sign-up"
       />
     </div>
   );
