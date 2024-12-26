@@ -4,7 +4,6 @@ export function SignUpPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <SignUp
-        redirectUrl="/jobs"
         appearance={{
           layout: {
             socialButtonsPlacement: 'bottom',
