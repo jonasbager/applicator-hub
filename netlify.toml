@@ -36,12 +36,13 @@
   VITE_SITE_URL = "https://applymate.app"
   VITE_SUPABASE_URL = "https://qiowwdewasasyilriyfn.supabase.co"
   VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpb3d3ZGV3YXNhc3lpbHJpeWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM5Njg5NjgsImV4cCI6MjA0OTU0NDk2OH0.sBuZXEglaylseHuJjWuAQhmVcj6ipU85TsWzM2C4Owc"
-  # Clerk environment variables - set in Netlify dashboard
-  VITE_CLERK_PUBLISHABLE_KEY = "" # Set in Netlify dashboard (should start with pk_test_ or pk_live_)
+  # Clerk environment variables
+  VITE_CLERK_PUBLISHABLE_KEY = "pk_live_Y2xlcmsuYXBwbHltYXRlLmFwcCQ"
   VITE_CLERK_SIGN_IN_URL = "/sign-in"
   VITE_CLERK_SIGN_UP_URL = "/sign-up"
   VITE_CLERK_AFTER_SIGN_IN_URL = "/jobs"
   VITE_CLERK_AFTER_SIGN_UP_URL = "/jobs"
+  VITE_CLERK_AFTER_SIGN_OUT_URL = "/"
 
 [functions]
   external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio", "zod"]
