@@ -4,24 +4,31 @@ import { useClerk } from '@clerk/clerk-react';
 import { Loader2 } from 'lucide-react';
 
 export function CallbackPage() {
-  const { handleRedirectCallback } = useClerk();
+  const clerk = useClerk();
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('Callback page mounted, current URL:', window.location.href);
+    console.log('Clerk state:', {
+      loaded: clerk.loaded,
+      session: clerk.session,
+      client: clerk.client
+    });
+
     async function handleCallback() {
       try {
-        await handleRedirectCallback({
-          afterSignInUrl: '/jobs',
-          afterSignUpUrl: '/jobs'
+        await clerk.handleRedirectCallback({
+          redirectUrl: '/jobs'
         });
       } catch (err) {
         console.error('Error handling callback:', err);
+        console.error('Current URL:', window.location.href);
         navigate('/sign-in');
       }
     }
 
     handleCallback();
-  }, [handleRedirectCallback, navigate]);
+  }, [clerk, navigate]);
 
   return (
     <div className="flex min-h-screen items-center justify-center">
