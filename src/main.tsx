@@ -18,21 +18,21 @@ if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ClerkProvider 
-      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
-      signInUrl="/sign-in"
-      signUpUrl="/sign-up"
-      afterSignInUrl="/jobs"
-      afterSignUpUrl="/jobs"
-      appearance={{
-        layout: {
-          shimmer: true
-        }
-      }}
-    >
-      <BrowserRouter>
+    <BrowserRouter>
+      <ClerkProvider 
+        publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+        signInUrl="/sign-in"
+        signUpUrl="/sign-up"
+        afterSignInUrl="/jobs"
+        afterSignUpUrl="/jobs"
+        appearance={{
+          layout: {
+            shimmer: true
+          }
+        }}
+      >
         <App />
-      </BrowserRouter>
-    </ClerkProvider>
+      </ClerkProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );
