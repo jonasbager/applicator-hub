@@ -5,13 +5,14 @@ import { Job, JobStatus, JOB_STATUS_ORDER } from "../types/job";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { AppSidebar } from "../components/AppSidebar";
 import { AnalyticsBar } from "../components/AnalyticsBar";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
 import { useSupabase } from "../lib/supabase";
 
 export function Index() {
   const { userId, isLoaded } = useAuth();
+  const { user } = useUser();
   const { supabase } = useSupabase();
   const { toast } = useToast();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -166,9 +167,9 @@ export function Index() {
       <main className="flex-1 p-8 pb-32">
         <div className="max-w-[1600px] mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold">Job Applications</h1>
+            <h1 className="text-3xl font-bold">Welcome back, {user?.firstName || 'there'}</h1>
             <p className="text-muted-foreground">
-            Manage your job applications with the kanban board below
+              Track and manage your applications with Applymate
             </p>
           </div>
           
@@ -176,17 +177,22 @@ export function Index() {
             <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${
               isUpdating ? 'opacity-75' : ''
             }`}>
-            {JOB_STATUS_ORDER.map((status, index) => (
-              <JobColumn 
-                key={status}
-                status={status}
-                jobs={jobsByStatus[status]}
-                onJobUpdate={handleJobUpdate}
-                onJobDelete={handleJobDelete}
-                isSecondColumn={index === 1}
-                hasJobsInFirstColumn={jobsByStatus[JOB_STATUS_ORDER[0]].length > 0}
-              />
-            ))}
+            {JOB_STATUS_ORDER.map((status, index) => {
+              const isSecondColumn = index === 1;
+              const hasJobsInFirstColumn = jobsByStatus[JOB_STATUS_ORDER[0]].length > 0;
+              
+              return (
+                <JobColumn 
+                  key={status}
+                  status={status}
+                  jobs={jobsByStatus[status]}
+                  onJobUpdate={handleJobUpdate}
+                  onJobDelete={handleJobDelete}
+                  isSecondColumn={isSecondColumn}
+                  hasJobsInFirstColumn={hasJobsInFirstColumn}
+                />
+              );
+            })}
             </div>
           </DragDropContext>
         </div>

@@ -144,7 +144,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="url">Job Posting URL</Label>
+            <Label htmlFor="url">Let Applymate AI auto-fill the fields for you by pasting the link to the job here:</Label>
             <div className="flex gap-2">
               <Input
                 id="url"

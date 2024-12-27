@@ -1,6 +1,6 @@
 import { Archive, Briefcase, LogOut, Plus } from "lucide-react";
 import { cn } from "../lib/utils";
-import { useClerk } from "@clerk/clerk-react";
+import { useClerk, useUser } from "@clerk/clerk-react";
 import { Button } from "./ui/button";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
@@ -16,6 +16,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
   const { signOut } = useClerk();
+  const { user } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -42,41 +43,43 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
         <div className="relative">
           <Button
             onClick={onAddClick}
-            className="w-full mb-6 relative z-10"
+            className={cn(
+              "w-full mb-6 relative",
+              !hasJobs && "pulse-button"
+            )}
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Application
           </Button>
-          {!hasJobs && (
-            <div className="absolute -inset-[2px] rounded-md">
-              <div className="absolute inset-0 rounded-md animate-pulse-ring" />
-              <div className="absolute inset-0 rounded-md animate-pulse-ring animation-delay-1000" />
-            </div>
-          )}
         </div>
 
-        {/* Add animations */}
         <style>
           {`
-            @keyframes pulse-ring {
+            .pulse-button {
+              animation: pulse 2s infinite;
+              box-shadow: 0 0 0 rgba(var(--primary), 0.4);
+            }
+
+            @keyframes pulse {
               0% {
                 transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(var(--primary), 0.7);
+                box-shadow: 0 0 0 0 rgba(var(--primary), 0.4);
               }
+              
               70% {
                 transform: scale(1);
                 box-shadow: 0 0 0 20px rgba(var(--primary), 0);
               }
+              
               100% {
                 transform: scale(0.95);
                 box-shadow: 0 0 0 0 rgba(var(--primary), 0);
               }
             }
-            .animate-pulse-ring {
-              animation: pulse-ring 2s cubic-bezier(0.66, 0, 0, 1) infinite;
-            }
-            .animation-delay-1000 {
-              animation-delay: 1s;
+
+            .pulse-button:hover {
+              animation: none;
+              transform: scale(1);
             }
           `}
         </style>
