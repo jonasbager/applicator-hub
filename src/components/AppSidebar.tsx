@@ -48,7 +48,7 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
             Add Application
           </Button>
           {!hasJobs && (
-            <div className="absolute inset-0 rounded-md">
+            <div className="absolute -inset-[2px] rounded-md">
               <div className="absolute inset-0 rounded-md animate-pulse-ring" />
               <div className="absolute inset-0 rounded-md animate-pulse-ring animation-delay-1000" />
             </div>
@@ -60,15 +60,15 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
           {`
             @keyframes pulse-ring {
               0% {
-                transform: scale(1);
+                transform: scale(0.95);
                 box-shadow: 0 0 0 0 rgba(var(--primary), 0.7);
               }
               70% {
                 transform: scale(1);
-                box-shadow: 0 0 0 10px rgba(var(--primary), 0);
+                box-shadow: 0 0 0 20px rgba(var(--primary), 0);
               }
               100% {
-                transform: scale(1);
+                transform: scale(0.95);
                 box-shadow: 0 0 0 0 rgba(var(--primary), 0);
               }
             }
