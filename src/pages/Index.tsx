@@ -168,7 +168,7 @@ export function Index() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold">Job Applications</h1>
             <p className="text-muted-foreground">
-              Track and manage your applications with Applymate
+            Manage your job applications with the kanban board below
             </p>
           </div>
           

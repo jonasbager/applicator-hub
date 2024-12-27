@@ -48,33 +48,17 @@ export function JobColumn({
             )}
           >
             {isSecondColumn && hasJobsInFirstColumn && jobs.length === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="border-2 border-dashed border-primary/30 rounded-lg w-[90%] h-[140px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
+              <div className="absolute top-4 inset-x-4 pointer-events-none">
+                <div className="border-2 border-dashed border-primary/30 rounded-lg h-[140px] flex flex-col items-center justify-center gap-2 text-muted-foreground bg-muted/30">
                   <svg 
-                    width="24" 
-                    height="24" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    className="text-muted-foreground/50 mb-2"
+                    width="32" 
+                    height="32" 
+                    viewBox="0 0 1200 1200"
+                    className="text-primary/40 mb-2 -rotate-90 scale-y-[-1]"
                   >
                     <path 
-                      d="M17 14C17 14 14.3333 19 12 19C9.66667 19 7 14 7 14" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round"
-                    />
-                    <path 
-                      d="M12 19V5" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round"
-                    />
-                    <path 
-                      d="M9 8L12 5L15 8" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
+                      d="M876.2,1004.4l129-129c7-7,7-18.4,0-25.5s-18.4-7-25.5,0l-90.8,90.8c3.9-356.2-177-539.9-333-631.8-174.6-102.8-350.9-114.9-358.3-115.4-9.9-.6-18.5,6.9-19.1,16.8,0,.4,0,.8,0,1.2,0,9.4,7.3,17.3,16.9,18,1.7,0,176.2,12.2,343.4,111.1,216,127.7,321.5,334.5,314,614.8l-114.7-114.6c-7-7-18.4-7-25.5,0-3.5,3.5-5.2,8.1-5.2,12.8s1.7,9.2,5.2,12.8l138.1,138.1c7,6.9,18.4,6.9,25.5,0h0Z"
+                      fill="currentColor"
                     />
                   </svg>
                   <div className="text-sm text-center px-4">
