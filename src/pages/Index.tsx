@@ -169,7 +169,7 @@ export function Index() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold">Welcome back, {user?.firstName || 'there'}</h1>
             <p className="text-muted-foreground">
-              Track and manage your applications with Applymate
+              Manage your applications on the kanban board below
             </p>
           </div>
           

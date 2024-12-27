@@ -56,30 +56,27 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
         <style>
           {`
             .pulse-button {
-              animation: pulse 2s infinite;
-              box-shadow: 0 0 0 rgba(var(--primary), 0.4);
+              box-shadow: 0 0 0 0 rgba(var(--primary), 0.5);
             }
 
             @keyframes pulse {
               0% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(var(--primary), 0.4);
+                box-shadow: 0 0 0 0 rgba(var(--primary), 0.5);
               }
-              
               70% {
-                transform: scale(1);
                 box-shadow: 0 0 0 20px rgba(var(--primary), 0);
               }
-              
               100% {
-                transform: scale(0.95);
                 box-shadow: 0 0 0 0 rgba(var(--primary), 0);
               }
             }
 
+            .pulse-button {
+              animation: pulse 2s infinite;
+            }
+
             .pulse-button:hover {
               animation: none;
-              transform: scale(1);
             }
           `}
         </style>
