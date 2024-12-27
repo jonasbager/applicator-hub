@@ -44,54 +44,26 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
             onClick={onAddClick}
             className={cn(
               "w-full mb-6 relative",
-              !hasJobs && "animate-pulse-button"
+              !hasJobs && "pulse-button"
             )}
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Application
           </Button>
-
-          {!hasJobs && (
-            <>
-              <div className="absolute -inset-[3px] rounded-lg animate-pulse-ring bg-primary/20" />
-              <div className="absolute -inset-[3px] rounded-lg animate-pulse-ring animation-delay-500 bg-primary/20" />
-            </>
-          )}
         </div>
 
         {/* Add animations */}
         <style>
           {`
-            @keyframes pulse-ring {
-              0% {
-                transform: scale(0.95);
-                opacity: 0.7;
-              }
-              100% {
-                transform: scale(1.2);
-                opacity: 0;
-              }
+            .pulse-button {
+              box-shadow: 0 0 0 0 rgba(var(--primary), 0.7);
+              animation: pulse 2s infinite cubic-bezier(0.66, 0, 0, 1);
             }
-            @keyframes pulse-button {
-              0% {
-                transform: scale(1);
+
+            @keyframes pulse {
+              to {
+                box-shadow: 0 0 0 10px rgba(var(--primary), 0);
               }
-              50% {
-                transform: scale(1.02);
-                box-shadow: 0 0 0 2px var(--background), 0 0 0 4px rgb(var(--primary) / 0.3);
-              }
-              100% {
-                transform: scale(1);
-              }
-            }
-            .animate-pulse-ring {
-              animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-            }
-            .animate-pulse-button {
-              animation: pulse-button 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-            }
-            .animation-delay-500 {
-              animation-delay: 500ms;
             }
           `}
         </style>
