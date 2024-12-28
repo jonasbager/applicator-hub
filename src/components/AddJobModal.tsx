@@ -52,7 +52,6 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const [jobDetails, setJobDetails] = useState<JobFormState>(initialJobState);
-  const [keywordsInput, setKeywordsInput] = useState("");
 
   const fetchDetails = async () => {
     if (!url) {
@@ -96,14 +95,8 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     setLoading(true);
 
     try {
-      // Process keywords if manually entered
-      const processedKeywords = keywordsInput
-        ? keywordsInput.split(',').map(k => k.trim()).filter(k => k)
-        : jobDetails.keywords;
-
       const newJob = {
         ...jobDetails,
-        keywords: processedKeywords,
         user_id: userId,
         archived: false,
         created_at: new Date().toISOString()
@@ -128,7 +121,6 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
       onOpenChange(false);
       setUrl("");
       setJobDetails(initialJobState);
-      setKeywordsInput("");
       
       toast({
         title: "Success",
@@ -165,7 +157,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                 Let AI do the work
               </Label>
               <p className="text-sm text-muted-foreground">
-                Paste the job URL and let our AI extract all the details automatically
+                Paste the job URL and let our AI extract all the details automatically, including key skills & requirements
               </p>
               <div className="flex gap-2">
                 <Input
@@ -192,7 +184,12 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
 
           {/* Keywords Section */}
           <div className="space-y-2">
-            <Label>Key Skills & Requirements</Label>
+            <Label className="flex items-center gap-2">
+              Key Skills & Requirements
+              <Badge variant="secondary" className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
+                AI Extracted
+              </Badge>
+            </Label>
             <div className="min-h-20 p-4 bg-muted rounded-lg">
               {jobDetails.keywords.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
@@ -200,15 +197,16 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                     <Badge 
                       key={index}
                       variant="secondary"
-                      className="text-sm py-1 px-3"
+                      className="text-sm py-1 px-3 bg-gradient-to-r from-yellow-100 to-orange-100"
                     >
                       {keyword}
+                      <Sparkles className="h-3 w-3 ml-1 text-yellow-500 inline-block" />
                     </Badge>
                   ))}
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">
-                  Keywords will appear here after using AI auto-fill or manual entry
+                  Use AI auto-fill to extract key skills & requirements from the job posting
                 </div>
               )}
             </div>
@@ -256,18 +254,6 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                 placeholder="Enter job description"
                 disabled={loading}
                 rows={4}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="keywords">Additional Skills (Optional)</Label>
-              <Textarea
-                id="keywords"
-                value={keywordsInput}
-                onChange={(e) => setKeywordsInput(e.target.value)}
-                placeholder="Enter additional skills separated by commas (e.g. React, TypeScript, Node.js)"
-                disabled={loading}
-                rows={2}
               />
             </div>
 
