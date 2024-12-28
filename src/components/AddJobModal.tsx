@@ -5,15 +5,13 @@ import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { useToast } from "./ui/use-toast";
 import { scrapeJobDetails } from "../lib/job-scraping";
-import { Loader2, Sparkles, Link as LinkIcon } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { useAuth } from "@clerk/clerk-react";
 import { JobStatus, DateValue } from "../types/job";
 import { useSupabase } from "../lib/supabase";
 import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 
 interface JobFormState {
   position: string;
@@ -154,210 +152,177 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         <DialogHeader>
           <DialogTitle>Add New Job</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="ai" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="ai" className="relative">
-              <Sparkles className="h-4 w-4 mr-2 text-yellow-500" />
-              AI Auto-Fill
-              <Badge variant="secondary" className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
-                PRO
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="manual">Manual Entry</TabsTrigger>
-          </TabsList>
 
-          <TabsContent value="ai">
-            <Card>
-              <CardHeader>
-                <CardTitle>Let AI do the work</CardTitle>
-                <CardDescription>
-                  Paste the job URL and let our AI extract all the details automatically
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      placeholder="Paste the job posting URL here"
-                      disabled={loading}
-                      className="pl-9"
-                    />
-                    <LinkIcon className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
-                  </div>
-                  <Button
-                    onClick={fetchDetails}
-                    disabled={loading}
-                    className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600"
-                  >
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 mr-2" />
-                    )}
-                    Auto-Fill
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="manual">
-            <Card>
-              <CardHeader>
-                <CardTitle>Manual Entry</CardTitle>
-                <CardDescription>
-                  Enter the job details manually
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="position">Position</Label>
-                      <Input
-                        id="position"
-                        value={jobDetails.position}
-                        onChange={(e) =>
-                          setJobDetails({ ...jobDetails, position: e.target.value })
-                        }
-                        placeholder="e.g. Frontend Developer"
-                        disabled={loading}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="company">Company</Label>
-                      <Input
-                        id="company"
-                        value={jobDetails.company}
-                        onChange={(e) =>
-                          setJobDetails({ ...jobDetails, company: e.target.value })
-                        }
-                        placeholder="e.g. Acme Inc"
-                        disabled={loading}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={jobDetails.description}
-                      onChange={(e) =>
-                        setJobDetails({ ...jobDetails, description: e.target.value })
-                      }
-                      placeholder="Enter job description"
-                      disabled={loading}
-                      rows={4}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="keywords">Key Skills & Requirements</Label>
-                    <Textarea
-                      id="keywords"
-                      value={keywordsInput}
-                      onChange={(e) => setKeywordsInput(e.target.value)}
-                      placeholder="Enter skills separated by commas (e.g. React, TypeScript, Node.js)"
-                      disabled={loading}
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="deadline">Application Deadline</Label>
-                      <Select
-                        value={jobDetails.deadline?.toString() || ""}
-                        onValueChange={(value) =>
-                          setJobDetails({ ...jobDetails, deadline: value as DateValue })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select deadline" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ASAP">ASAP</SelectItem>
-                          <SelectItem value="">Unknown</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="start_date">Start Date</Label>
-                      <Select
-                        value={jobDetails.start_date?.toString() || ""}
-                        onValueChange={(value) =>
-                          setJobDetails({ ...jobDetails, start_date: value as DateValue })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select start date" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ASAP">ASAP</SelectItem>
-                          <SelectItem value="">Unknown</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="url">Job Posting URL (Optional)</Label>
-                    <Input
-                      id="url"
-                      value={jobDetails.url}
-                      onChange={(e) =>
-                        setJobDetails({ ...jobDetails, url: e.target.value })
-                      }
-                      placeholder="https://..."
-                      disabled={loading}
-                      type="url"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* Preview section - shows up regardless of tab */}
-        {(jobDetails.position || jobDetails.company) && (
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold">{jobDetails.position || 'Position'}</h3>
-                  <p className="text-muted-foreground">{jobDetails.company || 'Company'}</p>
-                </div>
-                {jobDetails.keywords.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {jobDetails.keywords.map((keyword, index) => (
-                      <Badge 
-                        key={index}
-                        variant="secondary"
-                        className="text-sm py-1 px-3"
-                      >
-                        {keyword}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-                {jobDetails.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-3">
-                    {jobDetails.description}
-                  </p>
-                )}
+        <div className="space-y-6">
+          {/* AI Auto-fill Section */}
+          <div className="relative rounded-lg border bg-gradient-to-br from-yellow-50 to-orange-50 p-4">
+            <Badge variant="secondary" className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
+              PRO
+            </Badge>
+            <div className="space-y-2">
+              <Label className="text-lg font-semibold flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-yellow-500" />
+                Let AI do the work
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Paste the job URL and let our AI extract all the details automatically
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="Paste the job posting URL here"
+                  disabled={loading}
+                />
+                <Button
+                  onClick={fetchDetails}
+                  disabled={loading}
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  Auto-Fill
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </div>
+
+          {/* Keywords Section */}
+          <div className="space-y-2">
+            <Label>Key Skills & Requirements</Label>
+            <div className="min-h-20 p-4 bg-muted rounded-lg">
+              {jobDetails.keywords.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {jobDetails.keywords.map((keyword, index) => (
+                    <Badge 
+                      key={index}
+                      variant="secondary"
+                      className="text-sm py-1 px-3"
+                    >
+                      {keyword}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  Keywords will appear here after using AI auto-fill or manual entry
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Manual Entry Section */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="position">Position</Label>
+                <Input
+                  id="position"
+                  value={jobDetails.position}
+                  onChange={(e) =>
+                    setJobDetails({ ...jobDetails, position: e.target.value })
+                  }
+                  placeholder="e.g. Frontend Developer"
+                  disabled={loading}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company">Company</Label>
+                <Input
+                  id="company"
+                  value={jobDetails.company}
+                  onChange={(e) =>
+                    setJobDetails({ ...jobDetails, company: e.target.value })
+                  }
+                  placeholder="e.g. Acme Inc"
+                  disabled={loading}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={jobDetails.description}
+                onChange={(e) =>
+                  setJobDetails({ ...jobDetails, description: e.target.value })
+                }
+                placeholder="Enter job description"
+                disabled={loading}
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="keywords">Additional Skills (Optional)</Label>
+              <Textarea
+                id="keywords"
+                value={keywordsInput}
+                onChange={(e) => setKeywordsInput(e.target.value)}
+                placeholder="Enter additional skills separated by commas (e.g. React, TypeScript, Node.js)"
+                disabled={loading}
+                rows={2}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="deadline">Application Deadline</Label>
+                <Select
+                  value={jobDetails.deadline?.toString() || ""}
+                  onValueChange={(value) =>
+                    setJobDetails({ ...jobDetails, deadline: value as DateValue })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select deadline" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ASAP">ASAP</SelectItem>
+                    <SelectItem value="">Unknown</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="start_date">Start Date</Label>
+                <Select
+                  value={jobDetails.start_date?.toString() || ""}
+                  onValueChange={(value) =>
+                    setJobDetails({ ...jobDetails, start_date: value as DateValue })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select start date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ASAP">ASAP</SelectItem>
+                    <SelectItem value="">Unknown</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="url">Job Posting URL (Optional)</Label>
+              <Input
+                id="url"
+                value={jobDetails.url}
+                onChange={(e) =>
+                  setJobDetails({ ...jobDetails, url: e.target.value })
+                }
+                placeholder="https://..."
+                disabled={loading}
+                type="url"
+              />
+            </div>
+          </div>
+        </div>
 
         <div className="flex justify-end gap-2 mt-4">
           <Button
