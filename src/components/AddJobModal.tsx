@@ -92,6 +92,15 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     e.preventDefault();
     if (!userId) return;
     
+    if (!jobDetails.position || !jobDetails.company) {
+      toast({
+        variant: "destructive",
+        title: "Required fields missing",
+        description: "Please enter at least the position and company",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -145,7 +154,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
           <DialogTitle>Add New Job</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* AI Auto-fill Section */}
           <div className="relative rounded-lg border bg-gradient-to-br from-yellow-50 to-orange-50 p-4">
             <Badge variant="secondary" className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
@@ -167,6 +176,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                   disabled={loading}
                 />
                 <Button
+                  type="button"
                   onClick={fetchDetails}
                   disabled={loading}
                   className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600"
@@ -308,23 +318,24 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
               />
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-end gap-2 mt-4">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={loading || !userId}>
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : null}
-            Add Job
-          </Button>
-        </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading || !userId}>
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Add Job
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
