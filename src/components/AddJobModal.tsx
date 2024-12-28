@@ -88,53 +88,35 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userId) return;
+  const saveJob = async (job: JobFormState) => {
+    if (!userId) throw new Error('Not authenticated');
     
-    if (!jobDetails.position || !jobDetails.company) {
-      toast({
-        variant: "destructive",
-        title: "Required fields missing",
-        description: "Please enter at least the position and company",
-      });
-      return;
-    }
-    
-    setLoading(true);
-
-    try {
-      const newJob = {
-        ...jobDetails,
+    const { error } = await supabase
+      .from('jobs')
+      .insert([{
+        ...job,
         user_id: userId,
         archived: false,
         created_at: new Date().toISOString()
-      };
-      
-      console.log('Creating job with data:', newJob);
-      
-      const { data, error } = await supabase
-        .from('jobs')
-        .insert([newJob])
-        .select()
-        .single();
+      }]);
 
-      if (error) {
-        console.error('Supabase error details:', error);
-        throw error;
-      }
+    if (error) throw error;
+  };
 
-      console.log('Job created successfully:', data);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-      onJobAdded();
-      onOpenChange(false);
-      setUrl("");
-      setJobDetails(initialJobState);
-      
+    try {
+      await saveJob(jobDetails);
       toast({
         title: "Success",
         description: "Job added successfully",
       });
+      onJobAdded();
+      onOpenChange(false);
+      setUrl("");
+      setJobDetails(initialJobState);
     } catch (error) {
       console.error("Error saving job:", error);
       toast({
@@ -328,7 +310,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !userId}>
+            <Button type="submit" disabled={loading}>
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}
