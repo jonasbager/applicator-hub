@@ -34,6 +34,7 @@ export function Index() {
         .from('jobs')
         .select('*')
         .eq('user_id', userId)
+        .is('archived', false) // Only get non-archived jobs
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -169,7 +170,7 @@ export function Index() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold">Welcome back, {user?.firstName || 'there'}</h1>
             <p className="text-muted-foreground">
-              Manage your applications on the kanban board below
+              Manage your job applications on the kanban board below
             </p>
           </div>
           
