@@ -133,9 +133,9 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* AI Auto-fill Section */}
           <div className="relative rounded-lg border bg-gradient-to-br from-yellow-50 to-orange-50 p-4">
-            <Badge variant="secondary" className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
+            {/* <Badge variant="secondary" className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
               PRO
-            </Badge>
+            </Badge> */}
             <div className="space-y-2">
               <Label className="text-lg font-semibold flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-yellow-500" />
