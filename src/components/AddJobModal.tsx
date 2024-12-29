@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -55,16 +55,26 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
 
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newUrl = e.target.value;
-    setUrl(newUrl);
-
+    
     // If it's a LinkedIn URL, convert it to direct job URL immediately
     if (newUrl.includes('linkedin.com/jobs')) {
       const directUrl = getLinkedInJobUrl(newUrl);
-      if (directUrl !== newUrl) {
-        setUrl(directUrl);
-      }
+      console.log('Converting LinkedIn URL:', { original: newUrl, direct: directUrl });
+      setUrl(directUrl);
+      // Also update jobDetails.url to keep them in sync
+      setJobDetails(prev => ({ ...prev, url: directUrl }));
+    } else {
+      setUrl(newUrl);
+      setJobDetails(prev => ({ ...prev, url: newUrl }));
     }
   };
+
+  // Keep URL fields in sync
+  useEffect(() => {
+    if (jobDetails.url !== url) {
+      setUrl(jobDetails.url);
+    }
+  }, [jobDetails.url]);
 
   const fetchDetails = async () => {
     if (!url) {
