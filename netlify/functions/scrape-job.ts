@@ -4,6 +4,8 @@ import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
+import * as cheerio from 'cheerio';
+import axios from 'axios';
 
 // Job schema matching the database schema
 const jobSchema = z.object({
@@ -29,6 +31,46 @@ function trimContent(content: string): string {
   
   // Take first 8000 characters (roughly 2000 tokens) to capture more content
   return content.slice(0, 8000);
+}
+
+async function scrapeLinkedIn(url: string): Promise<string> {
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+      }
+    });
+
+    const $ = cheerio.load(response.data);
+    
+    // Try different selectors that LinkedIn might use
+    const selectors = [
+      '.jobs-description',
+      '.jobs-description-content',
+      '#job-details',
+      '.job-view-layout',
+      '.jobs-box__html-content'
+    ];
+
+    let content = '';
+    for (const selector of selectors) {
+      const element = $(selector);
+      if (element.length > 0) {
+        content = element.text();
+        break;
+      }
+    }
+
+    // If no content found, try to get the entire body
+    if (!content) {
+      content = $('body').text();
+    }
+
+    return content;
+  } catch (error) {
+    console.error('Error scraping LinkedIn:', error);
+    throw error;
+  }
 }
 
 export const handler: Handler = async (event) => {
@@ -81,11 +123,20 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Load webpage content first to fail fast if URL is invalid
+    // Load webpage content based on URL type
     console.log('Loading webpage content from:', url);
-    const loader = new CheerioWebBaseLoader(url);
-    const docs = await loader.load();
-    const htmlContent = trimContent(docs[0].pageContent);
+    let htmlContent = '';
+    
+    if (url.includes('linkedin.com/jobs')) {
+      console.log('Using LinkedIn scraper...');
+      htmlContent = await scrapeLinkedIn(url);
+    } else {
+      console.log('Using standard scraper...');
+      const loader = new CheerioWebBaseLoader(url);
+      const docs = await loader.load();
+      htmlContent = trimContent(docs[0].pageContent);
+    }
+    
     console.log('Webpage content loaded, length:', htmlContent.length);
 
     // Initialize OpenAI with explicit configuration
@@ -101,7 +152,7 @@ export const handler: Handler = async (event) => {
 
     // Create a prompt template for job extraction
     const promptTemplate = new PromptTemplate({
-      template: `Extract key information from the following job posting HTML content.
+      template: `Extract key information from the following job posting content.
       Return a JSON object with these EXACT field names:
       - "position": The job position or title
       - "company": The company name
@@ -131,7 +182,7 @@ export const handler: Handler = async (event) => {
 
       {format_instructions}
       
-      HTML Content: {html_content}`,
+      Job Content: {html_content}`,
       inputVariables: ['html_content'],
       partialVariables: {
         format_instructions: parser.getFormatInstructions(),
