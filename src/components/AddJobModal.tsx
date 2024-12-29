@@ -37,6 +37,26 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
   const [deadline, setDeadline] = useState<Date>();
   const [startDate, setStartDate] = useState<Date>();
 
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open]);
+
+  const resetForm = () => {
+    setUrl("");
+    setJobDetails({
+      position: "",
+      company: "",
+      description: "",
+      keywords: [],
+      url: "",
+    });
+    setDeadline(undefined);
+    setStartDate(undefined);
+  };
+
   const getLinkedInJobUrl = (url: string): string => {
     try {
       // Extract job ID from URL
@@ -143,16 +163,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
 
       onJobAdded();
       onOpenChange(false);
-      setUrl("");
-      setJobDetails({
-        position: "",
-        company: "",
-        description: "",
-        keywords: [],
-        url: "",
-      });
-      setDeadline(undefined);
-      setStartDate(undefined);
+      resetForm();
       
       toast({
         title: "Success",
@@ -168,6 +179,11 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    onOpenChange(false);
   };
 
   return (
@@ -356,7 +372,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={handleCancel}
               disabled={loading}
             >
               Cancel
