@@ -39,20 +39,14 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
 
   const getLinkedInJobUrl = (url: string): string => {
     try {
-      // Extract currentJobId from collections URL
-      const collectionsMatch = url.match(/currentJobId=(\d+)/);
-      if (collectionsMatch) {
-        const jobId = collectionsMatch[1];
-        return `https://www.linkedin.com/jobs/view/${jobId}`;
-      }
-      
-      // Already a direct job URL
-      const viewMatch = url.match(/linkedin\.com\/jobs\/view\/(\d+)/);
-      if (viewMatch) {
+      // Extract job ID from URL
+      const jobId = url.match(/(?:currentJobId=|jobs\/view\/)(\d+)/)?.[1];
+      if (!jobId) {
         return url;
       }
-      
-      return url;
+
+      // Convert to direct job URL
+      return `https://www.linkedin.com/jobs/view/${jobId}`;
     } catch (error) {
       console.error('Error parsing LinkedIn URL:', error);
       return url;
@@ -72,7 +66,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     setLoading(true);
     try {
       // Convert LinkedIn collections URL to direct job URL
-      const jobUrl = url.includes('linkedin.com') ? getLinkedInJobUrl(url) : url;
+      const jobUrl = url.includes('linkedin.com/jobs') ? getLinkedInJobUrl(url) : url;
       console.log('Scraping URL:', jobUrl);
       
       const details = await scrapeJobDetails(jobUrl);
