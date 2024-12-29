@@ -40,37 +40,62 @@ async function scrapeLinkedIn(url: string): Promise<string> {
       throw new Error('Could not extract job ID from URL');
     }
 
-    // Use LinkedIn's Voyager API
-    const response = await axios.get(`https://www.linkedin.com/voyager/api/jobs/jobPosting/${jobId}`, {
+    // Convert collection URL to direct job URL
+    const jobUrl = `https://www.linkedin.com/jobs/view/${jobId}`;
+    console.log('Converted to direct job URL:', jobUrl);
+
+    // Use a proxy service to bypass LinkedIn's client-side rendering
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(jobUrl)}`;
+    console.log('Using proxy URL:', proxyUrl);
+
+    const response = await axios.get(proxyUrl, {
       headers: {
-        'Accept': 'application/vnd.linkedin.normalized+json+2.1',
-        'X-Li-Lang': 'en_US',
-        'X-RestLi-Protocol-Version': '2.0.0',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Csrf-Token': 'ajax:0123456789',
-        'X-LI-Track': '{"clientVersion":"1.12.6318","mpVersion":"1.12.6318","osName":"web","timezoneOffset":0,"deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":1,"displayWidth":1920,"displayHeight":1080}'
-      }
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+      },
+      timeout: 10000
     });
 
-    // Extract job details from response
-    const jobDetails = response.data.included.find((item: any) => item.jobPostingInfo);
-    if (!jobDetails) {
-      throw new Error('Could not find job details in response');
+    // Extract job details using more specific selectors
+    const content = response.data;
+    const jobDetails: string[] = [];
+
+    // Try to extract title
+    const titleMatch = content.match(/<h1[^>]*>([^<]+)<\/h1>/);
+    if (titleMatch) {
+      jobDetails.push(`Title: ${titleMatch[1].trim()}`);
     }
 
-    // Combine relevant information
-    const content = [
-      `Title: ${jobDetails.jobPostingInfo.title || ''}`,
-      `Company: ${jobDetails.jobPostingInfo.companyName || ''}`,
-      `Description: ${jobDetails.jobPostingInfo.description?.text || ''}`,
-      `Requirements: ${jobDetails.jobPostingInfo.requirements || ''}`,
-      `Location: ${jobDetails.jobPostingInfo.formattedLocation || ''}`,
-      `Employment Type: ${jobDetails.jobPostingInfo.employmentType || ''}`,
-      `Experience Level: ${jobDetails.jobPostingInfo.experienceLevel || ''}`,
-      `Industries: ${jobDetails.jobPostingInfo.industries?.join(', ') || ''}`
-    ].join('\n\n');
+    // Try to extract company
+    const companyMatch = content.match(/<a[^>]*data-tracking-control-name="public_jobs_topcard-org-name"[^>]*>([^<]+)<\/a>/);
+    if (companyMatch) {
+      jobDetails.push(`Company: ${companyMatch[1].trim()}`);
+    }
 
-    return content;
+    // Try to extract description
+    const descriptionMatch = content.match(/<div[^>]*class="[^"]*show-more-less-html[^"]*"[^>]*>([\s\S]*?)<\/div>/);
+    if (descriptionMatch) {
+      jobDetails.push(`Description: ${trimContent(descriptionMatch[1])}`);
+    }
+
+    // Try to extract location
+    const locationMatch = content.match(/<span[^>]*class="[^"]*job-details-jobs-unified-top-card__bullet[^"]*"[^>]*>([^<]+)<\/span>/);
+    if (locationMatch) {
+      jobDetails.push(`Location: ${locationMatch[1].trim()}`);
+    }
+
+    // Try to extract employment type
+    const typeMatch = content.match(/<span[^>]*class="[^"]*job-details-jobs-unified-top-card__job-type[^"]*"[^>]*>([^<]+)<\/span>/);
+    if (typeMatch) {
+      jobDetails.push(`Employment Type: ${typeMatch[1].trim()}`);
+    }
+
+    // If no details were extracted, try using the standard scraper
+    if (jobDetails.length === 0) {
+      throw new Error('No job details found in response');
+    }
+
+    // Combine all extracted information
+    return jobDetails.join('\n\n');
   } catch (error) {
     console.error('Error scraping LinkedIn:', error);
     // Fall back to standard scraping
