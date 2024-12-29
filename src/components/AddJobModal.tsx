@@ -10,6 +10,10 @@ import { Badge } from "./ui/badge";
 import { useAuth } from "@clerk/clerk-react";
 import { JobStatus } from "../types/job";
 import { useSupabase } from "../lib/supabase";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Calendar } from "./ui/calendar";
+import { format } from "date-fns";
+import { cn } from "../lib/utils";
 
 interface AddJobModalProps {
   open: boolean;
@@ -30,6 +34,8 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     keywords: [] as string[],
     url: "",
   });
+  const [deadline, setDeadline] = useState<Date>();
+  const [startDate, setStartDate] = useState<Date>();
 
   const getLinkedInJobUrl = (url: string): string => {
     try {
@@ -112,7 +118,9 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
           notes: [],
           application_draft_url: '',
           archived: false,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          deadline: deadline?.toISOString() || null,
+          start_date: startDate?.toISOString() || null
         }]);
 
       if (error) throw error;
@@ -127,6 +135,8 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         keywords: [],
         url: "",
       });
+      setDeadline(undefined);
+      setStartDate(undefined);
       
       toast({
         title: "Success",
@@ -258,6 +268,57 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                 placeholder="Enter job description"
                 disabled={loading}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Application Deadline</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !deadline && "text-muted-foreground"
+                      )}
+                    >
+                      {deadline ? format(deadline, "PPP") : "Select deadline"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={deadline}
+                      onSelect={setDeadline}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !startDate && "text-muted-foreground"
+                      )}
+                    >
+                      {startDate ? format(startDate, "PPP") : "Select start date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
             <div className="space-y-2">
