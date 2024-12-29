@@ -53,6 +53,19 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     }
   };
 
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newUrl = e.target.value;
+    setUrl(newUrl);
+
+    // If it's a LinkedIn URL, convert it to direct job URL immediately
+    if (newUrl.includes('linkedin.com/jobs')) {
+      const directUrl = getLinkedInJobUrl(newUrl);
+      if (directUrl !== newUrl) {
+        setUrl(directUrl);
+      }
+    }
+  };
+
   const fetchDetails = async () => {
     if (!url) {
       toast({
@@ -65,16 +78,15 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
 
     setLoading(true);
     try {
-      // Convert LinkedIn collections URL to direct job URL
-      const jobUrl = url.includes('linkedin.com/jobs') ? getLinkedInJobUrl(url) : url;
-      console.log('Scraping URL:', jobUrl);
+      // No need to convert URL here since we do it on input change
+      console.log('Scraping URL:', url);
       
-      const details = await scrapeJobDetails(jobUrl);
+      const details = await scrapeJobDetails(url);
       console.log('Scraped details:', details);
       setJobDetails({
         ...jobDetails,
         ...details,
-        url: jobUrl // Store the direct job URL
+        url: url // Use the already converted URL
       });
       toast({
         title: "Success",
@@ -171,7 +183,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
               <div className="flex gap-2">
                 <Input
                   value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={handleUrlChange}
                   placeholder="Paste the job posting URL here"
                   disabled={loading}
                 />
