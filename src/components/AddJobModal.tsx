@@ -29,12 +29,29 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     description: "",
     keywords: [] as string[],
     url: "",
-    status: 'Not Started' as JobStatus,
-    notes: [] as string[],
-    application_draft_url: "",
-    deadline: null,
-    start_date: null
   });
+
+  const getLinkedInJobUrl = (url: string): string => {
+    try {
+      // Extract currentJobId from collections URL
+      const collectionsMatch = url.match(/currentJobId=(\d+)/);
+      if (collectionsMatch) {
+        const jobId = collectionsMatch[1];
+        return `https://www.linkedin.com/jobs/view/${jobId}`;
+      }
+      
+      // Already a direct job URL
+      const viewMatch = url.match(/linkedin\.com\/jobs\/view\/(\d+)/);
+      if (viewMatch) {
+        return url;
+      }
+      
+      return url;
+    } catch (error) {
+      console.error('Error parsing LinkedIn URL:', error);
+      return url;
+    }
+  };
 
   const fetchDetails = async () => {
     if (!url) {
@@ -48,15 +65,16 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
 
     setLoading(true);
     try {
-      const details = await scrapeJobDetails(url);
+      // Convert LinkedIn collections URL to direct job URL
+      const jobUrl = url.includes('linkedin.com') ? getLinkedInJobUrl(url) : url;
+      console.log('Scraping URL:', jobUrl);
+      
+      const details = await scrapeJobDetails(jobUrl);
       console.log('Scraped details:', details);
       setJobDetails({
         ...jobDetails,
-        position: details.position || "",
-        company: details.company || "",
-        description: details.description || "",
-        keywords: details.keywords || [],
-        url: url
+        ...details,
+        url: jobUrl // Store the direct job URL
       });
       toast({
         title: "Success",
@@ -84,8 +102,15 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
       const { error } = await supabase
         .from('jobs')
         .insert([{
-          ...jobDetails,
           user_id: userId,
+          position: jobDetails.position,
+          company: jobDetails.company,
+          description: jobDetails.description,
+          keywords: jobDetails.keywords,
+          url: jobDetails.url,
+          status: 'Not Started' as JobStatus,
+          notes: [],
+          application_draft_url: '',
           archived: false,
           created_at: new Date().toISOString()
         }]);
@@ -101,11 +126,6 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         description: "",
         keywords: [],
         url: "",
-        status: 'Not Started',
-        notes: [],
-        application_draft_url: "",
-        deadline: null,
-        start_date: null
       });
       
       toast({
