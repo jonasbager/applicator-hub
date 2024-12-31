@@ -148,6 +148,11 @@ export function Index() {
     return acc;
   }, {} as Record<JobStatus, Job[]>);
 
+  // Check if there are any jobs in columns after the first one
+  const hasJobsInLaterColumns = JOB_STATUS_ORDER.slice(1).some(
+    status => jobsByStatus[status].length > 0
+  );
+
   if (!isLoaded || initialLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -190,7 +195,7 @@ export function Index() {
                   onJobUpdate={handleJobUpdate}
                   onJobDelete={handleJobDelete}
                   isSecondColumn={isSecondColumn}
-                  hasJobsInFirstColumn={hasJobsInFirstColumn}
+                  hasJobsInFirstColumn={hasJobsInFirstColumn && !hasJobsInLaterColumns}
                 />
               );
             })}
