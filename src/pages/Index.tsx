@@ -56,7 +56,8 @@ export function Index() {
     }
   };
 
-  const handleJobUpdate = (updatedJob: Job) => {
+  const handleJobUpdate = async (updatedJob: Job) => {
+    // First update the local state
     setJobs(prevJobs => 
       prevJobs.map(job => 
         job.id === updatedJob.id ? updatedJob : job
