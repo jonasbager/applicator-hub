@@ -57,12 +57,15 @@ export function Index() {
   };
 
   const handleJobUpdate = async (updatedJob: Job) => {
-    // First update the local state
+    // First update the local state optimistically
     setJobs(prevJobs => 
       prevJobs.map(job => 
         job.id === updatedJob.id ? updatedJob : job
       )
     );
+
+    // Then reload jobs from the server to ensure we have the latest data
+    await loadJobs();
   };
 
   const handleJobDelete = (jobId: string) => {
