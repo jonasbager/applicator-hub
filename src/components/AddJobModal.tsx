@@ -10,10 +10,7 @@ import { Badge } from "./ui/badge";
 import { useAuth } from "@clerk/clerk-react";
 import { JobStatus } from "../types/job";
 import { useSupabase } from "../lib/supabase";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Calendar } from "./ui/calendar";
-import { format } from "date-fns";
-import { cn } from "../lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 interface AddJobModalProps {
   open: boolean;
@@ -34,8 +31,10 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     keywords: [] as string[],
     url: "",
   });
-  const [deadline, setDeadline] = useState<Date>();
-  const [startDate, setStartDate] = useState<Date>();
+  const [deadline, setDeadline] = useState<string>("");
+  const [deadlineType, setDeadlineType] = useState<string>("unknown");
+  const [startDate, setStartDate] = useState<string>("");
+  const [startDateType, setStartDateType] = useState<string>("unknown");
 
   // Reset form when modal closes
   useEffect(() => {
@@ -53,8 +52,10 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
       keywords: [],
       url: "",
     });
-    setDeadline(undefined);
-    setStartDate(undefined);
+    setDeadline("");
+    setDeadlineType("unknown");
+    setStartDate("");
+    setStartDateType("unknown");
   };
 
   const getLinkedInJobUrl = (url: string): string => {
@@ -141,6 +142,11 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     setLoading(true);
 
     try {
+      const finalDeadline = deadlineType === 'ASAP' ? 'ASAP' : 
+                           deadlineType === 'custom' ? deadline : null;
+      const finalStartDate = startDateType === 'ASAP' ? 'ASAP' : 
+                           startDateType === 'custom' ? startDate : null;
+
       const { error } = await supabase
         .from('jobs')
         .insert([{
@@ -155,8 +161,8 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
           application_draft_url: '',
           archived: false,
           created_at: new Date().toISOString(),
-          deadline: deadline?.toISOString() || null,
-          start_date: startDate?.toISOString() || null
+          deadline: finalDeadline,
+          start_date: finalStartDate
         }]);
 
       if (error) throw error;
@@ -195,9 +201,6 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* AI Auto-fill Section */}
           <div className="relative rounded-lg border bg-gradient-to-br from-yellow-50 to-orange-50 p-4">
-            {/* <Badge variant="secondary" className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
-              PRO
-            </Badge> */}
             <div className="space-y-2">
               <Label className="text-lg font-semibold flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-yellow-500" />
@@ -217,7 +220,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                   type="button"
                   onClick={fetchDetails}
                   disabled={loading}
-                  className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600"
+                  className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600 whitespace-nowrap"
                 >
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -241,7 +244,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
             <div className="min-h-20 p-4 bg-muted rounded-lg">
               {jobDetails.keywords.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {jobDetails.keywords.map((keyword, index) => (
+                  {jobDetails.keywords.map((keyword: string, index: number) => (
                     <Badge 
                       key={index}
                       variant="secondary"
@@ -302,54 +305,57 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Application Deadline</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !deadline && "text-muted-foreground"
-                      )}
-                    >
-                      {deadline ? format(deadline, "PPP") : "Select deadline"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={deadline}
-                      onSelect={setDeadline}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
                 <Label>Start Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !startDate && "text-muted-foreground"
-                      )}
-                    >
-                      {startDate ? format(startDate, "PPP") : "Select start date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={setStartDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2 min-w-0">
+                    <Select value={startDateType} onValueChange={setStartDateType}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unknown">Unknown</SelectItem>
+                        <SelectItem value="ASAP">ASAP</SelectItem>
+                        <SelectItem value="custom">Custom Date</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {startDateType === "custom" && (
+                      <Input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="flex-1 min-w-0 w-[140px]"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label>Application Deadline</Label>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2 min-w-0">
+                    <Select value={deadlineType} onValueChange={setDeadlineType}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unknown">Unknown</SelectItem>
+                        <SelectItem value="ASAP">ASAP</SelectItem>
+                        <SelectItem value="custom">Custom Date</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {deadlineType === "custom" && (
+                      <Input
+                        type="date"
+                        value={deadline}
+                        onChange={(e) => setDeadline(e.target.value)}
+                        className="flex-1 min-w-0 w-[140px]"
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 

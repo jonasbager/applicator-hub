@@ -262,7 +262,7 @@ export function JobDetailsModal({
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>{job.position}</span>
-              <Badge variant="outline" className="text-sm">
+              <Badge variant="outline" className="text-sm mr-8">
                 {job.status}
               </Badge>
             </DialogTitle>
