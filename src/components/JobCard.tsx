@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "./ui/card";
 import { Job, getDeadlineStatus, DateValue } from "../types/job";
 import { JobDetailsModal } from "./JobDetailsModal";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, FileText } from "lucide-react";
 import { Draggable } from "@hello-pangea/dnd";
 
 export interface JobCardProps {
@@ -56,27 +56,28 @@ export function JobCard({ job, index, onUpdate, onDelete }: JobCardProps) {
                   <h3 className="font-semibold truncate">{job.position}</h3>
                   <p className="text-sm text-muted-foreground truncate">{job.company}</p>
                 </div>
-                <div className="flex flex-col gap-2 text-sm">
-                  <div className="flex gap-3 text-muted-foreground">
+                <div className="flex items-center gap-2 text-sm">
+                  {job.deadline && (
+                    <div 
+                      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs whitespace-nowrap min-w-[90px] ${deadlineColors[deadlineStatus]}`}
+                    >
+                      <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+                      <span>{formatCardDate(job.deadline)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 text-muted-foreground">
                     {job.notes?.length > 0 && (
-                      <div>
-                        {job.notes.length} note{job.notes.length !== 1 ? 's' : ''}
+                      <div className="inline-flex items-center gap-1">
+                        <FileText className="h-3.5 w-3.5 shrink-0" />
+                        <span>{job.notes.length}</span>
                       </div>
                     )}
                     {job.application_draft_url && (
                       <div className="text-blue-500">
-                        Has application document
+                        Has doc
                       </div>
                     )}
                   </div>
-                  {job.deadline && (
-                    <div 
-                      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs whitespace-nowrap ${deadlineColors[deadlineStatus]}`}
-                    >
-                      <CalendarClock className="h-3.5 w-3.5" />
-                      <span>Due {formatCardDate(job.deadline)}</span>
-                    </div>
-                  )}
                 </div>
               </div>
             </CardContent>
