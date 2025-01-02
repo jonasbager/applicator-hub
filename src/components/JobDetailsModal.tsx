@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
 import { Badge } from "./ui/badge";
@@ -38,6 +38,16 @@ export function JobDetailsModal({
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const { toast } = useToast();
 
+  // Reset form when job changes or modal opens
+  useEffect(() => {
+    if (open) {
+      setNotes(job.notes?.join('\n') || '');
+      setApplicationUrl(job.application_draft_url || '');
+      setDeadline(job.deadline || '');
+      setStartDate(job.start_date || '');
+    }
+  }, [job, open]);
+
   const deadlineStatus = getDeadlineStatus(deadline);
   const deadlineColors = {
     red: "bg-red-100 text-red-800",
@@ -59,7 +69,7 @@ export function JobDetailsModal({
         .update({ notes: notesArray })
         .eq('id', job.id)
         .eq('user_id', userId)
-        .select()
+        .select('*')
         .single();
 
       if (error) throw error;
@@ -92,7 +102,7 @@ export function JobDetailsModal({
         .update({ application_draft_url: applicationUrl })
         .eq('id', job.id)
         .eq('user_id', userId)
-        .select()
+        .select('*')
         .single();
 
       if (error) throw error;
@@ -127,7 +137,7 @@ export function JobDetailsModal({
         .update({ deadline: deadlineValue })
         .eq('id', job.id)
         .eq('user_id', userId)
-        .select()
+        .select('*')
         .single();
 
       if (error) throw error;
@@ -162,7 +172,7 @@ export function JobDetailsModal({
         .update({ start_date: startDateValue })
         .eq('id', job.id)
         .eq('user_id', userId)
-        .select()
+        .select('*')
         .single();
 
       if (error) throw error;

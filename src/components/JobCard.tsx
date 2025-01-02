@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Card, CardContent } from "./ui/card";
-import { Badge } from "./ui/badge";
 import { Job, getDeadlineStatus, DateValue } from "../types/job";
 import { JobDetailsModal } from "./JobDetailsModal";
-import { CalendarClock, CalendarDays } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 import { Draggable } from "@hello-pangea/dnd";
 
 export interface JobCardProps {
@@ -20,12 +19,6 @@ function formatCardDate(date?: DateValue): string {
     month: 'short', 
     day: 'numeric'
   });
-}
-
-function getStartDateStyle(date?: DateValue): string {
-  if (!date) return "bg-gray-100 text-gray-800 border-gray-200";
-  if (date === 'ASAP') return "bg-red-100 text-red-800 border-red-200";
-  return "bg-blue-100 text-blue-800 border-blue-200";
 }
 
 export function JobCard({ job, index, onUpdate, onDelete }: JobCardProps) {
@@ -63,25 +56,6 @@ export function JobCard({ job, index, onUpdate, onDelete }: JobCardProps) {
                   <h3 className="font-semibold truncate">{job.position}</h3>
                   <p className="text-sm text-muted-foreground truncate">{job.company}</p>
                 </div>
-                <div className="flex flex-wrap gap-1">
-                  {job.keywords?.slice(0, 3).map((keyword, index) => (
-                    <Badge
-                      key={index}
-                      variant="secondary"
-                      className="text-xs py-0 px-2"
-                    >
-                      {keyword}
-                    </Badge>
-                  ))}
-                  {job.keywords?.length > 3 && (
-                    <Badge
-                      variant="secondary"
-                      className="text-xs py-0 px-2"
-                    >
-                      +{job.keywords.length - 3}
-                    </Badge>
-                  )}
-                </div>
                 <div className="flex flex-col gap-2 text-sm">
                   <div className="flex gap-3 text-muted-foreground">
                     {job.notes?.length > 0 && (
@@ -95,20 +69,14 @@ export function JobCard({ job, index, onUpdate, onDelete }: JobCardProps) {
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <div 
-                      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs whitespace-nowrap ${getStartDateStyle(job.start_date)}`}
-                    >
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      <span>Starts {formatCardDate(job.start_date)}</span>
-                    </div>
+                  {job.deadline && (
                     <div 
                       className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs whitespace-nowrap ${deadlineColors[deadlineStatus]}`}
                     >
                       <CalendarClock className="h-3.5 w-3.5" />
                       <span>Due {formatCardDate(job.deadline)}</span>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </CardContent>
