@@ -113,8 +113,9 @@ async function scrapeIndeed(url: string): Promise<string> {
       throw new Error('Could not extract job ID from URL');
     }
 
-    // Convert to direct job URL
-    const jobUrl = `https://www.indeed.com/viewjob?jk=${jobId}`;
+    // Convert to direct job URL based on domain
+    const domain = url.includes('indeed.dk') ? 'dk.indeed.com' : 'www.indeed.com';
+    const jobUrl = `https://${domain}/viewjob?jk=${jobId}`;
     console.log('Converted to direct job URL:', jobUrl);
 
     // Use a proxy service to bypass Indeed's protections
