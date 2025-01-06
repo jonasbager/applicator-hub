@@ -3,6 +3,11 @@
   publish = "dist"
   functions = "netlify/functions"
 
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
 [[redirects]]
   from = "/sign-in"
   to = "/index.html"
@@ -43,6 +48,7 @@
   from = "/*"
   to = "/index.html"
   status = 200
+  conditions = {Path = {exclude = ["/*.png", "/*.ico", "/*.svg"]}}
 
 [build.environment]
   VITE_SITE_URL = "https://applymate.app"
