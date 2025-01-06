@@ -105,6 +105,73 @@ async function scrapeLinkedIn(url: string): Promise<string> {
   }
 }
 
+async function scrapeIndeed(url: string): Promise<string> {
+  try {
+    // Extract job ID from URL
+    const jobId = url.match(/jk=([^&]+)/)?.[1];
+    if (!jobId) {
+      throw new Error('Could not extract job ID from URL');
+    }
+
+    // Convert to direct job URL
+    const jobUrl = `https://www.indeed.com/viewjob?jk=${jobId}`;
+    console.log('Converted to direct job URL:', jobUrl);
+
+    // Use a proxy service to bypass Indeed's protections
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(jobUrl)}`;
+    console.log('Using proxy URL:', proxyUrl);
+
+    const response = await axios.get(proxyUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+      },
+      timeout: 10000
+    });
+
+    // Extract job details using Indeed-specific selectors
+    const content = response.data;
+    const jobDetails: string[] = [];
+
+    // Try to extract title
+    const titleMatch = content.match(/<h1[^>]*class="[^"]*jobsearch-JobInfoHeader-title[^"]*"[^>]*>([^<]+)<\/h1>/);
+    if (titleMatch) {
+      jobDetails.push(`Title: ${titleMatch[1].trim()}`);
+    }
+
+    // Try to extract company
+    const companyMatch = content.match(/<div[^>]*class="[^"]*jobsearch-InlineCompanyRating[^"]*"[^>]*>([^<]+)<\/div>/);
+    if (companyMatch) {
+      jobDetails.push(`Company: ${companyMatch[1].trim()}`);
+    }
+
+    // Try to extract description
+    const descriptionMatch = content.match(/<div[^>]*id="jobDescriptionText"[^>]*>([\s\S]*?)<\/div>/);
+    if (descriptionMatch) {
+      jobDetails.push(`Description: ${trimContent(descriptionMatch[1])}`);
+    }
+
+    // Try to extract location
+    const locationMatch = content.match(/<div[^>]*class="[^"]*jobsearch-JobInfoHeader-subtitle[^"]*"[^>]*>([^<]+)<\/div>/);
+    if (locationMatch) {
+      jobDetails.push(`Location: ${locationMatch[1].trim()}`);
+    }
+
+    // If no details were extracted, try using the standard scraper
+    if (jobDetails.length === 0) {
+      throw new Error('No job details found in response');
+    }
+
+    // Combine all extracted information
+    return jobDetails.join('\n\n');
+  } catch (error) {
+    console.error('Error scraping Indeed:', error);
+    // Fall back to standard scraping
+    const loader = new CheerioWebBaseLoader(url);
+    const docs = await loader.load();
+    return trimContent(docs[0].pageContent);
+  }
+}
+
 export const handler: Handler = async (event) => {
   // Enable CORS
   const headers = {
@@ -162,6 +229,9 @@ export const handler: Handler = async (event) => {
     if (url.includes('linkedin.com/jobs')) {
       console.log('Using LinkedIn scraper...');
       htmlContent = await scrapeLinkedIn(url);
+    } else if (url.includes('indeed.com/') || url.includes('indeed.dk/')) {
+      console.log('Using Indeed scraper...');
+      htmlContent = await scrapeIndeed(url);
     } else {
       console.log('Using standard scraper...');
       const loader = new CheerioWebBaseLoader(url);
