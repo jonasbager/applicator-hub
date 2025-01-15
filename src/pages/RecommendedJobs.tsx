@@ -134,13 +134,13 @@ export default function RecommendedJobs() {
       <div className="mb-8">
         <h2 className="text-lg font-semibold mb-4">Filtering by:</h2>
         <div className="flex flex-wrap gap-2">
-          {preferences.level.map((level: string) => (
+          {preferences?.level?.map((level: string) => (
             <Badge key={level} variant="secondary">{level}</Badge>
           ))}
-          {preferences.roles.map((role: string) => (
+          {preferences?.roles?.map((role: string) => (
             <Badge key={role} variant="secondary">{role}</Badge>
           ))}
-          {preferences.locations.map((location: string) => (
+          {preferences?.locations?.map((location: string) => (
             <Badge key={location} variant="secondary">{location}</Badge>
           ))}
         </div>
