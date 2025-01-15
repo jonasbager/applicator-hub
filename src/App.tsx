@@ -26,6 +26,7 @@ import { SignUpPage } from './pages/auth/sign-up';
 import { CallbackPage } from './pages/auth/callback';
 import { ResetPasswordPage } from './pages/auth/reset-password';
 import RecommendedJobs from './pages/RecommendedJobs';
+import Profile from './pages/Profile';
 
 export default function App() {
   return (
@@ -90,6 +91,14 @@ export default function App() {
           element={
             <Protected>
               <Archived />
+            </Protected>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <Protected>
+              <Profile />
             </Protected>
           }
         />

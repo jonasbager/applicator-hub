@@ -1,10 +1,10 @@
-import { useState, MouseEvent } from 'react';
-import { HeartIcon, PlusCircleIcon } from 'lucide-react';
+import { useState } from 'react';
+import { HeartIcon } from 'lucide-react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { RecommendedJob } from '../types/recommended-job';
-import { getCompanyLogo, getTimeAgo } from '../lib/company-logos';
+import { getTimeAgo } from '../lib/company-logos';
 import { cn } from '../lib/utils';
 
 interface RecommendedJobCardProps {
@@ -23,14 +23,13 @@ export function RecommendedJobCard({
   onClick 
 }: RecommendedJobCardProps) {
   const [imageError, setImageError] = useState(false);
-  const logo = getCompanyLogo(job.company);
 
-  const handleSave = (e: MouseEvent) => {
+  const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSave(job.id);
   };
 
-  const handleAddToBoard = (e: MouseEvent) => {
+  const handleAddToBoard = (e: React.MouseEvent) => {
     e.stopPropagation();
     onAddToBoard(job);
   };
@@ -40,22 +39,20 @@ export function RecommendedJobCard({
       className="p-6 hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white"
       onClick={onClick}
     >
-      <div className="flex justify-between items-start">
+      {/* Header */}
+      <div className="flex justify-between items-start mb-4">
         {/* Company Logo and Info */}
         <div className="flex gap-4">
-          <div 
-            className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center"
-            style={{ backgroundColor: logo.backgroundColor }}
-          >
+          <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center bg-gray-100">
             {!imageError ? (
               <img
-                src={logo.url}
+                src={`https://logo.clearbit.com/${job.company.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`}
                 alt={`${job.company} logo`}
                 className="w-8 h-8 object-contain"
                 onError={() => setImageError(true)}
               />
             ) : (
-              <span className="text-white text-lg font-bold">
+              <span className="text-gray-500 text-lg font-bold">
                 {job.company.charAt(0)}
               </span>
             )}
@@ -65,7 +62,7 @@ export function RecommendedJobCard({
             <h3 className="font-semibold text-lg text-gray-900 mb-1">
               {job.position}
             </h3>
-            <div className="flex items-center gap-2 text-gray-600">
+            <div className="flex items-center gap-2 text-gray-600 text-sm">
               <span>{job.company}</span>
               {job.applicants_count && (
                 <>
@@ -77,36 +74,24 @@ export function RecommendedJobCard({
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            onClick={handleSave}
-            title={isSaved ? "Remove from saved" : "Save job"}
-          >
-            <HeartIcon 
-              className={cn(
-                "h-5 w-5 transition-colors",
-                isSaved ? "fill-red-500 stroke-red-500" : "stroke-gray-500"
-              )}
-            />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            onClick={handleAddToBoard}
-            title="Add to board"
-          >
-            <PlusCircleIcon className="h-5 w-5 stroke-gray-500" />
-          </Button>
-        </div>
+        {/* Save Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="shrink-0"
+          onClick={handleSave}
+        >
+          <HeartIcon 
+            className={cn(
+              "h-5 w-5 transition-colors",
+              isSaved ? "fill-red-500 stroke-red-500" : "stroke-gray-500"
+            )}
+          />
+        </Button>
       </div>
 
       {/* Tags */}
-      <div className="flex flex-wrap gap-2 mt-4">
+      <div className="flex flex-wrap gap-2 mb-4">
         {job.level && (
           <Badge variant="secondary" className="bg-purple-50 text-purple-700 hover:bg-purple-100">
             {job.level}
@@ -125,13 +110,21 @@ export function RecommendedJobCard({
       </div>
 
       {/* Description */}
-      <p className="mt-4 text-gray-600 line-clamp-2">
+      <p className="text-gray-600 line-clamp-2 mb-4">
         {job.description}
       </p>
 
-      {/* Posted Time */}
-      <div className="mt-4 text-sm text-gray-500">
-        Posted {getTimeAgo(job.created_at)}
+      {/* Footer */}
+      <div className="flex justify-between items-center text-sm text-gray-500">
+        <span>Posted {getTimeAgo(job.created_at)}</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleAddToBoard}
+          className="text-primary hover:text-primary/80"
+        >
+          Add to Board
+        </Button>
       </div>
     </Card>
   );
