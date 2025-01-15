@@ -16,6 +16,14 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3000,
+      proxy: {
+        // Proxy auth requests to development Clerk instance
+        '/auth': {
+          target: 'https://exact-viper-93.accounts.dev',
+          changeOrigin: true,
+          secure: true,
+        }
+      }
     },
     build: {
       // Improve error reporting

@@ -5,6 +5,11 @@ interface Props {
   children: React.ReactNode;
 }
 
+const isDevelopment = import.meta.env.MODE === 'development';
+const signInUrl = isDevelopment 
+  ? 'https://exact-viper-93.accounts.dev/sign-in'
+  : 'https://accounts.applymate.app/sign-in';
+
 /**
  * Protected route component
  * Only renders children when authenticated
@@ -21,7 +26,9 @@ export function Protected({ children }: Props) {
   }
 
   if (!isSignedIn) {
-    return <Navigate to="/sign-in" replace />;
+    // Use environment-specific sign-in URL
+    window.location.href = signInUrl;
+    return null;
   }
 
   return <SignedIn>{children}</SignedIn>;
