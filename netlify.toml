@@ -5,9 +5,31 @@
 
 [context.production]
   environment = { NODE_ENV = "production" }
+  [[context.production.redirects]]
+    from = "/sign-in"
+    to = "https://accounts.applymate.app/sign-in"
+    status = 301
+    force = true
+
+  [[context.production.redirects]]
+    from = "/sign-up"
+    to = "https://accounts.applymate.app/sign-up"
+    status = 301
+    force = true
 
 [context.develop]
   environment = { NODE_ENV = "development" }
+  [[context.develop.redirects]]
+    from = "/sign-in"
+    to = "https://exact-viper-93.accounts.dev/sign-in"
+    status = 301
+    force = true
+
+  [[context.develop.redirects]]
+    from = "/sign-up"
+    to = "https://exact-viper-93.accounts.dev/sign-up"
+    status = 301
+    force = true
 
 [context.deploy-preview]
   environment = { NODE_ENV = "development" }
@@ -23,38 +45,6 @@
     # Allow Clerk domains
     Content-Security-Policy = "frame-ancestors 'self' https://accounts.applymate.app https://exact-viper-93.accounts.dev https://*.clerk.accounts.dev"
     X-Frame-Options = "ALLOW-FROM https://accounts.applymate.app https://exact-viper-93.accounts.dev"
-
-# Production redirects
-[context.production]
-  [[redirects]]
-    from = "/sign-in"
-    to = "https://accounts.applymate.app/sign-in"
-    status = 301
-    force = true
-    conditions = {context = "production"}
-
-  [[redirects]]
-    from = "/sign-up"
-    to = "https://accounts.applymate.app/sign-up"
-    status = 301
-    force = true
-    conditions = {context = "production"}
-
-# Development/Staging redirects
-[context.develop]
-  [[redirects]]
-    from = "/sign-in"
-    to = "https://exact-viper-93.accounts.dev/sign-in"
-    status = 301
-    force = true
-    conditions = {context = "develop"}
-
-  [[redirects]]
-    from = "/sign-up"
-    to = "https://exact-viper-93.accounts.dev/sign-up"
-    status = 301
-    force = true
-    conditions = {context = "develop"}
 
 # Common redirects (for both environments)
 [[redirects]]
