@@ -1,4 +1,4 @@
-import { Archive, Briefcase, LogOut, Plus } from "lucide-react";
+import { Archive, Briefcase, LogOut, Plus, Sparkles } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useClerk, useUser } from "@clerk/clerk-react";
 import { Button } from "./ui/button";
@@ -6,6 +6,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const menuItems = [
   { title: "Applications", icon: Briefcase, path: "/jobs" },
+  { title: "Recommended", icon: Sparkles, path: "/recommended" },
   { title: "Archived", icon: Archive, path: "/archived" }
 ];
 
@@ -86,10 +87,16 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
                     "hover:bg-muted",
-                    location.pathname === item.path && "bg-muted"
+                    location.pathname === item.path && "bg-muted",
+                    // Special styling for Recommended link
+                    item.title === "Recommended" && "text-yellow-600 hover:text-yellow-700"
                   )}
                 >
-                  <item.icon className="h-5 w-5" />
+                  <item.icon className={cn(
+                    "h-5 w-5",
+                    // Special styling for Recommended icon
+                    item.title === "Recommended" && "text-yellow-500"
+                  )} />
                   <span>{item.title}</span>
                 </Link>
               </li>

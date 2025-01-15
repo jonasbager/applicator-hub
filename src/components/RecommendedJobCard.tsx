@@ -1,27 +1,38 @@
 import { useState, MouseEvent } from 'react';
-import { HeartIcon } from 'lucide-react';
-import { Card } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Button } from '../components/ui/button';
-import { Job } from '../types/job';
+import { HeartIcon, PlusCircleIcon } from 'lucide-react';
+import { Card } from './ui/card';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { RecommendedJob } from '../types/recommended-job';
 import { getCompanyLogo, getTimeAgo } from '../lib/company-logos';
 import { cn } from '../lib/utils';
 
-interface JobCardProps {
-  job: Job;
+interface RecommendedJobCardProps {
+  job: RecommendedJob;
   isSaved: boolean;
   onSave: (jobId: string) => void;
+  onAddToBoard: (job: RecommendedJob) => void;
   onClick: () => void;
-  applicants?: number;
 }
 
-export function JobCard({ job, isSaved, onSave, onClick, applicants }: JobCardProps) {
+export function RecommendedJobCard({ 
+  job, 
+  isSaved, 
+  onSave, 
+  onAddToBoard,
+  onClick 
+}: RecommendedJobCardProps) {
   const [imageError, setImageError] = useState(false);
   const logo = getCompanyLogo(job.company);
 
   const handleSave = (e: MouseEvent) => {
     e.stopPropagation();
     onSave(job.id);
+  };
+
+  const handleAddToBoard = (e: MouseEvent) => {
+    e.stopPropagation();
+    onAddToBoard(job);
   };
 
   return (
@@ -56,30 +67,42 @@ export function JobCard({ job, isSaved, onSave, onClick, applicants }: JobCardPr
             </h3>
             <div className="flex items-center gap-2 text-gray-600">
               <span>{job.company}</span>
-              {applicants && (
+              {job.applicants_count && (
                 <>
                   <span>•</span>
-                  <span>{applicants} Applicants</span>
+                  <span>{job.applicants_count} Applicants</span>
                 </>
               )}
             </div>
           </div>
         </div>
 
-        {/* Save Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="shrink-0"
-          onClick={handleSave}
-        >
-          <HeartIcon 
-            className={cn(
-              "h-5 w-5 transition-colors",
-              isSaved ? "fill-red-500 stroke-red-500" : "stroke-gray-500"
-            )}
-          />
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0"
+            onClick={handleSave}
+            title={isSaved ? "Remove from saved" : "Save job"}
+          >
+            <HeartIcon 
+              className={cn(
+                "h-5 w-5 transition-colors",
+                isSaved ? "fill-red-500 stroke-red-500" : "stroke-gray-500"
+              )}
+            />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0"
+            onClick={handleAddToBoard}
+            title="Add to board"
+          >
+            <PlusCircleIcon className="h-5 w-5 stroke-gray-500" />
+          </Button>
+        </div>
       </div>
 
       {/* Tags */}

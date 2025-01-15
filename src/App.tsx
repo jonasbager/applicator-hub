@@ -25,6 +25,7 @@ import { SignInPage } from './pages/auth/sign-in';
 import { SignUpPage } from './pages/auth/sign-up';
 import { CallbackPage } from './pages/auth/callback';
 import { ResetPasswordPage } from './pages/auth/reset-password';
+import RecommendedJobs from './pages/RecommendedJobs';
 
 export default function App() {
   return (
@@ -73,6 +74,14 @@ export default function App() {
           element={
             <Protected>
               <Index />
+            </Protected>
+          }
+        />
+        <Route
+          path="/recommended"
+          element={
+            <Protected>
+              <RecommendedJobs />
             </Protected>
           }
         />
