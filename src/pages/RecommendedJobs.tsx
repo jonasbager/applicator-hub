@@ -10,6 +10,7 @@ import { AddJobModal } from '../components/AddJobModal';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Job } from '../types/job';
+import { AppSidebar } from '../components/AppSidebar';
 
 export default function RecommendedJobs() {
   const { user } = useUser();
@@ -97,15 +98,27 @@ export default function RecommendedJobs() {
   }
 
   if (loading) {
-    return <div className="p-8">Loading...</div>;
+    return (
+      <div className="min-h-screen flex w-full">
+        <AppSidebar onAddClick={() => setShowAddModal(true)} hasJobs={true} />
+        <main className="flex-1 p-8">
+          <div className="p-8">Loading...</div>
+        </main>
+      </div>
+    );
   }
 
   if (!preferences) {
     return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold mb-4">Welcome!</h1>
-        <p className="mb-4">To get started, upload your resume and set your job preferences.</p>
-        <Button onClick={() => navigate('/profile')}>Set Up Profile</Button>
+      <div className="min-h-screen flex w-full">
+        <AppSidebar onAddClick={() => setShowAddModal(true)} hasJobs={true} />
+        <main className="flex-1 p-8">
+          <div className="p-8">
+            <h1 className="text-2xl font-bold mb-4">Welcome!</h1>
+            <p className="mb-4">To get started, upload your resume and set your job preferences.</p>
+            <Button onClick={() => navigate('/profile')}>Set Up Profile</Button>
+          </div>
+        </main>
       </div>
     );
   }
@@ -129,61 +142,73 @@ export default function RecommendedJobs() {
   };
 
   return (
-    <div className="p-8">
-      {/* Filters */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4">Filtering by:</h2>
-        <div className="flex flex-wrap gap-2">
-          {preferences?.level?.map((level: string) => (
-            <Badge key={level} variant="secondary">{level}</Badge>
-          ))}
-          {preferences?.roles?.map((role: string) => (
-            <Badge key={role} variant="secondary">{role}</Badge>
-          ))}
-          {preferences?.locations?.map((location: string) => (
-            <Badge key={location} variant="secondary">{location}</Badge>
-          ))}
+    <div className="min-h-screen flex w-full">
+      <AppSidebar onAddClick={() => setShowAddModal(true)} hasJobs={true} />
+      <main className="flex-1 p-8">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold">Recommended Jobs</h1>
+            <p className="text-muted-foreground">
+              Jobs matching your preferences and skills
+            </p>
+          </div>
+
+          {/* Filters */}
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold mb-4">Filtering by:</h2>
+            <div className="flex flex-wrap gap-2">
+              {preferences?.level?.map((level: string) => (
+                <Badge key={level} variant="secondary">{level}</Badge>
+              ))}
+              {preferences?.roles?.map((role: string) => (
+                <Badge key={role} variant="secondary">{role}</Badge>
+              ))}
+              {preferences?.locations?.map((location: string) => (
+                <Badge key={location} variant="secondary">{location}</Badge>
+              ))}
+            </div>
+          </div>
+
+          {/* Jobs Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {jobs.map((job) => (
+              <RecommendedJobCard
+                key={job.id}
+                job={job}
+                isSaved={savedJobs.includes(job.id)}
+                onSave={toggleSaveJob}
+                onAddToBoard={handleAddToBoard}
+                onClick={() => {
+                  setSelectedJob(job);
+                  setShowJobDetails(true);
+                }}
+              />
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Jobs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {jobs.map((job) => (
-          <RecommendedJobCard
-            key={job.id}
-            job={job}
-            isSaved={savedJobs.includes(job.id)}
-            onSave={toggleSaveJob}
-            onAddToBoard={handleAddToBoard}
-            onClick={() => {
-              setSelectedJob(job);
-              setShowJobDetails(true);
-            }}
-          />
-        ))}
-      </div>
+        {/* Job Details Modal */}
+        <JobDetailsModal
+          open={showJobDetails}
+          onOpenChange={setShowJobDetails}
+          job={boardJob}
+        />
 
-      {/* Job Details Modal */}
-      <JobDetailsModal
-        open={showJobDetails}
-        onOpenChange={setShowJobDetails}
-        job={boardJob}
-      />
-
-      {/* Add to Board Modal */}
-      <AddJobModal
-        open={showAddModal}
-        onOpenChange={(open) => {
-          if (!open) {
-            setShowAddModal(false);
-            setJobToAdd(null);
-          }
-        }}
-        onJobAdded={() => {
-          loadData();
-          navigate('/jobs');
-        }}
-      />
+        {/* Add to Board Modal */}
+        <AddJobModal
+          open={showAddModal}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowAddModal(false);
+              setJobToAdd(null);
+            }
+          }}
+          onJobAdded={() => {
+            loadData();
+            navigate('/jobs');
+          }}
+        />
+      </main>
     </div>
   );
 }
