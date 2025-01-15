@@ -3,6 +3,15 @@
   publish = "dist"
   functions = "netlify/functions"
 
+[context.production]
+  environment = { NODE_ENV = "production" }
+
+[context.develop]
+  environment = { NODE_ENV = "development" }
+
+[context.deploy-preview]
+  environment = { NODE_ENV = "development" }
+
 [[headers]]
   for = "/*.png"
   [headers.values]
@@ -50,12 +59,6 @@
   status = 200
   conditions = {Path = {exclude = ["/*.png", "/*.ico", "/*.svg"]}}
 
-[build.environment]
-  VITE_SITE_URL = "https://applymate.app"
-  # Environment variables are managed in Netlify dashboard
-
 [functions]
   external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio", "zod"]
-  # Include OpenAI API key in function environment
-  [functions.environment]
-    OPENAI_API_KEY = "sk-xxxxxxxxxxxxxxxxxxxxxxxx"  # Replace with actual key in Netlify dashboard
+  node_bundler = "esbuild"
