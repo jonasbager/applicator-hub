@@ -1,3 +1,8 @@
+-- Drop JWT-related functions
+drop function if exists auth.clerk_user() cascade;
+drop function if exists auth.uid() cascade;
+drop function if exists auth.jwt() cascade;
+
 -- Drop and recreate function to get current user ID from header
 drop function if exists get_auth_user_id() cascade;
 create or replace function get_auth_user_id()
