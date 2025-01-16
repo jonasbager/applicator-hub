@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { useAuth } from '@clerk/clerk-react';
-import { useState } from 'react';
+import { useMemo } from 'react';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -11,7 +11,8 @@ if (!supabaseKey) throw new Error('Missing Supabase Anon Key');
 // Create a hook to get an authenticated client
 export function useSupabase() {
   const { userId } = useAuth();
-  const [client] = useState(() => 
+  
+  const client = useMemo(() => 
     createClient(supabaseUrl, supabaseKey, {
       auth: {
         autoRefreshToken: false,
@@ -26,7 +27,7 @@ export function useSupabase() {
         }
       }
     })
-  );
+  , [userId]); // Re-create client when userId changes
 
   return { supabase: client };
 }
