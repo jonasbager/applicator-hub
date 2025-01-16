@@ -12,7 +12,7 @@ drop policy if exists "Users can update their own resumes" on storage.objects;
 drop policy if exists "Users can delete their own resumes" on storage.objects;
 
 -- Drop and recreate function to get current user ID from header
-drop function if exists current_user_id();
+drop function if exists current_user_id() cascade;
 create function current_user_id()
 returns uuid
 language sql
