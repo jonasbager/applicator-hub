@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { useSupabase } from '../lib/supabase';
 import { JobPreferences, Resume } from '../types/resume';
@@ -30,6 +31,7 @@ const ALLOWED_FILE_TYPES = [
 ];
 
 export default function Profile() {
+  const navigate = useNavigate();
   const { user } = useUser();
   const { supabase } = useSupabase();
   const { toast } = useToast();
@@ -254,13 +256,44 @@ export default function Profile() {
         throw uploadError;
       }
 
+      // Analyze the resume
+      console.log('Analyzing resume...');
+      const analyzeUrl = import.meta.env.DEV 
+        ? 'http://localhost:8888/.netlify/functions/analyze-resume'
+        : '/.netlify/functions/analyze-resume';
+      
+      console.log('Calling analyze-resume function at:', analyzeUrl);
+      const response = await fetch(analyzeUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resumeId: resume.id,
+          userId: userId
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Resume analysis failed:', error);
+        throw new Error(error.details || 'Failed to analyze resume');
+      }
+
+      const analysis = await response.json();
+      console.log('Resume analysis completed:', analysis);
+      
+      // Navigate to recommended jobs page
+      navigate('/recommended-jobs');
+
       toast({
         title: 'Success',
-        description: 'Resume uploaded successfully'
+        description: 'Resume uploaded and analyzed successfully'
       });
 
       setFile(null);
       loadResumes(); // Refresh the list
+      loadPreferences(); // Refresh preferences with AI-generated data
     } catch (error) {
       console.error('Error uploading resume:', error);
       toast({
