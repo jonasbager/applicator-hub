@@ -8,7 +8,7 @@ export interface Resume {
 }
 
 export interface JobPreferences {
-  id: string;
+  id?: string; // Optional since we let Supabase generate it
   user_id: string;
   level: string[];
   roles: string[];
