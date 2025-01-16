@@ -1,21 +1,36 @@
--- Enable header in Postgres config (if not already enabled)
-DO $$ 
-BEGIN 
-  ALTER DATABASE postgres SET "request.headers" TO 'x-user-id';
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'Could not set request.headers at database level: %', SQLERRM;
-END $$;
-
--- Drop existing policies
-drop policy if exists "Users can insert their own resumes" on resumes;
-drop policy if exists "Users can view their own resumes" on resumes;
-drop policy if exists "Users can update their own resumes" on resumes;
-drop policy if exists "Users can delete their own resumes" on resumes;
-drop policy if exists "Users can upload their own resumes" on storage.objects;
-drop policy if exists "Users can view their own resumes" on storage.objects;
-drop policy if exists "Users can update their own resumes" on storage.objects;
-drop policy if exists "Users can delete their own resumes" on storage.objects;
-drop policy if exists "Users can manage their own preferences" on job_preferences;
+-- Drop all existing policies
+do $$ 
+begin
+  -- Drop policies for job_preferences
+  execute (
+    select string_agg(
+      format('drop policy if exists %I on job_preferences', policyname),
+      '; '
+    )
+    from pg_policies 
+    where tablename = 'job_preferences'
+  );
+  
+  -- Drop policies for resumes
+  execute (
+    select string_agg(
+      format('drop policy if exists %I on resumes', policyname),
+      '; '
+    )
+    from pg_policies 
+    where tablename = 'resumes'
+  );
+  
+  -- Drop policies for storage.objects
+  execute (
+    select string_agg(
+      format('drop policy if exists %I on storage.objects', policyname),
+      '; '
+    )
+    from pg_policies 
+    where tablename = 'objects' and schemaname = 'storage'
+  );
+end $$;
 
 -- Drop and recreate function to get current user ID from header
 drop function if exists get_auth_user_id() cascade;
