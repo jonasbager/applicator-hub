@@ -299,7 +299,8 @@ export default function Profile() {
 
       const { error } = await supabase
         .from('job_preferences')
-        .upsert(newPrefs);
+        .update(newPrefs)
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -345,7 +346,8 @@ export default function Profile() {
 
       const { error } = await supabase
         .from('job_preferences')
-        .upsert(newPrefs);
+        .update(newPrefs)
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
