@@ -12,20 +12,37 @@ if (!supabaseKey) throw new Error('Missing Supabase Anon Key');
 export function useSupabase() {
   const { userId } = useAuth();
   
-  const client = useMemo(() => 
-    createClient(supabaseUrl, supabaseKey, {
+  const client = useMemo(() => {
+    console.log('Creating Supabase client with userId:', userId);
+    
+    if (!userId) {
+      console.warn('No userId available for Supabase client');
+      return createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false
+        }
+      });
+    }
+    
+    const headers: Record<string, string> = {
+      'x-user-id': userId
+    };
+    
+    console.log('Setting Supabase headers:', headers);
+    
+    return createClient(supabaseUrl, supabaseKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
         detectSessionInUrl: false
       },
       global: {
-        headers: userId ? {
-          'x-user-id': userId
-        } : {}
+        headers
       }
-    })
-  , [userId]); // Re-create client when userId changes
+    });
+  }, [userId]); // Re-create client when userId changes
 
   return { supabase: client };
 }

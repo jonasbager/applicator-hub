@@ -77,42 +77,68 @@ export default function Profile() {
   };
 
   const loadPreferences = async () => {
-    if (!user) return;
+    if (!user) {
+      console.warn('No user available for loading preferences');
+      return;
+    }
+
+    const currentUserId = getUserId(user.id);
+    console.log('Loading preferences for user:', currentUserId);
 
     try {
-      const { data, error } = await supabase
+      console.log('Fetching preferences from Supabase...');
+      
+      // Try to get existing preferences
+      const { data: existingPrefs, error: selectError } = await supabase
         .from('job_preferences')
         .select('*')
         .eq('user_id', getUserId(user.id))
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
-
-      if (data) {
-        setPreferences({
-          ...data,
-          level: data.level || [],
-          roles: data.roles || [],
-          locations: data.locations || [],
-          skills: data.skills || []
-        });
-      } else {
-        // Create empty preferences if none exist
-        const newPrefs = {
-          ...emptyPreferences,
-          user_id: getUserId(user.id)
-        };
-        const { data: inserted, error: insertError } = await supabase
-          .from('job_preferences')
-          .insert(newPrefs)
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        if (!inserted) throw new Error('Failed to create preferences');
-        
-        setPreferences(inserted);
+      if (selectError) {
+        console.error('Error fetching preferences:', selectError);
+        if (selectError.code !== 'PGRST116') throw selectError;
       }
+
+      if (existingPrefs) {
+        console.log('Found existing preferences:', existingPrefs);
+        setPreferences({
+          ...existingPrefs,
+          level: existingPrefs.level || [],
+          roles: existingPrefs.roles || [],
+          locations: existingPrefs.locations || [],
+          skills: existingPrefs.skills || []
+        });
+        return;
+      }
+
+      console.log('Creating new preferences for user:', getUserId(user.id));
+      
+      // Create empty preferences if none exist
+      const newPrefs = {
+        ...emptyPreferences,
+        user_id: getUserId(user.id)
+      };
+
+      console.log('Creating new preferences with user_id:', currentUserId);
+      const { data: inserted, error: insertError } = await supabase
+        .from('job_preferences')
+        .insert(newPrefs)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error creating preferences:', insertError);
+        throw insertError;
+      }
+
+      if (!inserted) {
+        console.error('No preferences returned after insert');
+        throw new Error('Failed to create preferences');
+      }
+      
+      console.log('Successfully created preferences:', inserted);
+      setPreferences(inserted);
     } catch (error) {
       console.error('Error loading preferences:', error);
       toast({
@@ -176,12 +202,18 @@ export default function Profile() {
   };
 
   const handleUpload = async () => {
-    if (!file || !user) return;
+    if (!file || !user) {
+      console.warn('No file or user available for upload');
+      return;
+    }
     setUploading(true);
 
     try {
       const userId = getUserId(user.id);
+      console.log('Uploading resume for user:', userId);
+      
       // First create the resume record
+      console.log('Creating resume record...');
       const { data: resume, error: dbError } = await supabase
         .from('resumes')
         .insert({
@@ -192,10 +224,19 @@ export default function Profile() {
         .select()
         .single();
 
-      if (dbError) throw dbError;
-      if (!resume) throw new Error('Failed to create resume record');
+      if (dbError) {
+        console.error('Error creating resume record:', dbError);
+        throw dbError;
+      }
+      if (!resume) {
+        console.error('No resume record returned after insert');
+        throw new Error('Failed to create resume record');
+      }
+
+      console.log('Successfully created resume record:', resume);
 
       // Then upload the file
+      console.log('Uploading file to storage...');
       const { error: uploadError } = await supabase.storage
         .from('resumes')
         .upload(resume.file_path, file, {
@@ -203,7 +244,9 @@ export default function Profile() {
         });
 
       if (uploadError) {
+        console.error('Error uploading file:', uploadError);
         // Clean up the record if upload fails
+        console.log('Cleaning up failed resume record...');
         await supabase
           .from('resumes')
           .delete()
