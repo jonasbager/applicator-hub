@@ -13,11 +13,11 @@ drop policy if exists "Users can delete their own resumes" on storage.objects;
 
 -- Create function to get current user ID from header
 create or replace function current_user_id()
-returns text
+returns uuid
 language sql
 stable
 as $$
-  select nullif(current_setting('request.header.x-user-id', true), '');
+  select cast(nullif(current_setting('request.header.x-user-id', true), '') as uuid);
 $$;
 
 -- Create policies
@@ -43,26 +43,26 @@ create policy "Users can upload their own resumes"
 on storage.objects for insert
 with check (
   bucket_id = 'resumes' and
-  current_user_id() = (storage.foldername(name))[1]
+  cast(current_user_id() as text) = (storage.foldername(name))[1]
 );
 
 create policy "Users can view their own resumes"
 on storage.objects for select
 using (
   bucket_id = 'resumes' and
-  current_user_id() = (storage.foldername(name))[1]
+  cast(current_user_id() as text) = (storage.foldername(name))[1]
 );
 
 create policy "Users can update their own resumes"
 on storage.objects for update
 using (
   bucket_id = 'resumes' and
-  current_user_id() = (storage.foldername(name))[1]
+  cast(current_user_id() as text) = (storage.foldername(name))[1]
 );
 
 create policy "Users can delete their own resumes"
 on storage.objects for delete
 using (
   bucket_id = 'resumes' and
-  current_user_id() = (storage.foldername(name))[1]
+  cast(current_user_id() as text) = (storage.foldername(name))[1]
 );
