@@ -1,21 +1,20 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { useSupabase } from '../lib/supabase';
-import { JobPreferences } from '../types/resume';
+import { JobPreferences, Resume } from '../types/resume';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Card } from '../components/ui/card';
 import { useToast } from '../components/ui/use-toast';
-import { UploadArea } from '../components/ui/upload-area';
-import { X, Plus, Loader2 } from 'lucide-react';
+import { Upload as FileUpload, X, Plus, Loader2, FileText, Download, Trash2 } from 'lucide-react';
 import { AppSidebar } from '../components/AppSidebar';
+import { getUserId } from '../lib/user-id';
 
 type PreferenceField = 'level' | 'roles' | 'locations' | 'skills';
 
-const emptyPreferences: JobPreferences = {
-  id: '',
+const emptyPreferences: Omit<JobPreferences, 'id'> = {
   user_id: '',
   level: [],
   roles: [],
@@ -35,19 +34,47 @@ export default function Profile() {
   const { supabase } = useSupabase();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [preferences, setPreferences] = useState<JobPreferences>(emptyPreferences);
+  const [preferences, setPreferences] = useState<JobPreferences | null>(null);
   const [newLevel, setNewLevel] = useState('');
   const [newRole, setNewRole] = useState('');
   const [newLocation, setNewLocation] = useState('');
   const [newSkill, setNewSkill] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const [resumes, setResumes] = useState<Resume[]>([]);
+  const [loadingResumes, setLoadingResumes] = useState(true);
 
   useEffect(() => {
     if (user) {
       loadPreferences();
+      loadResumes();
     }
   }, [user]);
+
+  const loadResumes = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('resumes')
+        .select('*')
+        .eq('user_id', getUserId(user.id))
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setResumes(data || []);
+    } catch (error) {
+      console.error('Error loading resumes:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load resumes'
+      });
+    } finally {
+      setLoadingResumes(false);
+    }
+  };
 
   const loadPreferences = async () => {
     if (!user) return;
@@ -56,10 +83,11 @@ export default function Profile() {
       const { data, error } = await supabase
         .from('job_preferences')
         .select('*')
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', getUserId(user.id))
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') throw error;
+
       if (data) {
         setPreferences({
           ...data,
@@ -68,6 +96,22 @@ export default function Profile() {
           locations: data.locations || [],
           skills: data.skills || []
         });
+      } else {
+        // Create empty preferences if none exist
+        const newPrefs = {
+          ...emptyPreferences,
+          user_id: getUserId(user.id)
+        };
+        const { data: inserted, error: insertError } = await supabase
+          .from('job_preferences')
+          .insert(newPrefs)
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        if (!inserted) throw new Error('Failed to create preferences');
+        
+        setPreferences(inserted);
       }
     } catch (error) {
       console.error('Error loading preferences:', error);
@@ -78,6 +122,29 @@ export default function Profile() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (validateFile(file)) {
+        setFile(file);
+      }
     }
   };
 
@@ -98,9 +165,13 @@ export default function Profile() {
     return true;
   };
 
-  const handleFileSelect = (file: File) => {
-    if (validateFile(file)) {
-      setFile(file);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (validateFile(file)) {
+        setFile(file);
+      }
+      e.target.value = '';
     }
   };
 
@@ -109,12 +180,13 @@ export default function Profile() {
     setUploading(true);
 
     try {
+      const userId = getUserId(user.id);
       // First create the resume record
       const { data: resume, error: dbError } = await supabase
         .from('resumes')
         .insert({
-          user_id: user.id,
-          file_path: `${user.id}/${Date.now()}.${file.name.split('.').pop()}`,
+          user_id: userId,
+          file_path: `${userId}/${Date.now()}-${file.name}`,
           file_name: file.name
         })
         .select()
@@ -145,6 +217,7 @@ export default function Profile() {
       });
 
       setFile(null);
+      loadResumes(); // Refresh the list
     } catch (error) {
       console.error('Error uploading resume:', error);
       toast({
@@ -157,25 +230,84 @@ export default function Profile() {
     }
   };
 
+  const handleDownload = async (resume: Resume) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('resumes')
+        .download(resume.file_path);
+
+      if (error) throw error;
+
+      // Create a download link
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = resume.file_name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to download resume'
+      });
+    }
+  };
+
+  const handleDelete = async (resume: Resume) => {
+    try {
+      // First delete the file
+      const { error: storageError } = await supabase.storage
+        .from('resumes')
+        .remove([resume.file_path]);
+
+      if (storageError) throw storageError;
+
+      // Then delete the record
+      const { error: dbError } = await supabase
+        .from('resumes')
+        .delete()
+        .eq('id', resume.id);
+
+      if (dbError) throw dbError;
+
+      toast({
+        title: 'Success',
+        description: 'Resume deleted successfully'
+      });
+
+      loadResumes(); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting resume:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to delete resume'
+      });
+    }
+  };
+
   const addPreference = async (field: PreferenceField, value: string) => {
-    if (!value.trim() || !user) return;
+    if (!value.trim() || !user || !preferences) return;
 
     try {
       const newPrefs = {
         ...preferences,
-        user_id: user.id,
         [field]: [...(preferences[field] || []), value.trim()]
       };
 
       const { error } = await supabase
         .from('job_preferences')
-        .upsert(newPrefs);
+        .update(newPrefs)
+        .eq('user_id', getUserId(user.id));
 
       if (error) throw error;
 
       setPreferences(newPrefs);
 
-      // Clear input
       switch (field) {
         case 'level':
           setNewLevel('');
@@ -206,7 +338,7 @@ export default function Profile() {
   };
 
   const removePreference = async (field: PreferenceField, value: string) => {
-    if (!user) return;
+    if (!user || !preferences) return;
 
     try {
       const newPrefs = {
@@ -216,7 +348,8 @@ export default function Profile() {
 
       const { error } = await supabase
         .from('job_preferences')
-        .upsert(newPrefs);
+        .update(newPrefs)
+        .eq('user_id', getUserId(user.id));
 
       if (error) throw error;
 
@@ -253,10 +386,10 @@ export default function Profile() {
             <>
               {/* Resume Upload */}
               <Card className="p-6 mb-8">
-                <h2 className="text-lg font-semibold mb-4">Resume2</h2>
+                <h2 className="text-lg font-semibold mb-4">Resume</h2>
                 {file ? (
                   <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg">
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <span className="font-medium">{file.name}</span>
                       <Button
                         variant="ghost"
@@ -277,17 +410,84 @@ export default function Profile() {
                           Uploading...
                         </>
                       ) : (
-                        'Upload Resume'
+                        <>
+                          <FileUpload className="h-4 w-4 mr-2" />
+                          Upload Resume
+                        </>
                       )}
                     </Button>
                   </div>
                 ) : (
-                  <UploadArea
-                    onFileSelect={handleFileSelect}
-                    accept={ALLOWED_FILE_TYPES.map(type => type.ext).join(',')}
-                    label="Upload your resume"
-                    description="Drag and drop your resume here, or click to select"
-                  />
+                  <div 
+                    className={`
+                      border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+                      ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}
+                      hover:border-blue-500 hover:bg-blue-50 transition-colors
+                    `}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={() => document.getElementById('resume-upload')?.click()}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <FileUpload className="h-10 w-10 text-gray-400 mb-2" />
+                      <p className="text-lg font-medium">Upload your resume</p>
+                      <p className="text-sm text-gray-500">
+                        Drag and drop your resume here, or click to select
+                      </p>
+                      <Input
+                        type="file"
+                        accept={ALLOWED_FILE_TYPES.map(type => type.ext).join(',')}
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="resume-upload"
+                      />
+                      <p className="text-xs text-gray-400 mt-2">
+                        Supported formats: PDF, DOCX
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Existing Resumes */}
+                {loadingResumes ? (
+                  <div className="flex items-center justify-center mt-6">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : resumes.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-sm font-medium text-gray-500 mb-3">Your Resumes</h3>
+                    <div className="space-y-2">
+                      {resumes.map((resume) => (
+                        <div
+                          key={resume.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm font-medium">{resume.file_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownload(resume)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(resume)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </Card>
 
@@ -299,7 +499,7 @@ export default function Profile() {
                 <div className="mb-6">
                   <Label className="mb-2 block">Experience Level</Label>
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {preferences.level?.map((level: string) => (
+                    {preferences?.level?.map((level: string) => (
                       <Badge key={level} variant="secondary" className="gap-1">
                         {level}
                         <button
@@ -332,7 +532,7 @@ export default function Profile() {
                 <div className="mb-6">
                   <Label className="mb-2 block">Roles</Label>
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {preferences.roles?.map((role: string) => (
+                    {preferences?.roles?.map((role: string) => (
                       <Badge key={role} variant="secondary" className="gap-1">
                         {role}
                         <button
@@ -365,7 +565,7 @@ export default function Profile() {
                 <div className="mb-6">
                   <Label className="mb-2 block">Locations</Label>
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {preferences.locations?.map((location: string) => (
+                    {preferences?.locations?.map((location: string) => (
                       <Badge key={location} variant="secondary" className="gap-1">
                         {location}
                         <button
@@ -398,7 +598,7 @@ export default function Profile() {
                 <div>
                   <Label className="mb-2 block">Skills</Label>
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {preferences.skills?.map((skill: string) => (
+                    {preferences?.skills?.map((skill: string) => (
                       <Badge key={skill} variant="secondary" className="gap-1">
                         {skill}
                         <button
