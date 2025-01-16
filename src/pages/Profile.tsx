@@ -84,9 +84,10 @@ export default function Profile() {
         .from('job_preferences')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') throw error;
+
       if (data) {
         setPreferences({
           ...data,
@@ -95,6 +96,18 @@ export default function Profile() {
           locations: data.locations || [],
           skills: data.skills || []
         });
+      } else {
+        // Create empty preferences if none exist
+        const newPrefs = {
+          ...emptyPreferences,
+          user_id: user.id
+        };
+        const { error: insertError } = await supabase
+          .from('job_preferences')
+          .insert(newPrefs);
+
+        if (insertError) throw insertError;
+        setPreferences(newPrefs);
       }
     } catch (error) {
       console.error('Error loading preferences:', error);
