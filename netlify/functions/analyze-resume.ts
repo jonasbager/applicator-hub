@@ -90,12 +90,12 @@ export const handler: Handler = async (event) => {
     const fileName = resume.file_name.toLowerCase();
     
     if (fileName.endsWith('.pdf')) {
-      const pdf = require('pdf-parse');
-      const pdfData = await pdf(fileData);
+      const { default: pdfParse } = await import('pdf-parse');
+      const pdfData = await pdfParse(fileData);
       text = pdfData.text;
     } else if (fileName.endsWith('.docx')) {
-      const mammoth = require('mammoth');
-      const result = await mammoth.extractRawText({ buffer: fileData });
+      const { default: mammoth } = await import('mammoth');
+      const result = await mammoth.extractRawText({ arrayBuffer: await fileData.arrayBuffer() });
       text = result.value;
     } else {
       throw new Error('Unsupported file type');
