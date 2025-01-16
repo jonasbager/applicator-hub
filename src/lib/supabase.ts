@@ -27,10 +27,20 @@ export function useSupabase() {
     }
     
     const headers: Record<string, string> = {
-      'x-user-id': userId
+      'x-user-id': userId,
+      'Authorization': `Bearer ${supabaseKey}`
     };
     
     console.log('Setting Supabase headers:', headers);
+    console.log('Creating authenticated Supabase client with config:', {
+      url: supabaseUrl,
+      headers,
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
+      }
+    });
     
     return createClient(supabaseUrl, supabaseKey, {
       auth: {
@@ -47,11 +57,22 @@ export function useSupabase() {
   return { supabase: client };
 }
 
-// Create base client for non-auth usage
+// Create base client for non-auth usage (should not be used directly)
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
     detectSessionInUrl: false
+  }
+});
+
+// Add error listener for debugging
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT') {
+    console.log('User signed out of Supabase');
+  } else if (event === 'USER_UPDATED') {
+    console.log('Supabase user updated:', session?.user);
+  } else if (event === 'TOKEN_REFRESHED') {
+    console.log('Supabase token refreshed');
   }
 });
