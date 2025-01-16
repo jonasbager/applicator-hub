@@ -78,5 +78,9 @@
   conditions = {Path = {exclude = ["/*.png", "/*.ico", "/*.svg"]}}
 
 [functions]
-  external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio", "zod"]
+  external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio", "zod", "@supabase/supabase-js"]
   node_bundler = "esbuild"
+
+[functions.analyze-resume]
+  included_files = ["package.json"]
+  environment = { NODE_VERSION = "18.x" }
