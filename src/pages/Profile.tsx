@@ -258,9 +258,7 @@ export default function Profile() {
 
       // Analyze the resume
       console.log('Analyzing resume...');
-      const analyzeUrl = import.meta.env.DEV 
-        ? 'http://localhost:8888/.netlify/functions/analyze-resume'
-        : '/.netlify/functions/analyze-resume';
+      const analyzeUrl = '/.netlify/functions/analyze-resume';
       
       console.log('Calling analyze-resume function at:', analyzeUrl);
       const response = await fetch(analyzeUrl, {
