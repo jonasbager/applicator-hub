@@ -20,11 +20,9 @@ export function useSupabase() {
         detectSessionInUrl: false
       },
       global: {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'x-user-id': userId || ''
-        }
+        headers: userId ? {
+          'x-user-id': userId
+        } : {}
       }
     })
   , [userId]); // Re-create client when userId changes
