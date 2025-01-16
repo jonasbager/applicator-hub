@@ -10,6 +10,7 @@ import { Card } from '../components/ui/card';
 import { useToast } from '../components/ui/use-toast';
 import { Upload as FileUpload, X, Plus, Loader2, FileText, Download, Trash2 } from 'lucide-react';
 import { AppSidebar } from '../components/AppSidebar';
+import { getUserId } from '../lib/user-id';
 
 type PreferenceField = 'level' | 'roles' | 'locations' | 'skills';
 
@@ -58,7 +59,7 @@ export default function Profile() {
       const { data, error } = await supabase
         .from('resumes')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', getUserId(user.id))
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -82,7 +83,7 @@ export default function Profile() {
       const { data, error } = await supabase
         .from('job_preferences')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', getUserId(user.id))
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
@@ -99,7 +100,7 @@ export default function Profile() {
         // Create empty preferences if none exist
         const newPrefs = {
           ...emptyPreferences,
-          user_id: user.id
+          user_id: getUserId(user.id)
         };
         const { data: inserted, error: insertError } = await supabase
           .from('job_preferences')
@@ -179,12 +180,13 @@ export default function Profile() {
     setUploading(true);
 
     try {
+      const userId = getUserId(user.id);
       // First create the resume record
       const { data: resume, error: dbError } = await supabase
         .from('resumes')
         .insert({
-          user_id: user.id,
-          file_path: `${user.id}/${Date.now()}-${file.name}`,
+          user_id: userId,
+          file_path: `${userId}/${Date.now()}-${file.name}`,
           file_name: file.name
         })
         .select()
@@ -300,7 +302,7 @@ export default function Profile() {
       const { error } = await supabase
         .from('job_preferences')
         .update(newPrefs)
-        .eq('user_id', user.id);
+        .eq('user_id', getUserId(user.id));
 
       if (error) throw error;
 
@@ -347,7 +349,7 @@ export default function Profile() {
       const { error } = await supabase
         .from('job_preferences')
         .update(newPrefs)
-        .eq('user_id', user.id);
+        .eq('user_id', getUserId(user.id));
 
       if (error) throw error;
 
