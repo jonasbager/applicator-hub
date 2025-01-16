@@ -14,7 +14,7 @@ import { AppSidebar } from '../components/AppSidebar';
 type PreferenceField = 'level' | 'roles' | 'locations' | 'skills';
 
 const emptyPreferences: JobPreferences = {
-  id: '',
+  id: crypto.randomUUID(),
   user_id: '',
   level: [],
   roles: [],
