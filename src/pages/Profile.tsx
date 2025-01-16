@@ -136,25 +136,35 @@ export default function Profile() {
     setUploading(true);
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('resumes')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { error: dbError } = await supabase
+      // First create the resume record
+      const { data: resume, error: dbError } = await supabase
         .from('resumes')
         .insert({
           user_id: user.id,
-          file_path: filePath,
+          file_path: `${user.id}/${Date.now()}-${file.name}`,
           file_name: file.name
-        });
+        })
+        .select()
+        .single();
 
       if (dbError) throw dbError;
+      if (!resume) throw new Error('Failed to create resume record');
+
+      // Then upload the file
+      const { error: uploadError } = await supabase.storage
+        .from('resumes')
+        .upload(resume.file_path, file, {
+          upsert: false
+        });
+
+      if (uploadError) {
+        // Clean up the record if upload fails
+        await supabase
+          .from('resumes')
+          .delete()
+          .eq('id', resume.id);
+        throw uploadError;
+      }
 
       toast({
         title: 'Success',
@@ -167,7 +177,7 @@ export default function Profile() {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to upload resume'
+        description: error instanceof Error ? error.message : 'Failed to upload resume'
       });
     } finally {
       setUploading(false);
