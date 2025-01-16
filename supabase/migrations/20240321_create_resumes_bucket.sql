@@ -21,7 +21,8 @@ begin
     create policy "Allow resume uploads"
       on storage.objects for insert
       with check (
-        bucket_id = 'resumes'
+        bucket_id = 'resumes' and
+        auth.role() = 'anon'
       );
   end if;
 
@@ -35,7 +36,8 @@ begin
     create policy "Allow resume downloads"
       on storage.objects for select
       using (
-        bucket_id = 'resumes'
+        bucket_id = 'resumes' and
+        auth.role() = 'anon'
       );
   end if;
 
@@ -49,7 +51,8 @@ begin
     create policy "Allow resume deletions"
       on storage.objects for delete
       using (
-        bucket_id = 'resumes'
+        bucket_id = 'resumes' and
+        auth.role() = 'anon'
       );
   end if;
 end $$;

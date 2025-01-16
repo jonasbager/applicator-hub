@@ -12,33 +12,28 @@ if (!supabaseKey) throw new Error('Missing Supabase Anon Key');
 export function useSupabase() {
   const { userId } = useAuth();
   
-  console.log('Clerk user ID:', userId);
-  
   // Create a new client instance with the user ID
   const client = useMemo(() => {
-    console.log('Creating Supabase client with user ID:', userId);
-    
-    // Create headers with proper format
-    const headers = {
-      'apikey': supabaseKey,
+    // Create base headers
+    const baseHeaders: Record<string, string> = {
       'Authorization': `Bearer ${supabaseKey}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-      'x-user-id': userId || '',
-      'x-client-info': 'supabase-js/2.39.7',
-      'x-debug': 'true'
+      'apikey': supabaseKey
     };
 
-    // Log headers
-    console.log('Supabase headers:', headers);
+    // Add user ID if available
+    if (userId) {
+      baseHeaders['x-user-id'] = userId;
+    }
 
     const client = createClient(supabaseUrl, supabaseKey, {
       auth: {
-        autoRefreshToken: false,
         persistSession: false,
+        autoRefreshToken: false,
         detectSessionInUrl: false
       },
-      global: { headers }
+      global: { 
+        headers: baseHeaders
+      }
     });
 
     // Add debug interceptor
@@ -52,8 +47,8 @@ export function useSupabase() {
         const newConfig: RequestInit = {
           ...init,
           headers: {
-            ...headers,
-            ...(init?.headers || {})
+            ...baseHeaders,
+            ...(init?.headers as Record<string, string> || {})
           }
         };
         
@@ -111,8 +106,8 @@ export function useSupabase() {
 // Create base client for non-auth usage
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    autoRefreshToken: false,
     persistSession: false,
+    autoRefreshToken: false,
     detectSessionInUrl: false
   }
 });
