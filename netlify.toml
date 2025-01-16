@@ -83,4 +83,9 @@
 
 [functions.analyze-resume]
   included_files = ["package.json"]
-  environment = { NODE_VERSION = "18.x" }
+  environment = { 
+    NODE_VERSION = "18.x",
+    VITE_SUPABASE_URL = "${VITE_SUPABASE_URL}",
+    VITE_SUPABASE_ANON_KEY = "${VITE_SUPABASE_ANON_KEY}",
+    OPENAI_API_KEY = "${OPENAI_API_KEY}"
+  }
