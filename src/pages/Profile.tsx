@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { useSupabase } from '../lib/supabase';
-import { JobPreferences } from '../types/resume';
+import { JobPreferences, Resume } from '../types/resume';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Card } from '../components/ui/card';
 import { useToast } from '../components/ui/use-toast';
-import { Upload as FileUpload, X, Plus, Loader2 } from 'lucide-react';
+import { Upload as FileUpload, X, Plus, Loader2, FileText, Download, Trash2 } from 'lucide-react';
 import { AppSidebar } from '../components/AppSidebar';
 
 type PreferenceField = 'level' | 'roles' | 'locations' | 'skills';
@@ -42,12 +42,39 @@ export default function Profile() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [resumes, setResumes] = useState<Resume[]>([]);
+  const [loadingResumes, setLoadingResumes] = useState(true);
 
   useEffect(() => {
     if (user) {
       loadPreferences();
+      loadResumes();
     }
   }, [user]);
+
+  const loadResumes = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('resumes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setResumes(data || []);
+    } catch (error) {
+      console.error('Error loading resumes:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load resumes'
+      });
+    } finally {
+      setLoadingResumes(false);
+    }
+  };
 
   const loadPreferences = async () => {
     if (!user) return;
@@ -172,6 +199,7 @@ export default function Profile() {
       });
 
       setFile(null);
+      loadResumes(); // Refresh the list
     } catch (error) {
       console.error('Error uploading resume:', error);
       toast({
@@ -181,6 +209,66 @@ export default function Profile() {
       });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDownload = async (resume: Resume) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('resumes')
+        .download(resume.file_path);
+
+      if (error) throw error;
+
+      // Create a download link
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = resume.file_name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to download resume'
+      });
+    }
+  };
+
+  const handleDelete = async (resume: Resume) => {
+    try {
+      // First delete the file
+      const { error: storageError } = await supabase.storage
+        .from('resumes')
+        .remove([resume.file_path]);
+
+      if (storageError) throw storageError;
+
+      // Then delete the record
+      const { error: dbError } = await supabase
+        .from('resumes')
+        .delete()
+        .eq('id', resume.id);
+
+      if (dbError) throw dbError;
+
+      toast({
+        title: 'Success',
+        description: 'Resume deleted successfully'
+      });
+
+      loadResumes(); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting resume:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to delete resume'
+      });
     }
   };
 
@@ -339,6 +427,46 @@ export default function Profile() {
                       <p className="text-xs text-gray-400 mt-2">
                         Supported formats: PDF, DOCX
                       </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Existing Resumes */}
+                {loadingResumes ? (
+                  <div className="flex items-center justify-center mt-6">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : resumes.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-sm font-medium text-gray-500 mb-3">Your Resumes</h3>
+                    <div className="space-y-2">
+                      {resumes.map((resume) => (
+                        <div
+                          key={resume.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm font-medium">{resume.file_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownload(resume)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(resume)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
