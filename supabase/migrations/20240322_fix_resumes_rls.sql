@@ -1,3 +1,11 @@
+-- Enable header in Postgres config (if not already enabled)
+DO $$ 
+BEGIN 
+  ALTER DATABASE postgres SET "request.headers" TO 'x-user-id';
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Could not set request.headers at database level: %', SQLERRM;
+END $$;
+
 -- Drop existing policies
 drop policy if exists "Users can insert their own resumes" on resumes;
 drop policy if exists "Users can view their own resumes" on resumes;
@@ -10,18 +18,27 @@ drop policy if exists "Users can delete their own resumes" on storage.objects;
 drop policy if exists "Users can manage their own preferences" on job_preferences;
 
 -- Drop and recreate function to get current user ID from header
-drop function if exists current_user_id() cascade;
-create or replace function current_user_id()
+drop function if exists get_auth_user_id() cascade;
+create or replace function get_auth_user_id()
 returns text
 language plpgsql
 security definer
 as $$
+declare
+    header_value text;
 begin
-    -- Get the user ID from the request header set by our client
-    return nullif(current_setting('request.header.x-user-id', true), '');
-exception
-    when others then
+    -- Get the user ID from the request header
+    begin
+        header_value := current_setting('request.header.x-user-id', true);
+        
+        if header_value is null or header_value = '' then
+            return null;
+        end if;
+        
+        return header_value;
+    exception when others then
         return null;
+    end;
 end;
 $$;
 
@@ -33,66 +50,66 @@ alter table job_preferences enable row level security;
 create policy "Users can create their own preferences"
 on job_preferences for insert
 with check (
-    current_user_id() is not null and
-    current_user_id() = user_id
+    get_auth_user_id() is not null and
+    get_auth_user_id() = user_id
 );
 
 create policy "Users can view their own preferences"
 on job_preferences for select
 using (
-    current_user_id() is not null and
-    current_user_id() = user_id
+    get_auth_user_id() is not null and
+    get_auth_user_id() = user_id
 );
 
 create policy "Users can update their own preferences"
 on job_preferences for update
 using (
-    current_user_id() is not null and
-    current_user_id() = user_id
+    get_auth_user_id() is not null and
+    get_auth_user_id() = user_id
 )
 with check (
-    current_user_id() is not null and
-    current_user_id() = user_id
+    get_auth_user_id() is not null and
+    get_auth_user_id() = user_id
 );
 
 create policy "Users can delete their own preferences"
 on job_preferences for delete
 using (
-    current_user_id() is not null and
-    current_user_id() = user_id
+    get_auth_user_id() is not null and
+    get_auth_user_id() = user_id
 );
 
 -- Create policies for resumes
 create policy "Users can insert their own resumes"
 on resumes for insert
 with check (
-    current_user_id() is not null and
-    current_user_id() = user_id
+    get_auth_user_id() is not null and
+    get_auth_user_id() = user_id
 );
 
 create policy "Users can view their own resumes"
 on resumes for select
 using (
-    current_user_id() is not null and
-    current_user_id() = user_id
+    get_auth_user_id() is not null and
+    get_auth_user_id() = user_id
 );
 
 create policy "Users can update their own resumes"
 on resumes for update
 using (
-    current_user_id() is not null and
-    current_user_id() = user_id
+    get_auth_user_id() is not null and
+    get_auth_user_id() = user_id
 )
 with check (
-    current_user_id() is not null and
-    current_user_id() = user_id
+    get_auth_user_id() is not null and
+    get_auth_user_id() = user_id
 );
 
 create policy "Users can delete their own resumes"
 on resumes for delete
 using (
-    current_user_id() is not null and
-    current_user_id() = user_id
+    get_auth_user_id() is not null and
+    get_auth_user_id() = user_id
 );
 
 -- Storage policies
@@ -100,30 +117,30 @@ create policy "Users can upload their own resumes"
 on storage.objects for insert
 with check (
     bucket_id = 'resumes' and
-    current_user_id() is not null and
-    current_user_id() = (storage.foldername(name))[1]
+    get_auth_user_id() is not null and
+    get_auth_user_id() = (storage.foldername(name))[1]
 );
 
 create policy "Users can view their own resumes"
 on storage.objects for select
 using (
     bucket_id = 'resumes' and
-    current_user_id() is not null and
-    current_user_id() = (storage.foldername(name))[1]
+    get_auth_user_id() is not null and
+    get_auth_user_id() = (storage.foldername(name))[1]
 );
 
 create policy "Users can update their own resumes"
 on storage.objects for update
 using (
     bucket_id = 'resumes' and
-    current_user_id() is not null and
-    current_user_id() = (storage.foldername(name))[1]
+    get_auth_user_id() is not null and
+    get_auth_user_id() = (storage.foldername(name))[1]
 );
 
 create policy "Users can delete their own resumes"
 on storage.objects for delete
 using (
     bucket_id = 'resumes' and
-    current_user_id() is not null and
-    current_user_id() = (storage.foldername(name))[1]
+    get_auth_user_id() is not null and
+    get_auth_user_id() = (storage.foldername(name))[1]
 );
