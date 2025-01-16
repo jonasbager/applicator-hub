@@ -10,22 +10,32 @@ if (!supabaseKey) throw new Error('Missing Supabase Anon Key');
 
 // Create a hook to get an authenticated client
 export function useSupabase() {
-  const { userId } = useAuth();
+  const { getToken } = useAuth();
   
-  const client = useMemo(() => 
-    createClient(supabaseUrl, supabaseKey, {
+  const client = useMemo(() => {
+    const supabase = createClient(supabaseUrl, supabaseKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
         detectSessionInUrl: false
       },
       global: {
-        headers: userId ? {
-          'x-user-id': userId
-        } : {}
+        fetch: async (url, options: RequestInit = {}) => {
+          const token = await getToken({ template: 'supabase' });
+          const headers = new Headers(options.headers);
+          if (token) {
+            headers.set('Authorization', `Bearer ${token}`);
+          }
+          return fetch(url, {
+            ...options,
+            headers
+          });
+        }
       }
-    })
-  , [userId]); // Re-create client when userId changes
+    });
+
+    return supabase;
+  }, [getToken]); // Re-create client when getToken changes
 
   return { supabase: client };
 }
