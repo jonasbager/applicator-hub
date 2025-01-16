@@ -8,7 +8,8 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Card } from '../components/ui/card';
 import { useToast } from '../components/ui/use-toast';
-import { Upload as FileUpload, X, Plus, Loader2 } from 'lucide-react';
+import { UploadArea } from '../components/ui/upload-area';
+import { X, Plus, Loader2 } from 'lucide-react';
 import { AppSidebar } from '../components/AppSidebar';
 
 type PreferenceField = 'level' | 'roles' | 'locations' | 'skills';
@@ -41,7 +42,6 @@ export default function Profile() {
   const [newSkill, setNewSkill] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -81,29 +81,6 @@ export default function Profile() {
     }
   };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (validateFile(file)) {
-        setFile(file);
-      }
-    }
-  };
-
   const validateFile = (file: File) => {
     const isValidType = ALLOWED_FILE_TYPES.some(
       type => file.type === type.type
@@ -121,14 +98,9 @@ export default function Profile() {
     return true;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (validateFile(file)) {
-        setFile(file);
-      }
-      // Reset the input value so the same file can be selected again
-      e.target.value = '';
+  const handleFileSelect = (file: File) => {
+    if (validateFile(file)) {
+      setFile(file);
     }
   };
 
@@ -281,56 +253,23 @@ export default function Profile() {
             <>
               {/* Resume Upload */}
               <Card className="p-6 mb-8">
-                <h2 className="text-lg font-semibold mb-4">Resume</h2>
-                <div 
-                  className={`
-                    border-2 border-dashed rounded-lg p-8 mb-4 text-center
-                    ${dragActive ? 'border-primary bg-primary/5' : 'border-border'}
-                    ${file ? 'bg-secondary/50' : ''}
-                  `}
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <FileUpload className="h-10 w-10 text-muted-foreground mb-2" />
-                    {file ? (
-                      <>
-                        <p className="text-sm text-muted-foreground">Selected file:</p>
-                        <p className="font-medium">{file.name}</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm text-muted-foreground">
-                          Drag and drop your resume here, or click to select
-                        </p>
-                        <Input
-                          type="file"
-                          accept={ALLOWED_FILE_TYPES.map(type => type.ext).join(',')}
-                          onChange={handleFileChange}
-                          className="hidden"
-                          id="resume-upload"
-                        />
-                        <label
-                          htmlFor="resume-upload"
-                          className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md cursor-pointer hover:bg-primary/90 transition-colors"
-                        >
-                          Select File
-                        </label>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Supported formats: PDF, DOCX
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
-                {file && (
-                  <div className="flex justify-end">
+                <h2 className="text-lg font-semibold mb-4">Resume2</h2>
+                {file ? (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg">
+                      <span className="font-medium">{file.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFile(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Button
                       onClick={handleUpload}
                       disabled={uploading}
-                      className="w-full sm:w-auto"
+                      className="w-full sm:w-auto ml-auto"
                     >
                       {uploading ? (
                         <>
@@ -338,13 +277,17 @@ export default function Profile() {
                           Uploading...
                         </>
                       ) : (
-                        <>
-                          <FileUpload className="h-4 w-4 mr-2" />
-                          Upload Resume
-                        </>
+                        'Upload Resume'
                       )}
                     </Button>
                   </div>
+                ) : (
+                  <UploadArea
+                    onFileSelect={handleFileSelect}
+                    accept={ALLOWED_FILE_TYPES.map(type => type.ext).join(',')}
+                    label="Upload your resume"
+                    description="Drag and drop your resume here, or click to select"
+                  />
                 )}
               </Card>
 
