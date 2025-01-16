@@ -1,7 +1,7 @@
 -- Create resumes table
 create table if not exists resumes (
   id uuid default gen_random_uuid() primary key,
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id text not null,
   file_path text not null,
   file_name text not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -11,7 +11,7 @@ create table if not exists resumes (
 -- Create job_preferences table
 create table if not exists job_preferences (
   id uuid default gen_random_uuid() primary key,
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id text not null,
   level text[] default array[]::text[],
   roles text[] default array[]::text[],
   locations text[] default array[]::text[],
