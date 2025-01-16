@@ -17,7 +17,7 @@ returns text
 language sql
 stable
 as $$
-  select nullif(current_setting('request.headers.x-user-id', true), '');
+  select nullif(current_setting('request.header.x-user-id', true), '');
 $$;
 
 -- Create policies
