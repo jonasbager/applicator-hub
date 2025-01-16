@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { useSupabase } from '../lib/supabase';
 import { JobPreferences } from '../types/resume';
@@ -24,6 +24,11 @@ const emptyPreferences: JobPreferences = {
   updated_at: new Date().toISOString()
 };
 
+const ALLOWED_FILE_TYPES = [
+  { ext: '.pdf', type: 'application/pdf' },
+  { ext: '.docx', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
+];
+
 export default function Profile() {
   const { user } = useUser();
   const { supabase } = useSupabase();
@@ -36,6 +41,7 @@ export default function Profile() {
   const [newSkill, setNewSkill] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -55,7 +61,6 @@ export default function Profile() {
 
       if (error) throw error;
       if (data) {
-        // Ensure all arrays are initialized
         setPreferences({
           ...data,
           level: data.level || [],
@@ -76,9 +81,53 @@ export default function Profile() {
     }
   };
 
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (validateFile(file)) {
+        setFile(file);
+      }
+    }
+  };
+
+  const validateFile = (file: File) => {
+    const isValidType = ALLOWED_FILE_TYPES.some(
+      type => file.type === type.type
+    );
+
+    if (!isValidType) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid file type',
+        description: 'Please upload a PDF or DOCX file'
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const file = e.target.files[0];
+      if (validateFile(file)) {
+        setFile(file);
+      }
+      e.target.value = '';
     }
   };
 
@@ -87,7 +136,6 @@ export default function Profile() {
     setUploading(true);
 
     try {
-      // Upload file to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
@@ -98,7 +146,6 @@ export default function Profile() {
 
       if (uploadError) throw uploadError;
 
-      // Create resume record
       const { error: dbError } = await supabase
         .from('resumes')
         .insert({
@@ -145,7 +192,6 @@ export default function Profile() {
 
       setPreferences(newPrefs);
 
-      // Clear input
       switch (field) {
         case 'level':
           setNewLevel('');
@@ -224,25 +270,68 @@ export default function Profile() {
               {/* Resume Upload */}
               <Card className="p-6 mb-8">
                 <h2 className="text-lg font-semibold mb-4">Resume</h2>
-                <div className="flex items-center gap-4">
-                  <Input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={handleFileChange}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={handleUpload}
-                    disabled={!file || uploading}
+                {file ? (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <span className="font-medium">{file.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFile(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      onClick={handleUpload}
+                      disabled={uploading}
+                      className="w-full sm:w-auto ml-auto"
+                    >
+                      {uploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <FileUpload className="h-4 w-4 mr-2" />
+                          Upload Resume
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <div 
+                    className={`
+                      border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+                      ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}
+                      hover:border-blue-500 hover:bg-blue-50 transition-colors
+                    `}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={() => document.getElementById('resume-upload')?.click()}
                   >
-                    {uploading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <FileUpload className="h-4 w-4 mr-2" />
-                    )}
-                    Upload
-                  </Button>
-                </div>
+                    <div className="flex flex-col items-center gap-2">
+                      <FileUpload className="h-10 w-10 text-gray-400 mb-2" />
+                      <p className="text-lg font-medium">Upload your resume</p>
+                      <p className="text-sm text-gray-500">
+                        Drag and drop your resume here, or click to select
+                      </p>
+                      <Input
+                        type="file"
+                        accept={ALLOWED_FILE_TYPES.map(type => type.ext).join(',')}
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="resume-upload"
+                      />
+                      <p className="text-xs text-gray-400 mt-2">
+                        Supported formats: PDF, DOCX
+                      </p>
+                    </div>
+                  </div>
+                )}
               </Card>
 
               {/* Job Preferences */}
