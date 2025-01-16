@@ -13,8 +13,7 @@ import { AppSidebar } from '../components/AppSidebar';
 
 type PreferenceField = 'level' | 'roles' | 'locations' | 'skills';
 
-const emptyPreferences: JobPreferences = {
-  id: crypto.randomUUID(),
+const emptyPreferences: Omit<JobPreferences, 'id'> = {
   user_id: '',
   level: [],
   roles: [],
@@ -34,7 +33,7 @@ export default function Profile() {
   const { supabase } = useSupabase();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [preferences, setPreferences] = useState<JobPreferences>(emptyPreferences);
+  const [preferences, setPreferences] = useState<JobPreferences | null>(null);
   const [newLevel, setNewLevel] = useState('');
   const [newRole, setNewRole] = useState('');
   const [newLocation, setNewLocation] = useState('');
@@ -102,12 +101,16 @@ export default function Profile() {
           ...emptyPreferences,
           user_id: user.id
         };
-        const { error: insertError } = await supabase
+        const { data: inserted, error: insertError } = await supabase
           .from('job_preferences')
-          .insert(newPrefs);
+          .insert(newPrefs)
+          .select()
+          .single();
 
         if (insertError) throw insertError;
-        setPreferences(newPrefs);
+        if (!inserted) throw new Error('Failed to create preferences');
+        
+        setPreferences(inserted);
       }
     } catch (error) {
       console.error('Error loading preferences:', error);
@@ -286,12 +289,11 @@ export default function Profile() {
   };
 
   const addPreference = async (field: PreferenceField, value: string) => {
-    if (!value.trim() || !user) return;
+    if (!value.trim() || !user || !preferences) return;
 
     try {
       const newPrefs = {
         ...preferences,
-        user_id: user.id,
         [field]: [...(preferences[field] || []), value.trim()]
       };
 
@@ -333,7 +335,7 @@ export default function Profile() {
   };
 
   const removePreference = async (field: PreferenceField, value: string) => {
-    if (!user) return;
+    if (!user || !preferences) return;
 
     try {
       const newPrefs = {
@@ -493,7 +495,7 @@ export default function Profile() {
                 <div className="mb-6">
                   <Label className="mb-2 block">Experience Level</Label>
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {preferences.level?.map((level: string) => (
+                    {preferences?.level?.map((level: string) => (
                       <Badge key={level} variant="secondary" className="gap-1">
                         {level}
                         <button
@@ -526,7 +528,7 @@ export default function Profile() {
                 <div className="mb-6">
                   <Label className="mb-2 block">Roles</Label>
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {preferences.roles?.map((role: string) => (
+                    {preferences?.roles?.map((role: string) => (
                       <Badge key={role} variant="secondary" className="gap-1">
                         {role}
                         <button
@@ -559,7 +561,7 @@ export default function Profile() {
                 <div className="mb-6">
                   <Label className="mb-2 block">Locations</Label>
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {preferences.locations?.map((location: string) => (
+                    {preferences?.locations?.map((location: string) => (
                       <Badge key={location} variant="secondary" className="gap-1">
                         {location}
                         <button
@@ -592,7 +594,7 @@ export default function Profile() {
                 <div>
                   <Label className="mb-2 block">Skills</Label>
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {preferences.skills?.map((skill: string) => (
+                    {preferences?.skills?.map((skill: string) => (
                       <Badge key={skill} variant="secondary" className="gap-1">
                         {skill}
                         <button
