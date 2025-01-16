@@ -127,6 +127,8 @@ export default function Profile() {
       if (validateFile(file)) {
         setFile(file);
       }
+      // Reset the input value so the same file can be selected again
+      e.target.value = '';
     }
   };
 
