@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { useSupabase } from '../lib/supabase';
+import { findMatchingJobs } from '../lib/job-matching';
+import { useToast } from '../components/ui/use-toast';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { RecommendedJob, convertToBoardJob } from '../types/recommended-job';
 import { JobPreferences } from '../types/resume';
 import { RecommendedJobCard } from '../components/RecommendedJobCard';
@@ -23,6 +26,8 @@ export default function RecommendedJobs() {
   const [showJobDetails, setShowJobDetails] = useState(false);
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const { toast } = useToast();
   const [showAddModal, setShowAddModal] = useState(false);
   const [jobToAdd, setJobToAdd] = useState<RecommendedJob | null>(null);
 
@@ -31,8 +36,12 @@ export default function RecommendedJobs() {
     loadData();
   }, [user]);
 
-  async function loadData() {
-    setLoading(true);
+  async function loadData(refresh = false) {
+    if (refresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       // Load preferences
       const { data: prefs } = await supabase
@@ -52,18 +61,32 @@ export default function RecommendedJobs() {
       setSavedJobs(saved?.map((s: { job_id: string }) => s.job_id) || []);
 
       // Load recommended jobs
-      const { data: recommendedJobs } = await supabase
-        .from('recommended_jobs')
-        .select('*')
-        .in('level', prefs?.level || [])
-        .in('location', prefs?.locations || [])
-        .order('created_at', { ascending: false });
+      if (refresh && prefs) {
+        // Find new matching jobs
+        const newJobs = await findMatchingJobs(user!.id, prefs);
+        setJobs(newJobs);
+        toast({
+          title: "Success",
+          description: "Found new job matches based on your preferences",
+        });
+      } else {
+        // Load existing jobs
+        const { data: recommendedJobs } = await supabase
+          .from('recommended_jobs')
+          .select('*')
+          .eq('user_id', user!.id)
+          .order('created_at', { ascending: false });
 
-      setJobs(recommendedJobs || []);
+        setJobs(recommendedJobs || []);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
-      setLoading(false);
+      if (refresh) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }
 
@@ -146,11 +169,25 @@ export default function RecommendedJobs() {
       <AppSidebar onAddClick={() => setShowAddModal(true)} hasJobs={true} />
       <main className="flex-1 p-8">
         <div className="max-w-[1600px] mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold">Recommended Jobs</h1>
-            <p className="text-muted-foreground">
-              Jobs matching your preferences and skills
-            </p>
+          <div className="mb-8 flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold">Recommended Jobs</h1>
+              <p className="text-muted-foreground">
+                Jobs matching your preferences and skills
+              </p>
+            </div>
+            <Button
+              onClick={() => loadData(true)}
+              disabled={refreshing}
+              className="gap-2"
+            >
+              {refreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Find New Matches
+            </Button>
           </div>
 
           {/* Filters */}
