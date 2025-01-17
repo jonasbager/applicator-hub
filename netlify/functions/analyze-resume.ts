@@ -254,34 +254,12 @@ export const handler: Handler = async (event) => {
       throw new Error('Failed to store resume embedding');
     }
 
-    // Find matching jobs using vector similarity
-    const { data: jobs, error: jobsError } = await supabase
-      .rpc('match_jobs', {
-        query_embedding: resumeEmbedding.data[0].embedding,
-        match_threshold: 0.7,
-        match_count: 20
-      });
-
-    if (jobsError) {
-      throw new Error('Failed to fetch matching jobs');
-    }
-
-    // Sort jobs by both similarity and experience level match
-    const sortedJobs = (jobs as JobMatch[]).sort((a: JobMatch, b: JobMatch) => {
-      // Boost score if experience level matches
-      const aLevelMatch = a.level.includes(parsedResume.experience_level) ? 0.2 : 0;
-      const bLevelMatch = b.level.includes(parsedResume.experience_level) ? 0.2 : 0;
-      
-      return (b.similarity + bLevelMatch) - (a.similarity + aLevelMatch);
-    });
-
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         analysis: parsedResume,
-        preferences,
-        matching_jobs: sortedJobs,
+        preferences
       }),
     };
 
