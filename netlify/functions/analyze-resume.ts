@@ -20,7 +20,17 @@ const resumeSchema = z.object({
 });
 
 // Initialize Supabase client with service role key
+console.log('Environment variables:', {
+  supabaseUrl: process.env.SUPABASE_URL,
+  hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+  hasOpenAiKey: !!process.env.OPENAI_API_KEY
+});
+
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('Missing environment variables:', {
+    supabaseUrl: !process.env.SUPABASE_URL,
+    serviceKey: !process.env.SUPABASE_SERVICE_ROLE_KEY
+  });
   throw new Error('Supabase environment variables are not configured');
 }
 
