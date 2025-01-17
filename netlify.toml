@@ -4,7 +4,7 @@
   functions = "netlify/functions"
 
 [context.production]
-  environment = { NODE_ENV = "production", SUPABASE_URL = "${SUPABASE_URL}", SUPABASE_SERVICE_ROLE_KEY = "${SUPABASE_SERVICE_ROLE_KEY}", OPENAI_API_KEY = "${OPENAI_API_KEY}" }
+  environment = { NODE_ENV = "production", SUPABASE_URL = "https://qiowwdewasasyilriyfn.supabase.co", SUPABASE_SERVICE_ROLE_KEY = "${SUPABASE_SERVICE_ROLE_KEY}", OPENAI_API_KEY = "${OPENAI_API_KEY}" }
   [[context.production.redirects]]
     from = "/sign-in"
     to = "https://accounts.applymate.app/sign-in"
@@ -18,7 +18,7 @@
     force = true
 
 [context.develop]
-  environment = { NODE_ENV = "development", SUPABASE_URL = "${SUPABASE_URL}", SUPABASE_SERVICE_ROLE_KEY = "${SUPABASE_SERVICE_ROLE_KEY}", OPENAI_API_KEY = "${OPENAI_API_KEY}" }
+  environment = { NODE_ENV = "development", SUPABASE_URL = "https://qiowwdewasasyilriyfn.supabase.co", SUPABASE_SERVICE_ROLE_KEY = "${SUPABASE_SERVICE_ROLE_KEY}", OPENAI_API_KEY = "${OPENAI_API_KEY}" }
   [[context.develop.redirects]]
     from = "/sign-in"
     to = "https://exact-viper-93.accounts.dev/sign-in"
@@ -84,4 +84,4 @@
 [functions.analyze-resume]
   node_bundler = "esbuild"
   external_node_modules = ["pdf-parse", "mammoth"]
-  environment = { NODE_VERSION = "18.x", SUPABASE_URL = "${SUPABASE_URL}", SUPABASE_SERVICE_ROLE_KEY = "${SUPABASE_SERVICE_ROLE_KEY}", OPENAI_API_KEY = "${OPENAI_API_KEY}" }
+  environment = { NODE_VERSION = "18.x", SUPABASE_URL = "https://qiowwdewasasyilriyfn.supabase.co", SUPABASE_SERVICE_ROLE_KEY = "${SUPABASE_SERVICE_ROLE_KEY}", OPENAI_API_KEY = "${OPENAI_API_KEY}" }
