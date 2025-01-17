@@ -72,6 +72,18 @@
   force = true
 
 [[redirects]]
+  from = "/profile"
+  to = "/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/recommended"
+  to = "/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

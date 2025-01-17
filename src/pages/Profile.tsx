@@ -571,6 +571,9 @@ export default function Profile() {
                           <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4 text-gray-400" />
                             <span className="text-sm font-medium">{resume.file_name}</span>
+                            <div className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
+                              Completed
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <Button
@@ -735,7 +738,7 @@ export default function Profile() {
               {/* Recommended Jobs Link */}
               <div className="mt-6 text-center">
                 <Button
-                  onClick={() => navigate('/recommended-jobs')}
+                  onClick={() => navigate('/recommended')}
                   className="gap-2"
                 >
                   <span>See recommended jobs based on your skills</span>
