@@ -21,28 +21,29 @@ const resumeSchema = z.object({
 
 // Initialize Supabase client with service role key
 console.log('Environment variables:', {
-  supabaseUrl: process.env.SUPABASE_URL,
+  supabaseUrl: process.env.VITE_SUPABASE_URL,
   hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
   hasOpenAiKey: !!process.env.OPENAI_API_KEY
 });
 
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   console.error('Missing environment variables:', {
-    supabaseUrl: !process.env.SUPABASE_URL,
+    supabaseUrl: !process.env.VITE_SUPABASE_URL,
     serviceKey: !process.env.SUPABASE_SERVICE_ROLE_KEY
   });
   throw new Error('Supabase environment variables are not configured');
 }
 
 const supabase = createClient(
-  process.env.SUPABASE_URL,
+  process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
   {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
   }
-});
+);
 
 export const handler: Handler = async (event) => {
   // Enable CORS

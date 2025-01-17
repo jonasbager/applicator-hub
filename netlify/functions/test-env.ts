@@ -10,10 +10,12 @@ export const handler: Handler = async () => {
   // List all environment variables (without showing their values)
   const envVars = {
     SUPABASE_URL: !!process.env.SUPABASE_URL,
+    VITE_SUPABASE_URL: !!process.env.VITE_SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
     // Add first few characters of each value for verification
     SUPABASE_URL_PREFIX: process.env.SUPABASE_URL?.substring(0, 10),
+    VITE_SUPABASE_URL_PREFIX: process.env.VITE_SUPABASE_URL?.substring(0, 10),
     SUPABASE_KEY_PREFIX: process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 5),
     OPENAI_KEY_PREFIX: process.env.OPENAI_API_KEY?.substring(0, 5),
   };
