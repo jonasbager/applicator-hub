@@ -82,5 +82,5 @@
   node_bundler = "esbuild"
 
 [functions.analyze-resume]
-  included_files = ["package.json"]
+  included_files = ["package.json", "parsers.cjs"]
   environment = { NODE_VERSION = "18.x", VITE_SUPABASE_URL = "${VITE_SUPABASE_URL}", SUPABASE_SERVICE_ROLE_KEY = "${SUPABASE_SERVICE_ROLE_KEY}", OPENAI_API_KEY = "${OPENAI_API_KEY}" }
