@@ -1,9 +1,11 @@
 import { Handler } from '@netlify/functions';
+import OpenAI from 'openai';
 import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
+import { JobMatch } from './types/job-match';
 
 // Schema for parsed resume data
 const resumeSchema = z.object({
@@ -98,16 +100,22 @@ export const handler: Handler = async (event) => {
     const arrayBuffer = await fileData.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
-    if (fileName.endsWith('.pdf')) {
-      const { default: pdfParse } = await import('pdf-parse');
-      const pdfData = await pdfParse(buffer);
-      text = pdfData.text;
-    } else if (fileName.endsWith('.docx')) {
-      const mammoth = await import('mammoth');
-      const result = await mammoth.extractRawText({ buffer });
-      text = result.value;
-    } else {
-      throw new Error('Unsupported file type');
+    try {
+      if (fileName.endsWith('.pdf')) {
+        const pdfParse = require('pdf-parse');
+        const pdfData = await pdfParse(buffer);
+        text = pdfData.text;
+      } else if (fileName.endsWith('.docx')) {
+        const mammoth = require('mammoth');
+        const result = await mammoth.extractRawText({ buffer });
+        text = result.value;
+      } else {
+        throw new Error('Unsupported file type');
+      }
+    } catch (parseError: unknown) {
+      console.error('Error parsing file:', parseError);
+      const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
+      throw new Error(`Failed to parse ${fileName}: ${errorMessage}`);
     }
 
     console.log('Extracted text from resume:', text.substring(0, 200) + '...');
@@ -181,18 +189,46 @@ export const handler: Handler = async (event) => {
       throw new Error('Failed to update job preferences');
     }
 
-    // Find matching jobs
+    // Create resume embedding
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const resumeEmbedding = await openai.embeddings.create({
+      model: "text-embedding-ada-002",
+      input: text
+    });
+
+    // Store resume embedding
+    const { error: embeddingError } = await supabase
+      .from('resumes')
+      .update({ embedding: resumeEmbedding.data[0].embedding })
+      .eq('id', resumeId);
+
+    if (embeddingError) {
+      throw new Error('Failed to store resume embedding');
+    }
+
+    // Find matching jobs using vector similarity
     const { data: jobs, error: jobsError } = await supabase
-      .from('recommended_jobs')
-      .select('*')
-      .in('level', [parsedResume.experience_level])
-      .contains('keywords', parsedResume.skills)
-      .order('created_at', { ascending: false })
-      .limit(20);
+      .rpc('match_jobs', {
+        query_embedding: resumeEmbedding.data[0].embedding,
+        match_threshold: 0.7,
+        match_count: 20
+      });
 
     if (jobsError) {
       throw new Error('Failed to fetch matching jobs');
     }
+
+    // Sort jobs by both similarity and experience level match
+    const sortedJobs = (jobs as JobMatch[]).sort((a: JobMatch, b: JobMatch) => {
+      // Boost score if experience level matches
+      const aLevelMatch = a.level.includes(parsedResume.experience_level) ? 0.2 : 0;
+      const bLevelMatch = b.level.includes(parsedResume.experience_level) ? 0.2 : 0;
+      
+      return (b.similarity + bLevelMatch) - (a.similarity + aLevelMatch);
+    });
 
     return {
       statusCode: 200,
@@ -200,7 +236,7 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify({
         analysis: parsedResume,
         preferences,
-        matching_jobs: jobs,
+        matching_jobs: sortedJobs,
       }),
     };
 

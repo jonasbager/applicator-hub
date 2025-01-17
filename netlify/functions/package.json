@@ -3,6 +3,8 @@
   "dependencies": {
     "@langchain/community": "^0.0.29",
     "@langchain/openai": "^0.0.14",
+    "@supabase/supabase-js": "^2.39.7",
+    "openai": "^4.28.0",
     "@netlify/functions": "^2.5.1",
     "@types/puppeteer": "^5.4.7",
     "axios": "^1.7.9",
