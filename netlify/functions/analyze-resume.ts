@@ -136,10 +136,12 @@ export const handler: Handler = async (event) => {
 
     console.log('Extracted text from resume:', text.substring(0, 200) + '...');
 
-    // Initialize OpenAI
+    console.log('Starting OpenAI analysis...');
+    // Initialize OpenAI with GPT-3.5 for faster processing
     const model = new ChatOpenAI({
-      modelName: 'gpt-4',
+      modelName: 'gpt-3.5-turbo',
       temperature: 0,
+      maxTokens: 1000,
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
 
@@ -176,10 +178,19 @@ export const handler: Handler = async (event) => {
       resume_content: text,
     });
 
-    // Get analysis from OpenAI
-    const response = await model.invoke(prompt);
+    // Get analysis from OpenAI with timeout handling
+    console.log('Sending prompt to OpenAI...');
+    const response = await Promise.race<any>([
+      model.invoke(prompt),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('OpenAI analysis timeout')), 20000)
+      )
+    ]) as Awaited<ReturnType<typeof model.invoke>>;
+    
+    console.log('Received OpenAI response, parsing...');
     const responseText = response.content.toString();
     const parsedResume = await parser.parse(responseText);
+    console.log('Successfully parsed resume data');
 
     // Update job preferences based on resume analysis
     const preferences = {

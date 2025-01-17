@@ -86,3 +86,4 @@
   included_files = ["netlify/functions/package.json"]
   external_node_modules = ["pdf-parse", "mammoth", "@langchain/community", "@langchain/openai", "cheerio", "zod", "@supabase/supabase-js"]
   environment = { NODE_VERSION = "18.x" }
+  timeout = "30s"

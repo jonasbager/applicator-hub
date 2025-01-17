@@ -42,7 +42,24 @@ export default function Profile() {
   const [newLocation, setNewLocation] = useState('');
   const [newSkill, setNewSkill] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
+  type ProcessingStatus = 'idle' | 'uploading' | 'processing' | 'completed' | 'error';
+  const [status, setStatus] = useState<ProcessingStatus>('idle');
+
+  const statusColors = {
+    idle: 'bg-gray-100 text-gray-700',
+    uploading: 'bg-blue-100 text-blue-700',
+    processing: 'bg-yellow-100 text-yellow-700',
+    completed: 'bg-green-100 text-green-700',
+    error: 'bg-red-100 text-red-700'
+  };
+
+  const statusText = {
+    idle: 'Ready',
+    uploading: 'Uploading...',
+    processing: 'Processing...',
+    completed: 'Completed',
+    error: 'Error'
+  };
   const [dragActive, setDragActive] = useState(false);
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loadingResumes, setLoadingResumes] = useState(true);
@@ -208,7 +225,7 @@ export default function Profile() {
       console.warn('No file or user available for upload');
       return;
     }
-    setUploading(true);
+    setStatus('uploading');
 
     try {
       const userId = getUserId(user.id);
@@ -258,6 +275,7 @@ export default function Profile() {
 
       // Analyze the resume
       console.log('Analyzing resume...');
+      setStatus('processing');
       const analyzeUrl = '/.netlify/functions/analyze-resume';
       
       console.log('Calling analyze-resume function at:', analyzeUrl);
@@ -284,6 +302,7 @@ export default function Profile() {
       // Navigate to recommended jobs page
       navigate('/recommended-jobs');
 
+      setStatus('completed');
       toast({
         title: 'Success',
         description: 'Resume uploaded and analyzed successfully'
@@ -292,15 +311,20 @@ export default function Profile() {
       setFile(null);
       loadResumes(); // Refresh the list
       loadPreferences(); // Refresh preferences with AI-generated data
+
+      // Reset status after a delay
+      setTimeout(() => setStatus('idle'), 3000);
     } catch (error) {
+      setStatus('error');
       console.error('Error uploading resume:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to upload resume'
       });
-    } finally {
-      setUploading(false);
+
+      // Reset status after a delay
+      setTimeout(() => setStatus('idle'), 3000);
     }
   };
 
@@ -473,23 +497,28 @@ export default function Profile() {
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                    <Button
-                      onClick={handleUpload}
-                      disabled={uploading}
-                      className="w-full sm:w-auto ml-auto"
-                    >
-                      {uploading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <FileUpload className="h-4 w-4 mr-2" />
-                          Upload Resume
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex items-center gap-4">
+                      <div className={`px-3 py-1 rounded-full text-sm ${statusColors[status]}`}>
+                        {statusText[status]}
+                      </div>
+                      <Button
+                        onClick={handleUpload}
+                        disabled={status !== 'idle'}
+                        className="w-full sm:w-auto ml-auto"
+                      >
+                        {status !== 'idle' ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            {statusText[status]}
+                          </>
+                        ) : (
+                          <>
+                            <FileUpload className="h-4 w-4 mr-2" />
+                            Upload Resume
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div 
