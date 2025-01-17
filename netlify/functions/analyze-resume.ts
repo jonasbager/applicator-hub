@@ -89,13 +89,17 @@ export const handler: Handler = async (event) => {
     let text = '';
     const fileName = resume.file_name.toLowerCase();
     
+    // Convert Blob to Buffer
+    const arrayBuffer = await fileData.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
     if (fileName.endsWith('.pdf')) {
       const { default: pdfParse } = await import('pdf-parse');
-      const pdfData = await pdfParse(fileData);
+      const pdfData = await pdfParse(buffer);
       text = pdfData.text;
     } else if (fileName.endsWith('.docx')) {
-      const { default: mammoth } = await import('mammoth');
-      const result = await mammoth.extractRawText({ arrayBuffer: await fileData.arrayBuffer() });
+      const mammoth = await import('mammoth');
+      const result = await mammoth.extractRawText({ buffer });
       text = result.value;
     } else {
       throw new Error('Unsupported file type');
@@ -195,14 +199,15 @@ export const handler: Handler = async (event) => {
       }),
     };
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error analyzing resume:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         error: 'Failed to analyze resume',
-        details: error.message,
+        details: errorMessage,
       }),
     };
   }
