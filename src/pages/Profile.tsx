@@ -9,7 +9,7 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Card } from '../components/ui/card';
 import { useToast } from '../components/ui/use-toast';
-import { Upload as FileUpload, X, Plus, Loader2, FileText, Download, Trash2 } from 'lucide-react';
+import { Upload as FileUpload, X, Plus, Loader2, FileText, Download, Trash2, ArrowRight } from 'lucide-react';
 import { AppSidebar } from '../components/AppSidebar';
 import { getUserId } from '../lib/user-id';
 
@@ -299,10 +299,11 @@ export default function Profile() {
       const analysis = await response.json();
       console.log('Resume analysis completed:', analysis);
       
-      // Navigate to recommended jobs page
-      navigate('/recommended-jobs');
-
       setStatus('completed');
+      toast({
+        title: 'Success',
+        description: 'Resume uploaded and analyzed successfully. Your preferences have been updated.'
+      });
       toast({
         title: 'Success',
         description: 'Resume uploaded and analyzed successfully'
@@ -730,6 +731,17 @@ export default function Profile() {
                   </div>
                 </div>
               </Card>
+
+              {/* Recommended Jobs Link */}
+              <div className="mt-6 text-center">
+                <Button
+                  onClick={() => navigate('/recommended-jobs')}
+                  className="gap-2"
+                >
+                  <span>See recommended jobs based on your skills</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
             </>
           )}
         </div>
