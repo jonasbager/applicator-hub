@@ -204,17 +204,35 @@ export const handler: Handler = async (event) => {
     };
 
     // Update preferences in database
+    console.log('Updating job preferences for user:', userId);
+    console.log('Preferences payload:', preferences);
+
+    const { data: existingPrefs, error: selectError } = await supabase
+      .from('job_preferences')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (selectError) {
+      console.error('Error checking existing preferences:', selectError);
+      throw new Error(`Failed to check existing preferences: ${selectError.message}`);
+    }
+
     const { error: updateError } = await supabase
       .from('job_preferences')
       .upsert({
+        id: existingPrefs?.id, // Include existing ID if it exists
         user_id: userId,
         ...preferences,
         updated_at: new Date().toISOString(),
       });
 
     if (updateError) {
-      throw new Error('Failed to update job preferences');
+      console.error('Error updating preferences:', updateError);
+      throw new Error(`Failed to update job preferences: ${updateError.message}`);
     }
+
+    console.log('Successfully updated job preferences');
 
     // Create resume embedding
     const openai = new OpenAI({
