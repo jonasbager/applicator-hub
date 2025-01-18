@@ -48,7 +48,10 @@ export function JobCard({ job, onClick }: JobCardProps) {
               src={getCompanyLogoUrl(job.company)}
               alt={`${job.company} logo`}
               className="w-8 h-8 object-contain"
-              onError={() => setImageError(true)}
+              onError={(e) => {
+                console.error('Logo load error:', e);
+                setImageError(true);
+              }}
             />
           ) : (
             <span className="text-gray-500 text-lg font-bold">
