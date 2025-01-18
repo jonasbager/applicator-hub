@@ -1,8 +1,9 @@
 {
   "name": "netlify-functions",
   "dependencies": {
-    "@langchain/community": "^0.0.29",
-    "@langchain/openai": "^0.0.14",
+    "@langchain/community": "^0.3.18",
+    "@langchain/core": "^0.3.23",
+    "@langchain/openai": "^0.3.14",
     "@supabase/supabase-js": "^2.39.7",
     "openai": "^4.28.0",
     "@netlify/functions": "^2.5.1",
