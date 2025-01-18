@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { JobColumn } from "../components/JobColumn";
 import { AddJobModal } from "../components/AddJobModal";
 import { JobDetailsModal } from "../components/JobDetailsModal";
@@ -14,6 +15,8 @@ import { getUserId } from "../lib/user-id";
 
 export function Index() {
   const { userId, isLoaded } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useUser();
   const { supabase } = useSupabase();
   const { toast } = useToast();
@@ -29,6 +32,16 @@ export function Index() {
       loadJobs();
     }
   }, [isLoaded, userId]);
+
+  // Handle opening modal from navigation state
+  useEffect(() => {
+    const state = location.state as { openAddModal?: boolean };
+    if (state?.openAddModal) {
+      setIsAddModalOpen(true);
+      // Clear the state to prevent reopening on subsequent renders
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   const loadJobs = async () => {
     if (!userId) return;
