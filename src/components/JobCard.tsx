@@ -20,10 +20,10 @@ export function JobCard({ job, onClick }: JobCardProps) {
       onClick={onClick}
     >
       <div className="flex gap-4">
-        <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center bg-gray-100">
+        <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center">
           {!imageError ? (
             <img
-              src={`https://logo.clearbit.com/${job.company.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`}
+              src={`https://logo.clearbit.com/${job.company.toLowerCase().replace(/[^a-z0-9]/g, '')}.com?size=80&format=png`}
               alt={`${job.company} logo`}
               className="w-8 h-8 object-contain"
               onError={() => setImageError(true)}
@@ -44,10 +44,6 @@ export function JobCard({ job, onClick }: JobCardProps) {
           </div>
         </div>
       </div>
-
-      <p className="text-gray-600 line-clamp-2 mt-4">
-        {job.description}
-      </p>
     </Card>
   );
 }
