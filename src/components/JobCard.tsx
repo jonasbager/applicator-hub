@@ -1,7 +1,28 @@
 import React, { useState } from 'react';
-import { Job } from '../types/job';
+import { DateValue, Job, getDeadlineStatus } from '../types/job';
 import { Card } from './ui/card';
+import { Badge } from './ui/badge';
 import { cn } from '../lib/utils';
+
+const deadlineColors: Record<string, string> = {
+  green: 'bg-green-100 text-green-700',
+  yellow: 'bg-yellow-100 text-yellow-700',
+  red: 'bg-red-100 text-red-700',
+  asap: 'bg-red-100 text-red-700',
+  unknown: 'bg-gray-100 text-gray-700'
+};
+
+function getDeadlineText(deadline: DateValue): string {
+  if (!deadline) return 'No deadline';
+  if (deadline === 'ASAP') return 'ASAP';
+  
+  const now = new Date();
+  const deadlineDate = new Date(deadline);
+  const diffDays = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (diffDays <= 2) return 'Due soon';
+  return `${diffDays}d left`;
+}
 
 interface JobCardProps {
   job: Job;
@@ -14,7 +35,7 @@ export function JobCard({ job, onClick }: JobCardProps) {
   return (
     <Card 
       className={cn(
-        "p-6 hover:shadow-lg transition-shadow duration-200",
+        "p-6 hover:shadow-lg transition-shadow duration-200 relative",
         onClick && "cursor-pointer"
       )}
       onClick={onClick}
@@ -34,6 +55,19 @@ export function JobCard({ job, onClick }: JobCardProps) {
             </span>
           )}
         </div>
+      
+      {/* Deadline chip */}
+      <div className="absolute bottom-3 right-3">
+        <Badge 
+          variant="secondary" 
+          className={cn(
+            "text-xs",
+            deadlineColors[getDeadlineStatus(job.deadline || null)]
+          )}
+        >
+          {getDeadlineText(job.deadline || null)}
+        </Badge>
+      </div>
         
         <div>
           <h3 className="font-semibold text-lg text-gray-900 mb-1">
