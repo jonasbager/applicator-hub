@@ -13,6 +13,6 @@ export function getCompanyLogoUrl(company: string): string {
     domain = domain.split('/')[0];
   }
   
-  // Construct the logo.dev URL with the API key and options
-  return `https://logo.dev/api/logo/${domain}?key=${LOGO_API_KEY}&format=png&size=80&background=transparent`;
+  // Construct the logo.dev URL with the token parameter
+  return `https://img.logo.dev/${domain}?token=${LOGO_API_KEY}&retina=true`;
 }
