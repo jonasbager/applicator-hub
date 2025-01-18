@@ -1,3 +1,4 @@
+import React from "react";
 import { Droppable } from "@hello-pangea/dnd";
 import { Job, JobStatus } from "../types/job";
 import { JobCard } from "./JobCard";
@@ -8,6 +9,7 @@ interface JobColumnProps {
   jobs: Job[];
   onJobUpdate: (job: Job) => void;
   onJobDelete: (jobId: string) => void;
+  onJobClick?: (job: Job) => void;
   isSecondColumn?: boolean;
   hasJobsInFirstColumn?: boolean;
 }
@@ -24,6 +26,7 @@ export function JobColumn({
   jobs, 
   onJobUpdate, 
   onJobDelete,
+  onJobClick,
   isSecondColumn,
   hasJobsInFirstColumn
 }: JobColumnProps) {
@@ -75,9 +78,8 @@ export function JobColumn({
                 <JobCard
                   key={job.id}
                   job={job}
-                  index={index}
-                  onUpdate={onJobUpdate}
-                  onDelete={() => onJobDelete(job.id)}
+                  onArchive={onJobUpdate}
+                  onClick={() => onJobClick?.(job)}
                 />
               ))}
             </div>

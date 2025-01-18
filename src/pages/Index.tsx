@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { JobColumn } from "../components/JobColumn";
 import { AddJobModal } from "../components/AddJobModal";
+import { JobDetailsModal } from "../components/JobDetailsModal";
 import { Job, JobStatus, JOB_STATUS_ORDER } from "../types/job";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { AppSidebar } from "../components/AppSidebar";
@@ -9,6 +10,7 @@ import { useAuth, useUser } from "@clerk/clerk-react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
 import { useSupabase } from "../lib/supabase";
+import { getUserId } from "../lib/user-id";
 
 export function Index() {
   const { userId, isLoaded } = useAuth();
@@ -17,6 +19,8 @@ export function Index() {
   const { toast } = useToast();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -33,7 +37,7 @@ export function Index() {
       const { data: fetchedJobs, error } = await supabase
         .from('jobs')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', getUserId(userId))
         .is('archived', false) // Only get non-archived jobs
         .order('created_at', { ascending: false });
 
@@ -125,7 +129,7 @@ export function Index() {
         .from('jobs')
         .update({ status: newStatus })
         .eq('id', draggableId)
-        .eq('user_id', userId);
+        .eq('user_id', getUserId(userId));
 
       if (error) throw error;
 
@@ -198,6 +202,10 @@ export function Index() {
                   jobs={jobsByStatus[status]}
                   onJobUpdate={handleJobUpdate}
                   onJobDelete={handleJobDelete}
+                  onJobClick={(job) => {
+                    setSelectedJob(job);
+                    setIsDetailsModalOpen(true);
+                  }}
                   isSecondColumn={isSecondColumn}
                   hasJobsInFirstColumn={hasJobsInFirstColumn && !hasJobsInLaterColumns}
                 />
@@ -212,6 +220,17 @@ export function Index() {
         open={isAddModalOpen}
         onOpenChange={setIsAddModalOpen}
         onJobAdded={loadJobs}
+      />
+
+      <JobDetailsModal
+        open={isDetailsModalOpen}
+        job={selectedJob}
+        onOpenChange={(open) => {
+          setIsDetailsModalOpen(open);
+          if (!open) setSelectedJob(null);
+        }}
+        onUpdate={(job) => handleJobUpdate(job)}
+        onDelete={() => handleJobDelete(selectedJob?.id || '')}
       />
 
       <AnalyticsBar jobs={jobs} />

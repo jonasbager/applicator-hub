@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
 import { Badge } from "./ui/badge";
@@ -11,11 +11,12 @@ import { useToast } from "./ui/use-toast";
 import { Archive, CalendarClock, CalendarDays } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 import { useSupabase } from "../lib/supabase";
+import { getUserId } from "../lib/user-id";
 
 export interface JobDetailsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  job: Job;
+  job: Job | null;
   onUpdate?: (updatedJob: Job) => void;
   onDelete?: () => void;
 }
@@ -29,8 +30,8 @@ export function JobDetailsModal({
 }: JobDetailsModalProps) {
   const { userId } = useAuth();
   const { supabase } = useSupabase();
-  const [notes, setNotes] = useState(job.notes?.join('\n') || '');
-  const [applicationUrl, setApplicationUrl] = useState(job.application_draft_url || '');
+  const [notes, setNotes] = useState('');
+  const [applicationUrl, setApplicationUrl] = useState('');
   const [deadline, setDeadline] = useState<string>("");
   const [deadlineType, setDeadlineType] = useState<string>("unknown");
   const [startDate, setStartDate] = useState<string>("");
@@ -42,7 +43,7 @@ export function JobDetailsModal({
 
   // Reset form when job changes or modal opens
   useEffect(() => {
-    if (open) {
+    if (open && job) {
       setNotes(job.notes?.join('\n') || '');
       setApplicationUrl(job.application_draft_url || '');
       
@@ -82,7 +83,7 @@ export function JobDetailsModal({
   };
 
   const handleSaveNotes = async () => {
-    if (!userId) return;
+    if (!userId || !job) return;
     setIsSaving(true);
     try {
       // Split notes by newlines and filter out empty lines
@@ -92,7 +93,7 @@ export function JobDetailsModal({
         .from('jobs')
         .update({ notes: notesArray })
         .eq('id', job.id)
-        .eq('user_id', userId)
+        .eq('user_id', getUserId(userId))
         .select('*')
         .single();
 
@@ -118,14 +119,14 @@ export function JobDetailsModal({
   };
 
   const handleSaveApplicationUrl = async () => {
-    if (!userId) return;
+    if (!userId || !job) return;
     setIsSaving(true);
     try {
       const { data: updatedJob, error } = await supabase
         .from('jobs')
         .update({ application_draft_url: applicationUrl })
         .eq('id', job.id)
-        .eq('user_id', userId)
+        .eq('user_id', getUserId(userId))
         .select('*')
         .single();
 
@@ -151,7 +152,7 @@ export function JobDetailsModal({
   };
 
   const handleSaveDeadline = async () => {
-    if (!userId) return;
+    if (!userId || !job) return;
     setIsSaving(true);
     try {
       const deadlineValue = deadlineType === 'ASAP' ? 'ASAP' : 
@@ -161,7 +162,7 @@ export function JobDetailsModal({
         .from('jobs')
         .update({ deadline: deadlineValue })
         .eq('id', job.id)
-        .eq('user_id', userId)
+        .eq('user_id', getUserId(userId))
         .select('*')
         .single();
 
@@ -187,7 +188,7 @@ export function JobDetailsModal({
   };
 
   const handleSaveStartDate = async () => {
-    if (!userId) return;
+    if (!userId || !job) return;
     setIsSaving(true);
     try {
       const startDateValue = startDateType === 'ASAP' ? 'ASAP' : 
@@ -197,7 +198,7 @@ export function JobDetailsModal({
         .from('jobs')
         .update({ start_date: startDateValue })
         .eq('id', job.id)
-        .eq('user_id', userId)
+        .eq('user_id', getUserId(userId))
         .select('*')
         .single();
 
@@ -223,14 +224,14 @@ export function JobDetailsModal({
   };
 
   const handleArchive = async () => {
-    if (!userId) return;
+    if (!userId || !job) return;
     setIsArchiving(true);
     try {
       const { error } = await supabase
         .from('jobs')
         .update({ archived: true })
         .eq('id', job.id)
-        .eq('user_id', userId);
+        .eq('user_id', getUserId(userId));
 
       if (error) throw error;
 
@@ -254,6 +255,8 @@ export function JobDetailsModal({
       setShowArchiveConfirm(false);
     }
   };
+
+  if (!job) return null;
 
   return (
     <>
@@ -379,14 +382,16 @@ export function JobDetailsModal({
 
             <div>
               <h3 className="font-semibold mb-2">Job Posting URL</h3>
-              <a
-                href={job.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline text-sm break-all"
-              >
-                {job.url}
-              </a>
+              {job.url && (
+                <a
+                  href={job.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline text-sm break-all"
+                >
+                  {job.url}
+                </a>
+              )}
             </div>
 
             <div>
