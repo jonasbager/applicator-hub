@@ -45,11 +45,14 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
 
         <div className="relative">
           <Button
-            onClick={() => {
+            onClick={async () => {
               if (location.pathname !== '/jobs') {
-                navigate('/jobs');
+                await navigate('/jobs');
+                // Small delay to ensure navigation is complete
+                setTimeout(onAddClick, 100);
+              } else {
+                onAddClick();
               }
-              onAddClick();
             }}
             className="w-full mb-6 relative z-10"
           >
