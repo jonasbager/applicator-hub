@@ -44,13 +44,11 @@ export function JobCard({ job, onClick }: JobCardProps) {
       <div className="flex gap-4">
         <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center">
           {(() => {
-            // If company name is already a domain (e.g., "pleo.io"), use it directly
-            const isDomain = /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(job.company);
-            const logoUrl = isDomain 
-              ? `https://img.logo.dev/${job.company}?token=${import.meta.env.VITE_LOGO_API_KEY}&retina=true`
-              : getCompanyLogoUrl(job);
             console.log('Company:', job.company);
-            console.log('Logo URL:', logoUrl);
+            console.log('Company URL:', job.company_url);
+            console.log('API Key:', import.meta.env.VITE_LOGO_API_KEY);
+            const logoUrl = getCompanyLogoUrl(job);
+            console.log('Generated Logo URL:', logoUrl);
             return !imageError && logoUrl ? (
               <img
                 src={logoUrl}
