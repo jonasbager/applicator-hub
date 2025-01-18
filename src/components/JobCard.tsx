@@ -47,7 +47,7 @@ export function JobCard({ job, onClick }: JobCardProps) {
             <img
               src={getCompanyLogoUrl(job.company)}
               alt={`${job.company} logo`}
-              className="w-8 h-8 object-contain"
+              className="w-full h-full object-contain p-2"
               onError={(e) => {
                 console.error('Logo load error:', e);
                 setImageError(true);
