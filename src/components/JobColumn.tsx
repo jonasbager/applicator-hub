@@ -78,7 +78,6 @@ export function JobColumn({
                 <JobCard
                   key={job.id}
                   job={job}
-                  onArchive={onJobUpdate}
                   onClick={() => onJobClick?.(job)}
                 />
               ))}
