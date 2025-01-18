@@ -1,3 +1,4 @@
+import React from "react";
 import { Archive, Briefcase, LogOut, Plus, Sparkles, UserCircle } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useClerk, useUser } from "@clerk/clerk-react";
@@ -44,7 +45,12 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
 
         <div className="relative">
           <Button
-            onClick={onAddClick}
+            onClick={() => {
+              if (location.pathname !== '/jobs') {
+                navigate('/jobs');
+              }
+              onAddClick();
+            }}
             className="w-full mb-6 relative z-10"
           >
             <Plus className="h-4 w-4 mr-2" />
