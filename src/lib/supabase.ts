@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { useAuth } from '@clerk/clerk-react';
 import { useMemo } from 'react';
+import { getUserId } from './user-id';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -27,7 +28,7 @@ export function useSupabase() {
     }
     
     const headers: Record<string, string> = {
-      'x-user-id': userId,
+      'x-user-id': getUserId(userId),
       'Authorization': `Bearer ${supabaseKey}`
     };
     
