@@ -10,6 +10,7 @@ import axios from 'axios';
 const jobSchema = z.object({
   position: z.string(),
   company: z.string(),
+  company_url: z.string().url().optional(), // Add company website URL
   description: z.string(),
   keywords: z.array(z.string()),
   url: z.string().url(),
@@ -65,10 +66,15 @@ async function scrapeLinkedIn(url: string): Promise<string> {
       jobDetails.push(`Title: ${titleMatch[1].trim()}`);
     }
 
-    // Try to extract company
-    const companyMatch = content.match(/<a[^>]*data-tracking-control-name="public_jobs_topcard-org-name"[^>]*>([^<]+)<\/a>/);
+    // Try to extract company and company URL
+    const companyMatch = content.match(/<a[^>]*data-tracking-control-name="public_jobs_topcard-org-name"[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/);
     if (companyMatch) {
-      jobDetails.push(`Company: ${companyMatch[1].trim()}`);
+      jobDetails.push(`Company: ${companyMatch[2].trim()}`);
+      // Extract company website from LinkedIn company page
+      if (companyMatch[1].includes('/company/')) {
+        const companySlug = companyMatch[1].split('/company/')[1].split('/')[0];
+        jobDetails.push(`Company URL: https://${companySlug}.com`);
+      }
     }
 
     // Try to extract description
@@ -139,10 +145,14 @@ async function scrapeIndeed(url: string): Promise<string> {
       jobDetails.push(`Title: ${titleMatch[1].trim()}`);
     }
 
-    // Try to extract company
+    // Try to extract company and company URL
     const companyMatch = content.match(/<div[^>]*class="[^"]*jobsearch-InlineCompanyRating[^"]*"[^>]*>([^<]+)<\/div>/);
+    const companyUrlMatch = content.match(/<a[^>]*class="[^"]*jobsearch-CompanyReview-website[^"]*"[^>]*href="([^"]+)"[^>]*>/);
     if (companyMatch) {
       jobDetails.push(`Company: ${companyMatch[1].trim()}`);
+      if (companyUrlMatch) {
+        jobDetails.push(`Company URL: ${companyUrlMatch[1]}`);
+      }
     }
 
     // Try to extract description
@@ -259,6 +269,7 @@ export const handler: Handler = async (event) => {
       Return a JSON object with these EXACT field names:
       - "position": The job position or title
       - "company": The company name
+      - "company_url": The company's main website URL (look for company website links, about us pages, or extract domain from company email addresses)
       - "description": A brief one-sentence summary
       - "keywords": An array of 8-12 key skills, technologies, requirements, or qualifications. Look for:
           * Required skills and competencies
@@ -336,16 +347,17 @@ export const handler: Handler = async (event) => {
         body: JSON.stringify(fallbackJob),
       };
     }
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      type: error.constructor.name,
+      name: err.name,
+      message: err.message,
+      stack: err.stack,
+      type: err.constructor.name,
     });
 
     // Check for specific error types
-    if (error.message?.includes('API key')) {
+    if (err.message?.includes('API key')) {
       return {
         statusCode: 500,
         headers,
@@ -356,7 +368,7 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    if (error.message?.includes('fetch')) {
+    if (err.message?.includes('fetch')) {
       return {
         statusCode: 500,
         headers,
@@ -372,8 +384,8 @@ export const handler: Handler = async (event) => {
       headers,
       body: JSON.stringify({
         error: 'Failed to scrape job details',
-        details: error.message,
-        type: error.constructor.name
+        details: err.message,
+        type: err.constructor.name
       }),
     };
   }
