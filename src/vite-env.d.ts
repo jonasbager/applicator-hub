@@ -10,6 +10,7 @@ interface ImportMetaEnv {
   readonly VITE_CLERK_SIGN_IN_URL: string
   readonly VITE_CLERK_SIGN_UP_URL: string
   readonly VITE_SITE_URL: string
+  readonly VITE_LOGO_API_KEY: string
 }
 
 interface ImportMeta {
