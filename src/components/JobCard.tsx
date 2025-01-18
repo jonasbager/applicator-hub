@@ -43,18 +43,26 @@ export function JobCard({ job, onClick }: JobCardProps) {
     >
       <div className="flex gap-4">
         <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center">
-          {!imageError && getCompanyLogoUrl(job.company) ? (
-            <img
-              src={getCompanyLogoUrl(job.company)}
-              alt={`${job.company} logo`}
-              className="w-full h-full object-contain p-2"
-              onError={(e) => setImageError(true)}
-            />
-          ) : (
-            <span className="text-gray-500 text-lg font-bold">
-              {job.company.charAt(0)}
-            </span>
-          )}
+          {(() => {
+            const logoUrl = getCompanyLogoUrl(job.company);
+            console.log('Company:', job.company);
+            console.log('Logo URL:', logoUrl);
+            return !imageError && logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={`${job.company} logo`}
+                className="w-full h-full object-contain p-2"
+                onError={(e) => {
+                  console.error('Logo load error for', job.company, e);
+                  setImageError(true);
+                }}
+              />
+            ) : (
+              <span className="text-gray-500 text-lg font-bold">
+                {job.company.charAt(0)}
+              </span>
+            );
+          })()}
         </div>
       
         {/* Deadline chip */}
