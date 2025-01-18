@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import { DateValue, Job, getDeadlineStatus } from '../types/job';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { cn } from '../lib/utils';
+import { getCompanyLogoUrl } from '../lib/company-logos';
 
 const deadlineColors: Record<string, string> = {
   green: 'bg-green-100 text-green-700',
@@ -44,7 +45,7 @@ export function JobCard({ job, onClick }: JobCardProps) {
         <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center">
           {!imageError ? (
             <img
-              src={`https://logo.clearbit.com/${job.company.toLowerCase().replace(/[^a-z0-9]/g, '')}.com?size=80&format=png`}
+              src={getCompanyLogoUrl(job.company)}
               alt={`${job.company} logo`}
               className="w-8 h-8 object-contain"
               onError={() => setImageError(true)}
@@ -56,18 +57,18 @@ export function JobCard({ job, onClick }: JobCardProps) {
           )}
         </div>
       
-      {/* Deadline chip */}
-      <div className="absolute bottom-3 right-3">
-        <Badge 
-          variant="secondary" 
-          className={cn(
-            "text-xs",
-            deadlineColors[getDeadlineStatus(job.deadline || null)]
-          )}
-        >
-          {getDeadlineText(job.deadline || null)}
-        </Badge>
-      </div>
+        {/* Deadline chip */}
+        <div className="absolute bottom-3 right-3">
+          <Badge 
+            variant="secondary" 
+            className={cn(
+              "text-xs",
+              deadlineColors[getDeadlineStatus(job.deadline || null)]
+            )}
+          >
+            {getDeadlineText(job.deadline || null)}
+          </Badge>
+        </div>
         
         <div>
           <h3 className="font-semibold text-lg text-gray-900 mb-1">
