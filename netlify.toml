@@ -99,3 +99,10 @@
   external_node_modules = ["pdf-parse", "mammoth", "@langchain/community", "@langchain/openai", "cheerio", "zod", "@supabase/supabase-js"]
   environment = { NODE_VERSION = "18.x" }
   timeout = "30s"
+
+[functions.scrape-job]
+  node_bundler = "esbuild"
+  included_files = ["netlify/functions/package.json"]
+  external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio", "zod", "axios"]
+  environment = { NODE_VERSION = "18.x" }
+  timeout = "30s"

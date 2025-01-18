@@ -10,10 +10,8 @@ export interface JobDetails {
   start_date?: DateValue;
 }
 
-// Use backend server in development, Netlify function in production
-const SCRAPE_URL = import.meta.env.DEV 
-  ? 'http://localhost:3001/api/scrape-job'
-  : '/.netlify/functions/scrape-job';
+// Always use Netlify function
+const SCRAPE_URL = '/.netlify/functions/scrape-job';
 
 /**
  * Scrape job details from a URL
