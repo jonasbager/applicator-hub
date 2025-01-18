@@ -48,8 +48,8 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
             onClick={async () => {
               if (location.pathname !== '/jobs') {
                 await navigate('/jobs');
-                // Small delay to ensure navigation is complete
-                setTimeout(onAddClick, 100);
+                // Longer delay to ensure navigation and component mount is complete
+                setTimeout(onAddClick, 300);
               } else {
                 onAddClick();
               }
