@@ -477,6 +477,61 @@ export default function Profile() {
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold mb-8">Profile Settings</h1>
 
+          {/* Personal Information */}
+          <Card className="p-6 mb-8">
+            <h2 className="text-lg font-semibold mb-4">Personal Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label className="mb-2 block">First Name</Label>
+                <Input
+                  value={user?.firstName || ''}
+                  placeholder="Enter your first name"
+                  onChange={async (e) => {
+                    try {
+                      await user?.update({
+                        firstName: e.target.value
+                      });
+                      toast({
+                        title: 'Success',
+                        description: 'First name updated successfully'
+                      });
+                    } catch (error) {
+                      toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: 'Failed to update first name'
+                      });
+                    }
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block">Last Name</Label>
+                <Input
+                  value={user?.lastName || ''}
+                  placeholder="Enter your last name"
+                  onChange={async (e) => {
+                    try {
+                      await user?.update({
+                        lastName: e.target.value
+                      });
+                      toast({
+                        title: 'Success',
+                        description: 'Last name updated successfully'
+                      });
+                    } catch (error) {
+                      toast({
+                        variant: 'destructive',
+                        title: 'Error',
+                        description: 'Failed to update last name'
+                      });
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </Card>
+
           {loading ? (
             <div className="flex items-center justify-center p-8">
               <Loader2 className="h-8 w-8 animate-spin" />
