@@ -491,11 +491,7 @@ export default function Profile() {
                     const newFirstName = e.target.value;
                     try {
                       await user.update({
-                        firstName: newFirstName,
-                        unsafeMetadata: {
-                          ...user.unsafeMetadata,
-                          firstName: newFirstName
-                        }
+                        firstName: newFirstName
                       });
                       toast({
                         title: 'Success',
@@ -522,11 +518,7 @@ export default function Profile() {
                     const newLastName = e.target.value;
                     try {
                       await user.update({
-                        lastName: newLastName,
-                        unsafeMetadata: {
-                          ...user.unsafeMetadata,
-                          lastName: newLastName
-                        }
+                        lastName: newLastName
                       });
                       toast({
                         title: 'Success',
