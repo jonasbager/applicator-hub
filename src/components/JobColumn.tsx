@@ -44,11 +44,15 @@ export function JobColumn({
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "bg-muted/50 p-4 rounded-lg h-full min-h-[500px] relative",
+              "bg-muted/50 p-4 rounded-lg h-full min-h-[500px] relative touch-manipulation",
               isSecondColumn && hasJobsInFirstColumn && jobs.length === 0 && [
                 "bg-muted/30"
-              ]
+              ],
+              jobs.length === 0 && "min-h-[140px]" // Shorter height when empty
             )}
+            style={{
+              minHeight: jobs.length === 0 ? '140px' : '500px'
+            }}
           >
             {isSecondColumn && hasJobsInFirstColumn && jobs.length === 0 && (
               <div className="absolute top-4 inset-x-4 pointer-events-none">
@@ -73,11 +77,12 @@ export function JobColumn({
               </div>
             )}
             
-            <div className="space-y-3">
+            <div className="space-y-3 min-h-[50px]">
               {jobs.map((job, index) => (
                 <JobCard
                   key={job.id}
                   job={job}
+                  index={index}
                   onClick={() => onJobClick?.(job)}
                 />
               ))}

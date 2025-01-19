@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Draggable } from "@hello-pangea/dnd";
 import { DateValue, Job, getDeadlineStatus } from '../types/job';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -27,20 +28,31 @@ function getDeadlineText(deadline: DateValue): string {
 
 interface JobCardProps {
   job: Job;
+  index: number;
   onClick?: () => void;
 }
 
-export function JobCard({ job, onClick }: JobCardProps) {
+export function JobCard({ job, index, onClick }: JobCardProps) {
   const [imageError, setImageError] = useState(false);
 
   return (
-    <Card 
-      className={cn(
-        "p-6 hover:shadow-lg transition-shadow duration-200 relative",
-        onClick && "cursor-pointer"
-      )}
-      onClick={onClick}
-    >
+    <Draggable draggableId={job.id} index={index}>
+      {(provided) => (
+        <Card 
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          className={cn(
+            "p-6 hover:shadow-lg transition-shadow duration-200 relative",
+            onClick && "cursor-pointer",
+            "touch-manipulation" // Add touch handling
+          )}
+          onClick={onClick}
+          style={{
+            ...provided.draggableProps.style,
+            cursor: 'grab' // Show grab cursor
+          }}
+        >
       <div className="flex gap-4">
         <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center">
           {(() => {
@@ -89,6 +101,8 @@ export function JobCard({ job, onClick }: JobCardProps) {
           </div>
         </div>
       </div>
-    </Card>
+        </Card>
+      )}
+    </Draggable>
   );
 }

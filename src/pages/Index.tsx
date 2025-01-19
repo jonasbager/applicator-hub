@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
 import { useSupabase } from "../lib/supabase";
 import { getUserId } from "../lib/user-id";
+import { cn } from "../lib/utils";
 
 export function Index() {
   const { userId, isLoaded } = useAuth();
@@ -201,9 +202,16 @@ export function Index() {
           </div>
           
           <DragDropContext onDragEnd={onDragEnd}>
-            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${
-              isUpdating ? 'opacity-75' : ''
-            }`}>
+            <div 
+              className={cn(
+                "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 touch-manipulation",
+                isUpdating && "opacity-75"
+              )}
+              style={{
+                WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
+                overscrollBehavior: 'none' // Prevent pull-to-refresh
+              }}
+            >
             {JOB_STATUS_ORDER.map((status, index) => {
               const isSecondColumn = index === 1;
               const hasJobsInFirstColumn = jobsByStatus[JOB_STATUS_ORDER[0]].length > 0;
