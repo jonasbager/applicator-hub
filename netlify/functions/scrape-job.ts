@@ -128,6 +128,14 @@ async function scrapeLinkedIn(url: string): Promise<string> {
         console.log('Found company email domain in LinkedIn description:', emailDomain);
         jobDetails.push(`Company URL: ${emailDomain}`);
       }
+
+      // Extract requirements section for better keyword extraction
+      const requirementsMatch = description.match(/Requirements:|Qualifications:|What you'll need:|Skills:|Requirements and qualifications:|Required skills and experience:|What we're looking for:/i);
+      if (requirementsMatch) {
+        const requirementsIndex = description.indexOf(requirementsMatch[0]);
+        const requirements = description.slice(requirementsIndex);
+        jobDetails.push(`Requirements: ${requirements}`);
+      }
     }
 
     // Try to extract location
@@ -214,6 +222,14 @@ async function scrapeIndeed(url: string): Promise<string> {
       if (emailDomain) {
         console.log('Found company email domain in Indeed description:', emailDomain);
         jobDetails.push(`Company URL: ${emailDomain}`);
+      }
+
+      // Extract requirements section for better keyword extraction
+      const requirementsMatch = description.match(/Requirements:|Qualifications:|What you'll need:|Skills:|Requirements and qualifications:|Required skills and experience:|What we're looking for:/i);
+      if (requirementsMatch) {
+        const requirementsIndex = description.indexOf(requirementsMatch[0]);
+        const requirements = description.slice(requirementsIndex);
+        jobDetails.push(`Requirements: ${requirements}`);
       }
     }
 
@@ -321,7 +337,7 @@ export const handler: Handler = async (event) => {
 
     // Create a prompt template for job extraction
     const promptTemplate = new PromptTemplate({
-      template: `Extract key information from the following job posting content.
+      template: `Extract key information from the following job posting content. Pay special attention to the Requirements section if present, as it contains important keywords.
       Return a JSON object with these EXACT field names:
       - "position": The job position or title
       - "company": The company name
@@ -330,7 +346,7 @@ export const handler: Handler = async (event) => {
           * Company website links in the description
           * Links to company's "About Us" or careers pages
       - "description": A brief one-sentence summary
-      - "keywords": An array of 8-12 key skills, technologies, requirements, or qualifications. Look for:
+      - "keywords": An array of 8-12 key skills, technologies, requirements, or qualifications. Look for these in the Requirements section first, then the full description. Include:
           * Required skills and competencies
           * Technical requirements
           * Years of experience requirements
