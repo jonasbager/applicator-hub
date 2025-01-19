@@ -487,15 +487,22 @@ export default function Profile() {
                   value={user?.firstName || ''}
                   placeholder="Enter your first name"
                   onChange={async (e) => {
+                    if (!user) return;
+                    const newFirstName = e.target.value;
                     try {
-                      await user?.update({
-                        firstName: e.target.value
+                      await user.update({
+                        firstName: newFirstName,
+                        unsafeMetadata: {
+                          ...user.unsafeMetadata,
+                          firstName: newFirstName
+                        }
                       });
                       toast({
                         title: 'Success',
                         description: 'First name updated successfully'
                       });
                     } catch (error) {
+                      console.error('Error updating first name:', error);
                       toast({
                         variant: 'destructive',
                         title: 'Error',
@@ -511,15 +518,22 @@ export default function Profile() {
                   value={user?.lastName || ''}
                   placeholder="Enter your last name"
                   onChange={async (e) => {
+                    if (!user) return;
+                    const newLastName = e.target.value;
                     try {
-                      await user?.update({
-                        lastName: e.target.value
+                      await user.update({
+                        lastName: newLastName,
+                        unsafeMetadata: {
+                          ...user.unsafeMetadata,
+                          lastName: newLastName
+                        }
                       });
                       toast({
                         title: 'Success',
                         description: 'Last name updated successfully'
                       });
                     } catch (error) {
+                      console.error('Error updating last name:', error);
                       toast({
                         variant: 'destructive',
                         title: 'Error',
