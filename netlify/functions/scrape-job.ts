@@ -111,7 +111,7 @@ async function scrapeLinkedIn(url: string): Promise<string> {
       // Extract company website from LinkedIn company page
       if (companyMatch[1].includes('/company/')) {
         const companySlug = companyMatch[1].split('/company/')[1].split('/')[0];
-        jobDetails.push(`Company URL: https://${companySlug}.com`);
+        // Don't add company URL here, let the email domain take precedence
       }
     }
 
@@ -127,6 +127,10 @@ async function scrapeLinkedIn(url: string): Promise<string> {
       if (emailDomain) {
         console.log('Found company email domain in LinkedIn description:', emailDomain);
         jobDetails.push(`Company URL: ${emailDomain}`);
+      } else if (companyMatch && companyMatch[1].includes('/company/')) {
+        // Only use LinkedIn company slug if no email domain found
+        const companySlug = companyMatch[1].split('/company/')[1].split('/')[0];
+        jobDetails.push(`Company URL: https://${companySlug}.com`);
       }
 
       // Extract requirements section for better keyword extraction
