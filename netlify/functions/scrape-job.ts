@@ -18,6 +18,34 @@ const jobSchema = z.object({
   start_date: z.union([z.string(), z.literal('ASAP')]).optional(),
 });
 
+function extractEmailDomain(text: string): string | null {
+  // Look for email addresses in the text
+  const emailRegex = /[a-zA-Z0-9._%+-]+@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+  const matches = text.match(emailRegex);
+  
+  if (matches) {
+    // Get all unique domains from email addresses
+      const domains = matches
+        .map(email => {
+          const match = email.match(/@([^@]+)$/);
+          return match ? match[1] : null;
+        })
+        .filter((domain): domain is string => domain !== null);
+
+    if (domains.length > 0) {
+      // Return the first domain that's not a common email provider
+      const commonProviders = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com'];
+      const companyDomain = domains.find(domain => !commonProviders.includes(domain));
+      if (companyDomain) {
+        console.log('Found company email domain:', companyDomain);
+        return companyDomain;
+      }
+    }
+  }
+  
+  return null;
+}
+
 function trimContent(content: string): string {
   // Remove script and style tags content
   content = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
@@ -77,10 +105,17 @@ async function scrapeLinkedIn(url: string): Promise<string> {
       }
     }
 
-    // Try to extract description
+    // Try to extract description and look for email
     const descriptionMatch = content.match(/<div[^>]*class="[^"]*show-more-less-html[^"]*"[^>]*>([\s\S]*?)<\/div>/);
     if (descriptionMatch) {
-      jobDetails.push(`Description: ${trimContent(descriptionMatch[1])}`);
+      const description = trimContent(descriptionMatch[1]);
+      jobDetails.push(`Description: ${description}`);
+      
+      // Look for company email in description
+      const emailDomain = extractEmailDomain(description);
+      if (emailDomain) {
+        jobDetails.push(`Company URL: ${emailDomain}`);
+      }
     }
 
     // Try to extract location
@@ -155,10 +190,17 @@ async function scrapeIndeed(url: string): Promise<string> {
       }
     }
 
-    // Try to extract description
+    // Try to extract description and look for email
     const descriptionMatch = content.match(/<div[^>]*id="jobDescriptionText"[^>]*>([\s\S]*?)<\/div>/);
     if (descriptionMatch) {
-      jobDetails.push(`Description: ${trimContent(descriptionMatch[1])}`);
+      const description = trimContent(descriptionMatch[1]);
+      jobDetails.push(`Description: ${description}`);
+      
+      // Look for company email in description
+      const emailDomain = extractEmailDomain(description);
+      if (emailDomain) {
+        jobDetails.push(`Company URL: ${emailDomain}`);
+      }
     }
 
     // Try to extract location
