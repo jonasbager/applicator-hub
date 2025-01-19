@@ -15,10 +15,11 @@ import { getUserId } from "../lib/user-id";
 import { cn } from "../lib/utils";
 
 export function Index() {
-  const { userId, isLoaded } = useAuth();
+  const { userId, isLoaded: authLoaded } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, isLoaded: userLoaded } = useUser();
+  const isLoaded = authLoaded && userLoaded;
   const { supabase } = useSupabase();
   const { toast } = useToast();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -195,7 +196,16 @@ export function Index() {
       <main className="flex-1 p-8 pb-32">
         <div className="max-w-[1600px] mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold">Welcome back, {user?.firstName || 'there'}</h1>
+            <h1 className="text-3xl font-bold">
+              Welcome back
+              {isLoaded ? (
+                user?.firstName ? 
+                  `, ${user.firstName}` : 
+                  user?.primaryEmailAddress ? 
+                    `, ${user.primaryEmailAddress.emailAddress.split('@')[0]}` : 
+                    ''
+              ) : '...'}
+            </h1>
             <p className="text-muted-foreground">
               Manage your job applications on the kanban board below
             </p>
