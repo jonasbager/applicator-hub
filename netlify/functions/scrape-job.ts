@@ -19,28 +19,38 @@ const jobSchema = z.object({
 });
 
 function extractEmailDomain(text: string): string | null {
+  console.log('Extracting email domains from text:', text);
+  
   // Look for email addresses in the text
   const emailRegex = /[a-zA-Z0-9._%+-]+@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
   const matches = text.match(emailRegex);
   
   if (matches) {
+    console.log('Found email addresses:', matches);
+    
     // Get all unique domains from email addresses
-      const domains = matches
-        .map(email => {
-          const match = email.match(/@([^@]+)$/);
-          return match ? match[1] : null;
-        })
-        .filter((domain): domain is string => domain !== null);
+    const domains = matches
+      .map(email => {
+        const match = email.match(/@([^@]+)$/);
+        const domain = match ? match[1] : null;
+        console.log('Extracted domain from email:', email, '->', domain);
+        return domain;
+      })
+      .filter((domain): domain is string => domain !== null);
+
+    console.log('All extracted domains:', domains);
 
     if (domains.length > 0) {
       // Return the first domain that's not a common email provider
       const commonProviders = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com'];
       const companyDomain = domains.find(domain => !commonProviders.includes(domain));
+      console.log('Found company domain:', companyDomain);
       if (companyDomain) {
-        console.log('Found company email domain:', companyDomain);
         return companyDomain;
       }
     }
+  } else {
+    console.log('No email addresses found in text');
   }
   
   return null;
@@ -112,8 +122,10 @@ async function scrapeLinkedIn(url: string): Promise<string> {
       jobDetails.push(`Description: ${description}`);
       
       // Look for company email in description
+      console.log('Looking for email in LinkedIn description');
       const emailDomain = extractEmailDomain(description);
       if (emailDomain) {
+        console.log('Found company email domain in LinkedIn description:', emailDomain);
         jobDetails.push(`Company URL: ${emailDomain}`);
       }
     }
@@ -197,8 +209,10 @@ async function scrapeIndeed(url: string): Promise<string> {
       jobDetails.push(`Description: ${description}`);
       
       // Look for company email in description
+      console.log('Looking for email in Indeed description');
       const emailDomain = extractEmailDomain(description);
       if (emailDomain) {
+        console.log('Found company email domain in Indeed description:', emailDomain);
         jobDetails.push(`Company URL: ${emailDomain}`);
       }
     }
@@ -311,7 +325,10 @@ export const handler: Handler = async (event) => {
       Return a JSON object with these EXACT field names:
       - "position": The job position or title
       - "company": The company name
-      - "company_url": The company's main website URL (look for company website links, about us pages, or extract domain from company email addresses)
+      - "company_url": The company's main website URL. Look for:
+          * Company email addresses (e.g., @teliacompany.com) - use the email domain directly
+          * Company website links in the description
+          * Links to company's "About Us" or careers pages
       - "description": A brief one-sentence summary
       - "keywords": An array of 8-12 key skills, technologies, requirements, or qualifications. Look for:
           * Required skills and competencies
