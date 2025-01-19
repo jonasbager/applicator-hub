@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useSession } from '@clerk/clerk-react';
 import { useSupabase } from '../lib/supabase';
 import { JobPreferences, Resume } from '../types/resume';
 import { Button } from '../components/ui/button';
@@ -33,6 +33,7 @@ const ALLOWED_FILE_TYPES = [
 export default function Profile() {
   const navigate = useNavigate();
   const { user } = useUser();
+  const { session } = useSession();
   const { supabase } = useSupabase();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -490,10 +491,9 @@ export default function Profile() {
                     if (!user) return;
                     const newFirstName = e.target.value;
                     try {
-                      const updateData = {
-                        firstName: newFirstName,
-                      };
-                      await user.update(updateData);
+                      await user.update({
+                        firstName: newFirstName
+                      });
                       toast({
                         title: 'Success',
                         description: 'First name updated successfully'
@@ -518,10 +518,9 @@ export default function Profile() {
                     if (!user) return;
                     const newLastName = e.target.value;
                     try {
-                      const updateData = {
-                        lastName: newLastName,
-                      };
-                      await user.update(updateData);
+                      await user.update({
+                        lastName: newLastName
+                      });
                       toast({
                         title: 'Success',
                         description: 'Last name updated successfully'
