@@ -490,9 +490,10 @@ export default function Profile() {
                     if (!user) return;
                     const newFirstName = e.target.value;
                     try {
-                      await user.update({
-                        firstName: newFirstName
-                      });
+                      const updateData = {
+                        firstName: newFirstName,
+                      };
+                      await user.update(updateData);
                       toast({
                         title: 'Success',
                         description: 'First name updated successfully'
@@ -517,9 +518,10 @@ export default function Profile() {
                     if (!user) return;
                     const newLastName = e.target.value;
                     try {
-                      await user.update({
-                        lastName: newLastName
-                      });
+                      const updateData = {
+                        lastName: newLastName,
+                      };
+                      await user.update(updateData);
                       toast({
                         title: 'Success',
                         description: 'Last name updated successfully'
