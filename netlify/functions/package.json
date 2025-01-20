@@ -4,15 +4,17 @@
     "@langchain/community": "^0.3.18",
     "@langchain/core": "^0.3.23",
     "@langchain/openai": "^0.3.14",
-    "@supabase/supabase-js": "^2.39.7",
-    "openai": "^4.28.0",
     "@netlify/functions": "^2.5.1",
+    "@sparticuz/chromium": "^131.0.1",
+    "@supabase/supabase-js": "^2.39.7",
     "@types/puppeteer": "^5.4.7",
     "axios": "^1.7.9",
     "cheerio": "^1.0.0",
     "mammoth": "^1.9.0",
+    "openai": "^4.28.0",
     "pdf-parse": "^1.1.1",
     "puppeteer": "^23.11.1",
+    "puppeteer-core": "^24.1.0",
     "zod": "^3.22.4"
   }
 }
