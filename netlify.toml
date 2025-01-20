@@ -3,6 +3,9 @@
   publish = "dist"
   functions = "netlify/functions"
 
+[[plugins]]
+  package = "@netlify/plugin-functions-install-core"
+
 [context.production]
   environment = { NODE_ENV = "production" }
   [[context.production.redirects]]
@@ -104,5 +107,12 @@
   node_bundler = "esbuild"
   included_files = ["netlify/functions/package.json"]
   external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio", "zod", "axios"]
+  environment = { NODE_VERSION = "18.x" }
+  timeout = "30s"
+
+[functions.find-matching-jobs]
+  node_bundler = "esbuild"
+  included_files = ["netlify/functions/package.json"]
+  external_node_modules = ["@sparticuz/chromium", "puppeteer-core", "@supabase/supabase-js"]
   environment = { NODE_VERSION = "18.x" }
   timeout = "30s"
