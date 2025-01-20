@@ -1,9 +1,11 @@
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { JobMatch } from './types/job-match';
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 
 if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('Supabase environment variables are not configured');
+  throw new Error('Required environment variables are not configured');
 }
 
 const supabase = createClient(
@@ -16,6 +18,62 @@ const supabase = createClient(
     }
   }
 );
+
+async function searchLinkedInJobs(preferences: any) {
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
+  });
+
+  try {
+    const page = await browser.newPage();
+    
+    // Build search URL
+    const baseUrl = 'https://www.linkedin.com/jobs/search';
+    const keywords = [...preferences.roles, ...preferences.skills].join(' ');
+    const location = preferences.locations[0] || '';
+    const searchUrl = `${baseUrl}?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}`;
+
+    // Navigate to LinkedIn jobs search
+    await page.goto(searchUrl, { waitUntil: 'networkidle0' });
+
+    // Wait for job cards to load
+    await page.waitForSelector('.jobs-search__results-list');
+
+    // Extract job listings
+    const jobListings = await page.evaluate((prefLevel) => {
+      const cards = document.querySelectorAll('.jobs-search__results-list > li');
+      return Array.from(cards).map(card => {
+        const titleEl = card.querySelector('.base-search-card__title');
+        const companyEl = card.querySelector('.base-search-card__subtitle');
+        const locationEl = card.querySelector('.job-search-card__location');
+        const linkEl = card.querySelector('a.base-card__full-link') as HTMLAnchorElement;
+
+        return {
+          id: Math.random().toString(36).substr(2, 9),
+          title: titleEl?.textContent?.trim() || '',
+          company: companyEl?.textContent?.trim() || '',
+          location: locationEl?.textContent?.trim() || '',
+          url: linkEl?.href || '',
+          description: '',
+          level: prefLevel,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          similarity: 1.0
+        };
+      }).filter(job => job.title && job.company);
+    }, preferences.level);
+
+    return jobListings;
+  } catch (error) {
+    console.error('Error searching LinkedIn:', error);
+    return [];
+  } finally {
+    await browser.close();
+  }
+}
 
 export const handler: Handler = async (event) => {
   // Enable CORS
@@ -54,19 +112,6 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Get the user's latest resume
-    const { data: resume, error: resumeError } = await supabase
-      .from('resumes')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (resumeError || !resume) {
-      throw new Error('No resume found');
-    }
-
     // Get user's preferences
     const { data: preferences, error: prefError } = await supabase
       .from('job_preferences')
@@ -78,32 +123,14 @@ export const handler: Handler = async (event) => {
       throw new Error('No preferences found');
     }
 
-    // Find matching jobs using vector similarity
-    const { data: jobs, error: jobsError } = await supabase
-      .rpc('match_jobs', {
-        query_embedding: resume.embedding,
-        match_threshold: 0.7,
-        match_count: 20
-      });
-
-    if (jobsError) {
-      throw new Error('Failed to fetch matching jobs');
-    }
-
-    // Sort jobs by both similarity and experience level match
-    const sortedJobs = (jobs as JobMatch[]).sort((a: JobMatch, b: JobMatch) => {
-      // Boost score if experience level matches
-      const aLevelMatch = a.level.includes(preferences.level[0]) ? 0.2 : 0;
-      const bLevelMatch = b.level.includes(preferences.level[0]) ? 0.2 : 0;
-      
-      return (b.similarity + bLevelMatch) - (a.similarity + aLevelMatch);
-    });
+    // Search for jobs on LinkedIn
+    const jobs = await searchLinkedInJobs(preferences);
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        jobs: sortedJobs,
+        jobs: jobs,
       }),
     };
 
