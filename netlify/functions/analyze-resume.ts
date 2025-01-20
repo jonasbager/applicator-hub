@@ -17,6 +17,7 @@ const resumeSchema = z.object({
   languages: z.array(z.string()),
   years_of_experience: z.number(),
   key_achievements: z.array(z.string()),
+  locations: z.array(z.string()),
 });
 
 // Initialize Supabase client with service role key
@@ -160,9 +161,15 @@ export const handler: Handler = async (event) => {
       - "languages": Array of languages the person knows
       - "years_of_experience": Total years of relevant work experience (number)
       - "key_achievements": Array of notable achievements or accomplishments
+      - "locations": Array of locations the person has worked in or is willing to work in. Look for:
+          * Current location
+          * Previous work locations
+          * "Willing to relocate" statements
+          * Remote work preferences
 
       Be thorough in analyzing the entire resume. Look for both explicit and implicit information.
       Infer the experience level from the roles, responsibilities, and years of experience.
+      For locations, include both specific cities and broader regions (e.g., "San Francisco" and "Bay Area").
 
       {format_instructions}
       
@@ -201,6 +208,7 @@ export const handler: Handler = async (event) => {
       education: parsedResume.education,
       languages: parsedResume.languages,
       years_of_experience: parsedResume.years_of_experience,
+      locations: parsedResume.locations,
     };
 
     // Update preferences in database
