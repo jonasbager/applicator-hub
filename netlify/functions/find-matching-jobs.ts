@@ -32,19 +32,38 @@ async function searchLinkedInJobs(preferences: any) {
     
     // Build search URL
     const baseUrl = 'https://www.linkedin.com/jobs/search';
-    const keywords = [...preferences.roles, ...preferences.skills].join(' ');
-    const location = preferences.locations[0] || '';
+    const keywords = [...(preferences.roles || []), ...(preferences.skills || [])].filter(Boolean).join(' ');
+    const location = (preferences.locations || [])[0] || 'Remote';
+    
+    if (!keywords) {
+      console.log('No search keywords found in preferences:', preferences);
+      return [];
+    }
+
+    console.log('Searching LinkedIn with:', { keywords, location });
     const searchUrl = `${baseUrl}?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}`;
 
-    // Navigate to LinkedIn jobs search
-    await page.goto(searchUrl, { waitUntil: 'networkidle0' });
+    // Navigate to LinkedIn jobs search with timeout
+    console.log('Navigating to:', searchUrl);
+    await page.goto(searchUrl, { 
+      waitUntil: 'networkidle0',
+      timeout: 20000 
+    });
 
     // Wait for job cards to load
-    await page.waitForSelector('.jobs-search__results-list');
+    console.log('Waiting for job results to load...');
+    try {
+      await page.waitForSelector('.jobs-search__results-list', { timeout: 10000 });
+    } catch (error) {
+      console.log('No job results found or timeout waiting for results');
+      return [];
+    }
 
     // Extract job listings
+    console.log('Extracting job listings...');
     const jobListings = await page.evaluate((prefLevel) => {
       const cards = document.querySelectorAll('.jobs-search__results-list > li');
+      console.log('Found job cards:', cards.length);
       return Array.from(cards).map(card => {
         const titleEl = card.querySelector('.base-search-card__title');
         const companyEl = card.querySelector('.base-search-card__subtitle');
@@ -66,9 +85,17 @@ async function searchLinkedInJobs(preferences: any) {
       }).filter(job => job.title && job.company);
     }, preferences.level);
 
+    console.log(`Found ${jobListings.length} job listings`);
     return jobListings;
   } catch (error) {
     console.error('Error searching LinkedIn:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
     return [];
   } finally {
     await browser.close();
