@@ -113,6 +113,6 @@
 [functions.find-matching-jobs]
   node_bundler = "esbuild"
   included_files = ["netlify/functions/package.json"]
-  external_node_modules = ["@sparticuz/chromium", "puppeteer-core", "@supabase/supabase-js"]
-  environment = { NODE_VERSION = "18.x" }
-  timeout = "30s"
+  external_node_modules = ["@sparticuz/chromium", "puppeteer-core", "@supabase/supabase-js", "axios"]
+  environment = { NODE_VERSION = "18.x", FUNCTION_MEMORY_SIZE = "3008" }
+  timeout = "60s"
