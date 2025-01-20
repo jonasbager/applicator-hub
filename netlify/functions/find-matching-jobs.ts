@@ -156,7 +156,9 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
 
       // Extract job listings
       console.log(`Extracting listings from ${site.name}...`);
-      const jobs = await page.evaluate((site: JobSite, prefLevel: string) => {
+      const jobs = await page.evaluate((params: { site: JobSite; prefLevel: string; keywords: string }) => {
+        const { site, prefLevel, keywords } = params;
+        const searchTerms = keywords.split(' ');
         let cards = null;
         for (const selector of site.selectors.resultsList) {
           const elements = document.querySelectorAll(selector);
@@ -207,8 +209,13 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
             }
           }
 
-          // Extract keywords from title
-          const titleWords = title.toLowerCase().split(/\W+/).filter(Boolean);
+          // Extract keywords from title and check if it matches search terms
+          const titleLower = title.toLowerCase();
+          const matches = searchTerms.some(term => titleLower.includes(term.toLowerCase()));
+          if (!matches) return null;
+
+          // Extract keywords for future reference
+          const titleWords = titleLower.split(/\W+/).filter(Boolean);
           const commonWords = new Set(['and', 'or', 'the', 'in', 'at', 'for', 'to', 'of', 'with', 'by']);
           const keywords = titleWords
             .filter(word => !commonWords.has(word))
@@ -227,8 +234,8 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
             updated_at: new Date().toISOString(),
             similarity: 1.0
           };
-        }).filter(job => job.title && job.company);
-      }, site, prefLevel);
+        }).filter(job => job !== null && job.title && job.company);
+      }, { site, prefLevel, keywords });
 
       console.log(`Found ${jobs.length} jobs on ${site.name}`);
       return jobs;
@@ -249,13 +256,37 @@ async function searchJobs(preferences: any) {
     headless: true,
   });
 
-  const keywords = [...(preferences.roles || []), ...(preferences.skills || [])].filter(Boolean).join(' ');
-  const location = (preferences.locations || [])[0] || 'Remote';
+  // Extract and validate search parameters
+  const roles = preferences.roles || [];
+  const skills = preferences.skills || [];
+  const locations = preferences.locations || [];
+  const level = preferences.level || ['Entry Level'];
+
+  console.log('Search parameters:', {
+    roles,
+    skills,
+    locations,
+    level
+  });
+
+  // Build search keywords
+  const roleKeywords = roles.filter(Boolean);
+  const skillKeywords = skills.filter(Boolean);
   
-  if (!keywords) {
+  if (roleKeywords.length === 0 && skillKeywords.length === 0) {
     console.log('No search keywords found in preferences:', preferences);
     return [];
   }
+
+  // Combine role and skill keywords for search
+  const searchKeywords = [...roleKeywords, ...skillKeywords].join(' ');
+  const location = locations[0] || 'Remote';
+
+  console.log('Using search parameters:', {
+    searchKeywords,
+    location,
+    level: level[0]
+  });
 
   const allJobs: JobMatch[] = [];
 
@@ -263,7 +294,7 @@ async function searchJobs(preferences: any) {
     // Search each site sequentially
     for (const site of jobSites) {
       try {
-        const jobs = await searchSite(browser, site, keywords, location, preferences.level);
+        const jobs = await searchSite(browser, site, searchKeywords, location, preferences.level[0] || 'Entry Level');
         allJobs.push(...jobs);
       } catch (error) {
         console.error(`Error searching ${site.name}:`, error);
@@ -342,7 +373,28 @@ export const handler: Handler = async (event) => {
       throw new Error('No preferences found');
     }
 
-    console.log('Found preferences:', preferences);
+    console.log('Found preferences:', {
+      roles: preferences.roles,
+      skills: preferences.skills,
+      locations: preferences.locations,
+      level: preferences.level,
+      raw: preferences
+    });
+
+    // Ensure arrays exist and have default values
+    preferences.roles = preferences.roles || [];
+    preferences.skills = preferences.skills || [];
+    preferences.locations = preferences.locations || [];
+    preferences.level = preferences.level || ['Entry Level'];
+
+    // Log search parameters
+    const searchKeywords = [...preferences.roles, ...preferences.skills].filter(Boolean).join(' ');
+    const searchLocation = preferences.locations[0] || 'Remote';
+    console.log('Search parameters:', {
+      keywords: searchKeywords,
+      location: searchLocation,
+      level: preferences.level[0] // Use first level if multiple exist
+    });
 
     // Validate preferences
     if (!preferences.roles?.length && !preferences.skills?.length) {
@@ -362,7 +414,7 @@ export const handler: Handler = async (event) => {
       roles: preferences.roles,
       skills: preferences.skills,
       locations: preferences.locations,
-      level: preferences.level
+      level: preferences.level[0] // Use first level if multiple exist
     });
     const jobs = await searchJobs(preferences);
     console.log(`Found ${jobs.length} total jobs`);
