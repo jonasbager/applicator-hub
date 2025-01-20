@@ -6,6 +6,7 @@ export interface JobMatch {
   url: string;
   description: string;
   level: string[];
+  keywords: string[];
   created_at: string;
   updated_at: string;
   similarity: number;
