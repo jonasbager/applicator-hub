@@ -100,6 +100,147 @@ const jobSites: JobSite[] = [
   }
 ];
 
+async function searchSite(browser: any, site: JobSite, keywords: string, location: string, prefLevel: string): Promise<JobMatch[]> {
+  const page = await browser.newPage();
+  
+  try {
+    // Set user agent and other headers
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+    });
+
+    // Configure page settings
+    await page.setDefaultNavigationTimeout(20000);
+    await page.setRequestInterception(true);
+    page.on('request', (req: { resourceType: () => string; abort: () => void; continue: () => void; }) => {
+      if (req.resourceType() === 'image' || req.resourceType() === 'stylesheet' || req.resourceType() === 'font') {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
+    // Search the site
+    try {
+      console.log(`Searching ${site.name} with:`, { keywords, location });
+      const searchUrl = site.buildSearchUrl(keywords, location);
+
+      // Navigate to job search
+      console.log(`Navigating to ${site.name}:`, searchUrl);
+      await page.goto(searchUrl, { 
+        waitUntil: 'networkidle0',
+        timeout: 20000 
+      });
+
+      // Wait for job cards to load
+      console.log(`Waiting for ${site.name} results to load...`);
+      let resultsFound = false;
+      for (const selector of site.selectors.resultsList) {
+        try {
+          await page.waitForSelector(selector, { timeout: 10000 });
+          resultsFound = true;
+          break;
+        } catch (error) {
+          continue;
+        }
+      }
+
+      if (!resultsFound) {
+        console.log(`No results found on ${site.name}`);
+        return [];
+      }
+
+      // Wait a bit for dynamic content
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Extract job listings
+      console.log(`Extracting listings from ${site.name}...`);
+      const jobs = await page.evaluate((site: JobSite, prefLevel: string) => {
+        let cards = null;
+        for (const selector of site.selectors.resultsList) {
+          const elements = document.querySelectorAll(selector);
+          if (elements.length > 0) {
+            cards = elements;
+            break;
+          }
+        }
+
+        if (!cards) return [];
+
+        return Array.from(cards).map(card => {
+          let title = '', company = '', location = '', url = '';
+
+          // Find title
+          for (const selector of site.selectors.title) {
+            const el = card.querySelector(selector);
+            if (el?.textContent) {
+              title = el.textContent.trim();
+              break;
+            }
+          }
+
+          // Find company
+          for (const selector of site.selectors.company) {
+            const el = card.querySelector(selector);
+            if (el?.textContent) {
+              company = el.textContent.trim();
+              break;
+            }
+          }
+
+          // Find location
+          for (const selector of site.selectors.location) {
+            const el = card.querySelector(selector);
+            if (el?.textContent) {
+              location = el.textContent.trim();
+              break;
+            }
+          }
+
+          // Find URL
+          for (const selector of site.selectors.link) {
+            const el = card.querySelector(selector) as HTMLAnchorElement;
+            if (el?.href) {
+              url = el.href;
+              break;
+            }
+          }
+
+          // Extract keywords from title
+          const titleWords = title.toLowerCase().split(/\W+/).filter(Boolean);
+          const commonWords = new Set(['and', 'or', 'the', 'in', 'at', 'for', 'to', 'of', 'with', 'by']);
+          const keywords = titleWords
+            .filter(word => !commonWords.has(word))
+            .concat(prefLevel.toLowerCase());
+
+          return {
+            id: Math.random().toString(36).substr(2, 9),
+            title: title || '',
+            company: company || '',
+            location: location || '',
+            url: url || '',
+            description: '',
+            level: [prefLevel],
+            keywords: Array.from(new Set(keywords)), // Remove duplicates
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            similarity: 1.0
+          };
+        }).filter(job => job.title && job.company);
+      }, site, prefLevel);
+
+      console.log(`Found ${jobs.length} jobs on ${site.name}`);
+      return jobs;
+    } catch (error) {
+      console.error(`Error searching ${site.name}:`, error);
+      return [];
+    }
+  } finally {
+    await page.close();
+  }
+}
+
 async function searchJobs(preferences: any) {
   const browser = await puppeteer.launch({
     args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
@@ -119,126 +260,11 @@ async function searchJobs(preferences: any) {
   const allJobs: JobMatch[] = [];
 
   try {
-    const page = await browser.newPage();
-    
-    // Set user agent and other headers
-    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
-    await page.setExtraHTTPHeaders({
-      'Accept-Language': 'en-US,en;q=0.9',
-    });
-
-    // Search each job site
+    // Search each site sequentially
     for (const site of jobSites) {
-      console.log(`Searching ${site.name} with:`, { keywords, location });
-      const searchUrl = site.buildSearchUrl(keywords, location);
-
       try {
-        // Navigate to job search
-        console.log(`Navigating to ${site.name}:`, searchUrl);
-        await page.goto(searchUrl, { 
-          waitUntil: 'networkidle0',
-          timeout: 30000 
-        });
-
-        // Wait for job cards to load
-        console.log(`Waiting for ${site.name} results to load...`);
-        let resultsFound = false;
-        for (const selector of site.selectors.resultsList) {
-          try {
-            await page.waitForSelector(selector, { timeout: 10000 });
-            resultsFound = true;
-            break;
-          } catch (error) {
-            continue;
-          }
-        }
-
-        if (!resultsFound) {
-          console.log(`No results found on ${site.name}`);
-          continue;
-        }
-
-        // Wait a bit for dynamic content
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Extract job listings
-        console.log(`Extracting listings from ${site.name}...`);
-        const siteJobs = await page.evaluate((site, prefLevel) => {
-          let cards = null;
-          for (const selector of site.selectors.resultsList) {
-            const elements = document.querySelectorAll(selector);
-            if (elements.length > 0) {
-              cards = elements;
-              break;
-            }
-          }
-
-          if (!cards) return [];
-
-          return Array.from(cards).map(card => {
-            let title = '', company = '', location = '', url = '';
-
-            // Find title
-            for (const selector of site.selectors.title) {
-              const el = card.querySelector(selector);
-              if (el?.textContent) {
-                title = el.textContent.trim();
-                break;
-              }
-            }
-
-            // Find company
-            for (const selector of site.selectors.company) {
-              const el = card.querySelector(selector);
-              if (el?.textContent) {
-                company = el.textContent.trim();
-                break;
-              }
-            }
-
-            // Find location
-            for (const selector of site.selectors.location) {
-              const el = card.querySelector(selector);
-              if (el?.textContent) {
-                location = el.textContent.trim();
-                break;
-              }
-            }
-
-            // Find URL
-            for (const selector of site.selectors.link) {
-              const el = card.querySelector(selector) as HTMLAnchorElement;
-              if (el?.href) {
-                url = el.href;
-                break;
-              }
-            }
-
-            // Extract keywords from title
-            const titleWords = title.toLowerCase().split(/\W+/).filter(Boolean);
-            const commonWords = new Set(['and', 'or', 'the', 'in', 'at', 'for', 'to', 'of', 'with', 'by']);
-            const keywords = titleWords
-              .filter(word => !commonWords.has(word))
-              .concat(prefLevel.toLowerCase());
-
-            return {
-              id: Math.random().toString(36).substr(2, 9),
-              title: title || '',
-              company: company || '',
-              location: location || '',
-              url: url || '',
-              description: '',
-              level: [prefLevel],
-              keywords: Array.from(new Set(keywords)), // Remove duplicates
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              similarity: 1.0
-            };
-          }).filter(job => job.title && job.company);
-        }, site, preferences.level);
-
-        console.log(`Found ${siteJobs.length} jobs on ${site.name}`);
-        allJobs.push(...siteJobs);
+        const jobs = await searchSite(browser, site, keywords, location, preferences.level);
+        allJobs.push(...jobs);
       } catch (error) {
         console.error(`Error searching ${site.name}:`, error);
         // Continue with next site even if one fails
@@ -300,18 +326,46 @@ export const handler: Handler = async (event) => {
     }
 
     // Get user's preferences
+    console.log('Getting preferences for user:', userId);
     const { data: preferences, error: prefError } = await supabase
       .from('job_preferences')
       .select('*')
       .eq('user_id', userId)
       .single();
 
-    if (prefError || !preferences) {
+    if (prefError) {
+      console.error('Error fetching preferences:', prefError);
+      throw new Error(`Failed to fetch preferences: ${prefError.message}`);
+    }
+    if (!preferences) {
+      console.error('No preferences found for user:', userId);
       throw new Error('No preferences found');
     }
 
+    console.log('Found preferences:', preferences);
+
+    // Validate preferences
+    if (!preferences.roles?.length && !preferences.skills?.length) {
+      console.log('No roles or skills found in preferences');
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          jobs: [],
+          message: 'Please add some roles or skills to your preferences'
+        }),
+      };
+    }
+
     // Search all job sites
+    console.log('Starting job search with preferences:', {
+      roles: preferences.roles,
+      skills: preferences.skills,
+      locations: preferences.locations,
+      level: preferences.level
+    });
     const jobs = await searchJobs(preferences);
+    console.log(`Found ${jobs.length} total jobs`);
 
     return {
       statusCode: 200,
