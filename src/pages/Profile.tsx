@@ -37,6 +37,16 @@ export default function Profile() {
   const { supabase } = useSupabase();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.firstName || '');
+      setLastName(user.lastName || '');
+    }
+  }, [user]);
   const [preferences, setPreferences] = useState<JobPreferences | null>(null);
   const [newLevel, setNewLevel] = useState('');
   const [newRole, setNewRole] = useState('');
@@ -485,57 +495,56 @@ export default function Profile() {
               <div>
                 <Label className="mb-2 block">First Name</Label>
                 <Input
-                  value={user?.firstName || ''}
+                  value={firstName}
                   placeholder="Enter your first name"
-                  onChange={async (e) => {
-                    if (!user) return;
-                    const newFirstName = e.target.value;
-                    try {
-                      await user.update({
-                        firstName: newFirstName
-                      });
-                      toast({
-                        title: 'Success',
-                        description: 'First name updated successfully'
-                      });
-                    } catch (error) {
-                      console.error('Error updating first name:', error);
-                      toast({
-                        variant: 'destructive',
-                        title: 'Error',
-                        description: 'Failed to update first name'
-                      });
-                    }
-                  }}
+                  onChange={(e) => setFirstName(e.target.value)}
                 />
               </div>
               <div>
                 <Label className="mb-2 block">Last Name</Label>
                 <Input
-                  value={user?.lastName || ''}
+                  value={lastName}
                   placeholder="Enter your last name"
-                  onChange={async (e) => {
-                    if (!user) return;
-                    const newLastName = e.target.value;
-                    try {
-                      await user.update({
-                        lastName: newLastName
-                      });
-                      toast({
-                        title: 'Success',
-                        description: 'Last name updated successfully'
-                      });
-                    } catch (error) {
-                      console.error('Error updating last name:', error);
-                      toast({
-                        variant: 'destructive',
-                        title: 'Error',
-                        description: 'Failed to update last name'
-                      });
-                    }
-                  }}
+                  onChange={(e) => setLastName(e.target.value)}
                 />
               </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button
+                onClick={async () => {
+                  if (!user) return;
+                  setIsSaving(true);
+                  try {
+                    await user.update({
+                      firstName,
+                      lastName
+                    });
+                    toast({
+                      title: 'Success',
+                      description: 'Profile updated successfully'
+                    });
+                  } catch (error) {
+                    console.error('Error updating profile:', error);
+                    toast({
+                      variant: 'destructive',
+                      title: 'Error',
+                      description: 'Failed to update profile'
+                    });
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
             </div>
           </Card>
 
