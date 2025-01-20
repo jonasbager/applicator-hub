@@ -20,23 +20,40 @@ export default function RecommendedJobs() {
 
     try {
       setRefreshing(true);
+      const userId = getUserId(user.id);
+      console.log('Fetching jobs for user:', userId);
+
       const response = await fetch('/.netlify/functions/find-matching-jobs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: getUserId(user.id),
+          userId: userId,
         }),
       });
 
+      const data = await response.json();
+      console.log('Response from find-matching-jobs:', data);
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.details || 'Failed to fetch matching jobs');
+        throw new Error(data.details || data.error || 'Failed to fetch matching jobs');
       }
 
-      const data = await response.json();
+      if (data.message) {
+        toast({
+          title: 'Note',
+          description: data.message
+        });
+      }
+
+      if (!Array.isArray(data.jobs)) {
+        console.error('Invalid jobs data:', data);
+        throw new Error('Invalid response format');
+      }
+
       setJobs(data.jobs);
+      console.log(`Found ${data.jobs.length} jobs`);
     } catch (error) {
       console.error('Error fetching jobs:', error);
       toast({
