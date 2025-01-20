@@ -404,9 +404,21 @@ export default function Profile() {
     if (!value.trim() || !user || !preferences) return;
 
     try {
+      // Check for duplicates
+      const existingValues = preferences[field] || [];
+      const normalizedValue = value.trim().toLowerCase();
+      if (existingValues.some(v => v.toLowerCase() === normalizedValue)) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: `${value} is already in your ${field}`
+        });
+        return;
+      }
+
       const newPrefs = {
         ...preferences,
-        [field]: [...(preferences[field] || []), value.trim()]
+        [field]: [...existingValues, value.trim()]
       };
 
       const { error } = await supabase
@@ -435,7 +447,7 @@ export default function Profile() {
 
       toast({
         title: 'Success',
-        description: 'Preferences updated successfully'
+        description: `Added ${value} to your ${field}`
       });
     } catch (error) {
       console.error('Error updating preferences:', error);

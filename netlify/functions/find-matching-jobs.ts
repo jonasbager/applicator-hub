@@ -209,17 +209,26 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
             }
           }
 
-          // Extract keywords from title and check if it matches search terms
+          // Extract keywords from title
           const titleLower = title.toLowerCase();
-          const matches = searchTerms.some(term => titleLower.includes(term.toLowerCase()));
-          if (!matches) return null;
-
-          // Extract keywords for future reference
           const titleWords = titleLower.split(/\W+/).filter(Boolean);
           const commonWords = new Set(['and', 'or', 'the', 'in', 'at', 'for', 'to', 'of', 'with', 'by']);
-          const keywords = titleWords
-            .filter(word => !commonWords.has(word))
-            .concat(prefLevel.toLowerCase());
+          const keywords = titleWords.filter(word => !commonWords.has(word));
+
+          // Calculate similarity score based on keyword matches
+          const searchTermMatches = searchTerms.filter(term => 
+            titleLower.includes(term.toLowerCase()) || 
+            keywords.some(keyword => keyword.includes(term.toLowerCase()))
+          );
+
+          // Only include jobs that match at least one search term
+          if (searchTermMatches.length === 0) return null;
+
+          // Calculate similarity score (0.0 to 1.0)
+          const similarity = searchTermMatches.length / searchTerms.length;
+
+          // Add level to keywords for future reference
+          keywords.push(prefLevel.toLowerCase());
 
           return {
             id: Math.random().toString(36).substr(2, 9),
@@ -232,7 +241,7 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
             keywords: Array.from(new Set(keywords)), // Remove duplicates
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            similarity: 1.0
+            similarity: similarity
           };
         }).filter(job => job !== null && job.title && job.company);
       }, { site, prefLevel, keywords });
@@ -303,7 +312,17 @@ async function searchJobs(preferences: any) {
       }
     }
 
-    return allJobs;
+    // Sort jobs by similarity score in descending order
+    const sortedJobs = allJobs.sort((a, b) => b.similarity - a.similarity);
+    
+    // Log job matches for debugging
+    console.log('Job matches:', sortedJobs.map(job => ({
+      title: job.title,
+      similarity: job.similarity,
+      keywords: job.keywords
+    })));
+
+    return sortedJobs;
   } catch (error) {
     console.error('Error searching jobs:', error);
     if (error instanceof Error) {
