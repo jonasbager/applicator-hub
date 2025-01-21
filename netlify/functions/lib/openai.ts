@@ -37,22 +37,47 @@ export async function analyzeJob(job: {
     6. Match score (0-100) based on typical requirements for this role
   `;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4",
-    messages: [{ role: "user", content: prompt }],
-    response_format: { type: "json_object" }
-  });
+  try {
+    console.log('Sending job analysis request to OpenAI...');
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" }
+    });
 
-  const content = completion.choices[0].message.content || '{}';
-  const analysis = JSON.parse(content);
-  return {
-    skills: analysis.skills || [],
-    level: analysis.level || 'Not specified',
-    requirements: analysis.requirements || [],
-    responsibilities: analysis.responsibilities || [],
-    keywords: analysis.keywords || [],
-    score: analysis.score || 0
-  };
+    const content = completion.choices[0].message.content || '{}';
+    console.log('OpenAI response:', content);
+    
+    const analysis = JSON.parse(content);
+    console.log('Parsed analysis:', analysis);
+
+    return {
+      skills: analysis.skills || [],
+      level: analysis.level || 'Not specified',
+      requirements: analysis.requirements || [],
+      responsibilities: analysis.responsibilities || [],
+      keywords: analysis.keywords || [],
+      score: analysis.score || 0
+    };
+  } catch (error) {
+    console.error('Error analyzing job:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
+    // Return default values in case of error
+    return {
+      skills: [],
+      level: 'Not specified',
+      requirements: [],
+      responsibilities: [],
+      keywords: [],
+      score: 0
+    };
+  }
 }
 
 export async function matchJobToPreferences(
@@ -78,14 +103,31 @@ export async function matchJobToPreferences(
     Return only the numeric score.
   `;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.3,
-    max_tokens: 10
-  });
+  try {
+    console.log('Sending job matching request to OpenAI...');
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+      max_tokens: 10
+    });
 
-  const content = completion.choices[0].message.content || '0';
-  const score = parseInt(content, 10);
-  return isNaN(score) ? 0 : score;
+    const content = completion.choices[0].message.content || '0';
+    console.log('OpenAI response:', content);
+    
+    const score = parseInt(content, 10);
+    console.log('Parsed score:', score);
+    
+    return isNaN(score) ? 0 : score;
+  } catch (error) {
+    console.error('Error matching job to preferences:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
+    return 0;
+  }
 }
