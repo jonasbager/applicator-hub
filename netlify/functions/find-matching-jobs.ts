@@ -2,7 +2,7 @@ import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { JobMatch } from './types/job-match';
 import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer-core';
+import puppeteer, { HTTPRequest } from 'puppeteer-core';
 
 if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('Required environment variables are not configured');
@@ -37,7 +37,7 @@ const jobSites: JobSite[] = [
     name: 'LinkedIn',
     baseUrl: 'https://www.linkedin.com/jobs/search',
     buildSearchUrl: (keywords, location) => 
-      `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}&f_TPR=r86400`,
+      `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}&f_TPR=r86400&position=1&pageNum=0`,
     selectors: {
       resultsList: ['.jobs-search__results-list > li', '.job-search-card', '.jobs-search-results__list-item'],
       title: ['.base-search-card__title', '.job-card-list__title', '.jobs-unified-top-card__job-title'],
@@ -52,15 +52,24 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
   const page = await browser.newPage();
   
   try {
-    // Set user agent and other headers
-    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
-    await page.setExtraHTTPHeaders({
-      'Accept-Language': 'en-US,en;q=0.9',
+    // Configure page for optimal performance
+    await page.setDefaultNavigationTimeout(20000);
+    await page.setDefaultTimeout(20000);
+    await page.setRequestInterception(true);
+    page.on('request', (req: HTTPRequest) => {
+      const resourceType = req.resourceType();
+      if (resourceType === 'image' || resourceType === 'stylesheet' || resourceType === 'font' || resourceType === 'media') {
+        req.abort();
+      } else {
+        req.continue();
+      }
     });
 
-    // Configure page settings with more permissive timeouts and no request blocking
-    await page.setDefaultNavigationTimeout(30000);
-    await page.setDefaultTimeout(30000);
+    // Set minimal headers
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/122.0.0.0'
+    });
 
     // Search the site
     try {
@@ -82,15 +91,6 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
       // Wait for initial content to load
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Scroll to load more content (only first page)
-      console.log('Loading initial content...');
-      await page.evaluate(() => {
-        window.scrollTo(0, window.innerHeight);
-      });
-
-      // Wait for content to load
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       // Wait for job cards to load with better error handling
       console.log(`Waiting for ${site.name} results to load...`);
       let resultsFound = false;
@@ -98,7 +98,7 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
 
       for (const selector of site.selectors.resultsList) {
         try {
-          await page.waitForSelector(selector, { timeout: 15000 });
+          await page.waitForSelector(selector, { timeout: 10000 });
           const elements = await page.$$(selector);
           if (elements.length > 0) {
             console.log(`Found ${elements.length} results with selector: ${selector}`);
@@ -115,18 +115,8 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
 
       if (!resultsFound) {
         console.log(`No results found on ${site.name}`, lastError);
-        // Take a screenshot for debugging
-        await page.screenshot({ path: `/tmp/${site.name}-no-results.png` }).catch(console.error);
         return [];
       }
-
-      // Scroll back to top
-      await page.evaluate(() => {
-        window.scrollTo(0, 0);
-      });
-
-      // Final wait for content to settle
-      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Extract job listings
       console.log(`Extracting listings from ${site.name}...`);
@@ -183,13 +173,13 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
             }
           }
 
-      // Extract and normalize keywords from title and company
-      const titleLower = title.toLowerCase();
-      const companyLower = company.toLowerCase();
-      const titleWords = titleLower.split(/[\s,\-\(\)]+/).filter(Boolean);
-      const companyWords = companyLower.split(/[\s,\-\(\)]+/).filter(Boolean);
-      const commonWords = new Set(['and', 'or', 'the', 'in', 'at', 'for', 'to', 'of', 'with', 'by', 'a', 'an']);
-      const keywords = [...titleWords, ...companyWords].filter(word => !commonWords.has(word));
+          // Extract and normalize keywords from title and company
+          const titleLower = title.toLowerCase();
+          const companyLower = company.toLowerCase();
+          const titleWords = titleLower.split(/[\s,\-\(\)]+/).filter(Boolean);
+          const companyWords = companyLower.split(/[\s,\-\(\)]+/).filter(Boolean);
+          const commonWords = new Set(['and', 'or', 'the', 'in', 'at', 'for', 'to', 'of', 'with', 'by', 'a', 'an']);
+          const keywords = [...titleWords, ...companyWords].filter(word => !commonWords.has(word));
 
           // More flexible keyword matching
           const searchTermMatches = searchTerms.filter(term => {
@@ -208,16 +198,6 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
           
           // Calculate weighted similarity score (0.0 to 1.0)
           const similarity = (exactMatches + partialMatches * 0.5) / searchTerms.length;
-
-          // Log matches for debugging
-          console.log('Job match:', {
-            title,
-            keywords,
-            searchTerms,
-            exactMatches,
-            partialMatches,
-            similarity
-          });
 
           // Add level to keywords for future reference
           keywords.push(prefLevel.toLowerCase());
@@ -251,10 +231,19 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
 
 async function searchJobs(preferences: any) {
   const browser = await puppeteer.launch({
-    args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
-    defaultViewport: { width: 1280, height: 800 },
+    args: [
+      ...chromium.args,
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-web-security',
+      '--disable-features=IsolateOrigins,site-per-process',
+      '--single-process'
+    ],
+    defaultViewport: { width: 800, height: 600 },
     executablePath: await chromium.executablePath(),
-    headless: true,
+    headless: true
   });
 
   // Extract and validate search parameters
