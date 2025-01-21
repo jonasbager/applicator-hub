@@ -2,9 +2,8 @@ import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { JobMatch } from './types/job-match';
 import chromium from '@sparticuz/chromium';
-import type { ElementHandle } from 'puppeteer-core';
-import type { HTTPRequest } from 'puppeteer-core';
-import puppeteer from 'puppeteer-core';
+import puppeteer, { HTTPRequest } from 'puppeteer-core';
+import { analyzeJob, matchJobToPreferences } from '../../src/lib/openai';
 
 if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('Required environment variables are not configured');
@@ -21,6 +20,14 @@ const supabase = createClient(
   }
 );
 
+interface RawJob {
+  title: string;
+  company: string;
+  location: string;
+  url: string;
+  description: string;
+}
+
 interface JobSite {
   name: string;
   baseUrl: string;
@@ -31,6 +38,7 @@ interface JobSite {
     company: string[];
     location: string[];
     link: string[];
+    description: string[];
   };
 }
 
@@ -45,12 +53,13 @@ const jobSites: JobSite[] = [
       title: ['.job-card-list__title', '.job-card-container__link-wrapper', '.base-card__full-link'],
       company: ['.job-card-container__primary-description', '.job-card-container__company-name', '.base-search-card__subtitle'],
       location: ['.job-card-container__metadata', '.job-card-container__metadata-item', '.job-search-card__location'],
-      link: ['.job-card-container__link', '.job-card-list__title', '.base-card__full-link']
+      link: ['.job-card-container__link', '.job-card-list__title', '.base-card__full-link'],
+      description: ['.job-card-container__description', '.job-description', '.description__text']
     }
   }
 ];
 
-async function searchSite(browser: any, site: JobSite, keywords: string, location: string, prefLevel: string): Promise<JobMatch[]> {
+async function searchSite(browser: any, site: JobSite, keywords: string, location: string, preferences: any): Promise<JobMatch[]> {
   const page = await browser.newPage();
   
   try {
@@ -78,55 +87,32 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
       console.log(`Searching ${site.name} with:`, { keywords, location });
       const searchUrl = site.buildSearchUrl(keywords, location);
 
-      // Log detailed search parameters
-      console.log('=== Job Search Details ===');
-      console.log(`Site: ${site.name}`);
-      console.log(`URL: ${searchUrl}`);
-      console.log(`Keywords: ${keywords}`);
-      console.log(`Location: ${location}`);
-      console.log(`Level: ${prefLevel}`);
-      console.log('=========================');
+      // Navigate to job search with optimized settings
+      console.log(`Navigating to ${site.name}:`, searchUrl);
       try {
         await page.goto(searchUrl, { 
-          waitUntil: 'networkidle0',
-          timeout: 30000 
+          waitUntil: 'domcontentloaded',
+          timeout: 20000 
         });
       } catch (error) {
         console.log('Navigation error:', error);
-        // Try again with less strict wait condition
-        await page.goto(searchUrl, { 
-          waitUntil: 'domcontentloaded',
-          timeout: 30000 
-        });
+        throw error;
       }
 
       // Wait for initial content to load
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Take a screenshot for debugging
-      await page.screenshot({ path: `/tmp/${site.name}-page.png` }).catch(console.error);
-
-      // Wait for job cards to load with detailed logging
-      console.log('=== Selector Search ===');
-      console.log('Available selectors:', site.selectors.resultsList);
+      // Wait for job cards to load with better error handling
+      console.log(`Waiting for ${site.name} results to load...`);
       let resultsFound = false;
       let lastError = null;
 
       for (const selector of site.selectors.resultsList) {
         try {
-          console.log(`Trying selector: ${selector}`);
           await page.waitForSelector(selector, { timeout: 10000 });
           const elements = await page.$$(selector);
-          console.log(`Found ${elements.length} elements with selector: ${selector}`);
-          
           if (elements.length > 0) {
-            // Log the text content of the first few elements for verification
-            const sampleElements = await Promise.all(elements.slice(0, 3).map(async (element: ElementHandle) => {
-              const text = await page.evaluate((el: Element) => el.textContent, element);
-              return text?.trim();
-            }));
-            console.log('Sample elements found:', sampleElements);
-            
+            console.log(`Found ${elements.length} results with selector: ${selector}`);
             resultsFound = true;
             break;
           }
@@ -143,12 +129,10 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
         return [];
       }
 
-      // Extract job listings with detailed logging
-      console.log('=== Job Extraction ===');
-      console.log('Starting job extraction process...');
-      const jobs = await page.evaluate((params: { site: JobSite; prefLevel: string; keywords: string }) => {
-        const { site, prefLevel, keywords } = params;
-        const searchTerms = keywords.split(' ');
+      // Extract and analyze job listings with OpenAI
+      console.log(`Extracting and analyzing listings from ${site.name}...`);
+      const rawJobs = await page.evaluate((params: { site: JobSite }) => {
+        const { site } = params;
         let cards = null;
         for (const selector of site.selectors.resultsList) {
           const elements = document.querySelectorAll(selector);
@@ -160,8 +144,8 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
 
         if (!cards) return [];
 
-        return Array.from(cards).map(card => {
-          let title = '', company = '', location = '', url = '';
+        return Array.from(cards).map((card): RawJob => {
+          let title = '', company = '', location = '', url = '', description = '';
 
           // Find title
           for (const selector of site.selectors.title) {
@@ -199,69 +183,96 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
             }
           }
 
-          // Extract and normalize keywords with detailed logging
-          const titleLower = title.toLowerCase();
-          const companyLower = company.toLowerCase();
-          const titleWords = titleLower.split(/[\s,\-\(\)]+/).filter(Boolean);
-          const companyWords = companyLower.split(/[\s,\-\(\)]+/).filter(Boolean);
-          const commonWords = new Set(['and', 'or', 'the', 'in', 'at', 'for', 'to', 'of', 'with', 'by', 'a', 'an']);
-          const keywords = [...titleWords, ...companyWords].filter(word => !commonWords.has(word));
-
-          console.log('=== Job Details ===');
-          console.log('Title:', title);
-          console.log('Company:', company);
-          console.log('Location:', location);
-          console.log('URL:', url);
-          console.log('Extracted keywords:', keywords);
-
-          // More flexible keyword matching with detailed logging
-          console.log('=== Keyword Matching ===');
-          console.log('Search terms:', searchTerms);
-          
-          const searchTermMatches = searchTerms.filter(term => {
-            const termLower = term.toLowerCase();
-            const titleMatch = titleLower.includes(termLower);
-            const keywordMatch = keywords.some(keyword => keyword.includes(termLower) || termLower.includes(keyword));
-            
-            console.log(`Term "${term}":`, {
-              titleMatch,
-              keywordMatch,
-              matched: titleMatch || keywordMatch
-            });
-            
-            return titleMatch || keywordMatch;
-          });
-
-          // Include jobs with any keyword match, with weighted scoring
-          const exactMatches = searchTermMatches.filter(term => 
-            titleLower.includes(term.toLowerCase())
-          ).length;
-          const partialMatches = searchTermMatches.length - exactMatches;
-          
-          // Calculate weighted similarity score (0.0 to 1.0)
-          const similarity = (exactMatches + partialMatches * 0.5) / searchTerms.length;
-
-          // Add level to keywords for future reference
-          keywords.push(prefLevel.toLowerCase());
+          // Find description
+          for (const selector of site.selectors.description) {
+            const el = card.querySelector(selector);
+            if (el?.textContent) {
+              description = el.textContent.trim();
+              break;
+            }
+          }
 
           return {
-            id: Math.random().toString(36).substr(2, 9),
             title: title || '',
             company: company || '',
             location: location || '',
             url: url || '',
-            description: '',
-            level: [prefLevel],
-            keywords: Array.from(new Set(keywords)), // Remove duplicates
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            similarity: similarity
+            description: description || ''
           };
-        }).filter(job => job !== null && job.title && job.company);
-      }, { site, prefLevel, keywords });
+        }).filter(job => job.title && job.company);
+      }, { site });
 
-      console.log(`Found ${jobs.length} jobs on ${site.name}`);
-      return jobs;
+      // Enhanced job analysis with OpenAI
+      console.log('Analyzing jobs with OpenAI...');
+      const analyzedJobs = await Promise.all(
+        rawJobs.map(async (job: RawJob) => {
+          try {
+            // First, analyze the job details
+            const analysis = await analyzeJob(job);
+            console.log('Job analysis:', analysis);
+
+            // Then, calculate match score with user preferences
+            const matchScore = await matchJobToPreferences(analysis, {
+              skills: preferences.skills || [],
+              level: preferences.level || [],
+              roles: preferences.roles || []
+            });
+            console.log('Match score:', matchScore);
+
+            // Calculate keyword relevance
+            const keywordRelevance = analysis.keywords.filter((keyword: string) => 
+              preferences.skills?.some((skill: string) => 
+                skill.toLowerCase().includes(keyword.toLowerCase()) ||
+                keyword.toLowerCase().includes(skill.toLowerCase())
+              )
+            ).length / Math.max(analysis.keywords.length, 1);
+
+            // Calculate level match
+            const levelMatch = preferences.level?.some((level: string) => 
+              analysis.level.toLowerCase().includes(level.toLowerCase())
+            ) ? 1 : 0;
+
+            // Calculate role match
+            const roleMatch = preferences.roles?.some((role: string) =>
+              job.title.toLowerCase().includes(role.toLowerCase()) ||
+              analysis.keywords.some((keyword: string) => 
+                keyword.toLowerCase().includes(role.toLowerCase())
+              )
+            ) ? 1 : 0;
+
+            // Calculate final similarity score (weighted average)
+            const similarity = (
+              (matchScore / 100) * 0.4 + // OpenAI match score (40%)
+              keywordRelevance * 0.3 + // Keyword relevance (30%)
+              levelMatch * 0.15 + // Level match (15%)
+              roleMatch * 0.15 // Role match (15%)
+            );
+
+            console.log('Final similarity score:', similarity);
+
+            return {
+              id: Math.random().toString(36).substr(2, 9),
+              title: job.title,
+              company: job.company,
+              location: job.location,
+              url: job.url,
+              description: job.description,
+              level: [analysis.level],
+              keywords: analysis.keywords,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              similarity: similarity
+            };
+          } catch (error) {
+            console.error('Error analyzing job:', error);
+            return null;
+          }
+        })
+      );
+
+      const validJobs = analyzedJobs.filter((job): job is JobMatch => job !== null);
+      console.log(`Successfully analyzed ${validJobs.length} jobs`);
+      return validJobs;
     } catch (error) {
       console.error(`Error searching ${site.name}:`, error);
       return [];
@@ -326,7 +337,7 @@ async function searchJobs(preferences: any) {
     // Search each site sequentially
     for (const site of jobSites) {
       try {
-        const jobs = await searchSite(browser, site, searchKeywords, location, preferences.level[0] || 'Entry Level');
+        const jobs = await searchSite(browser, site, searchKeywords, location, preferences);
         allJobs.push(...jobs);
       } catch (error) {
         console.error(`Error searching ${site.name}:`, error);
