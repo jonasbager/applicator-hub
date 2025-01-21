@@ -11,7 +11,7 @@
     "axios": "^1.7.9",
     "cheerio": "^1.0.0",
     "mammoth": "^1.9.0",
-    "openai": "^4.28.0",
+    "openai": "^4.79.3",
     "pdf-parse": "^1.1.1",
     "puppeteer": "^23.11.1",
     "puppeteer-core": "^24.1.0",
