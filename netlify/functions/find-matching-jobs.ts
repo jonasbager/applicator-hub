@@ -37,26 +37,13 @@ const jobSites: JobSite[] = [
     name: 'LinkedIn',
     baseUrl: 'https://www.linkedin.com/jobs/search',
     buildSearchUrl: (keywords, location) => 
-      `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}`,
+      `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}&f_TPR=r86400`,
     selectors: {
       resultsList: ['.jobs-search__results-list > li', '.job-search-card', '.jobs-search-results__list-item'],
       title: ['.base-search-card__title', '.job-card-list__title', '.jobs-unified-top-card__job-title'],
       company: ['.base-search-card__subtitle', '.job-card-container__company-name', '.jobs-unified-top-card__company-name'],
       location: ['.job-search-card__location', '.job-card-container__metadata-item', '.jobs-unified-top-card__bullet'],
       link: ['a.base-card__full-link', 'a.job-card-list__title', 'a.job-card-container__link']
-    }
-  },
-  {
-    name: 'Indeed',
-    baseUrl: 'https://www.indeed.com/jobs',
-    buildSearchUrl: (keywords, location) => 
-      `https://www.indeed.com/jobs?q=${encodeURIComponent(keywords)}&l=${encodeURIComponent(location)}`,
-    selectors: {
-      resultsList: ['.job_seen_beacon', '.jobsearch-ResultsList > li', '.resultContent'],
-      title: ['h2.jobTitle', '.jcs-JobTitle', '.jobTitle'],
-      company: ['.companyName', '.company_location > .companyName', '.company'],
-      location: ['.companyLocation', '.company_location > .companyLocation', '.location'],
-      link: ['h2.jobTitle a', '.jcs-JobTitle a', '.jobTitle a']
     }
   }
 ];
@@ -80,17 +67,29 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
       console.log(`Searching ${site.name} with:`, { keywords, location });
       const searchUrl = site.buildSearchUrl(keywords, location);
 
-      // Navigate to job search with more permissive settings
+      // Navigate to job search with optimized settings
       console.log(`Navigating to ${site.name}:`, searchUrl);
-      await page.goto(searchUrl, { 
-        waitUntil: 'domcontentloaded',
-        timeout: 30000 
+      try {
+        await page.goto(searchUrl, { 
+          waitUntil: 'domcontentloaded',
+          timeout: 20000 
+        });
+      } catch (error) {
+        console.log('Navigation error:', error);
+        throw error;
+      }
+
+      // Wait for initial content to load
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Scroll to load more content (only first page)
+      console.log('Loading initial content...');
+      await page.evaluate(() => {
+        window.scrollTo(0, window.innerHeight);
       });
 
-      // Wait for network to be idle
-      await page.waitForNetworkIdle({ timeout: 10000 }).catch(() => {
-        console.log('Network idle timeout, continuing anyway');
-      });
+      // Wait for content to load
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Wait for job cards to load with better error handling
       console.log(`Waiting for ${site.name} results to load...`);
@@ -121,8 +120,13 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
         return [];
       }
 
-      // Wait longer for dynamic content
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      // Scroll back to top
+      await page.evaluate(() => {
+        window.scrollTo(0, 0);
+      });
+
+      // Final wait for content to settle
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Extract job listings
       console.log(`Extracting listings from ${site.name}...`);
