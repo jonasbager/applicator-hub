@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { JobMatch } from './types/job-match';
 import chromium from '@sparticuz/chromium';
 import puppeteer, { HTTPRequest } from 'puppeteer-core';
-import { analyzeJob, matchJobToPreferences } from '../../src/lib/openai';
+import { analyzeJob, matchJobToPreferences } from './lib/openai';
 
 if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('Required environment variables are not configured');
