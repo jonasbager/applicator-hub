@@ -2,7 +2,9 @@ import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { JobMatch } from './types/job-match';
 import chromium from '@sparticuz/chromium';
-import puppeteer, { HTTPRequest } from 'puppeteer-core';
+import type { ElementHandle } from 'puppeteer-core';
+import type { HTTPRequest } from 'puppeteer-core';
+import puppeteer from 'puppeteer-core';
 
 if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('Required environment variables are not configured');
@@ -76,8 +78,14 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
       console.log(`Searching ${site.name} with:`, { keywords, location });
       const searchUrl = site.buildSearchUrl(keywords, location);
 
-      // Navigate to job search with optimized settings
-      console.log(`Navigating to ${site.name}:`, searchUrl);
+      // Log detailed search parameters
+      console.log('=== Job Search Details ===');
+      console.log(`Site: ${site.name}`);
+      console.log(`URL: ${searchUrl}`);
+      console.log(`Keywords: ${keywords}`);
+      console.log(`Location: ${location}`);
+      console.log(`Level: ${prefLevel}`);
+      console.log('=========================');
       try {
         await page.goto(searchUrl, { 
           waitUntil: 'networkidle0',
@@ -98,17 +106,27 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
       // Take a screenshot for debugging
       await page.screenshot({ path: `/tmp/${site.name}-page.png` }).catch(console.error);
 
-      // Wait for job cards to load with better error handling
-      console.log(`Waiting for ${site.name} results to load...`);
+      // Wait for job cards to load with detailed logging
+      console.log('=== Selector Search ===');
+      console.log('Available selectors:', site.selectors.resultsList);
       let resultsFound = false;
       let lastError = null;
 
       for (const selector of site.selectors.resultsList) {
         try {
+          console.log(`Trying selector: ${selector}`);
           await page.waitForSelector(selector, { timeout: 10000 });
           const elements = await page.$$(selector);
+          console.log(`Found ${elements.length} elements with selector: ${selector}`);
+          
           if (elements.length > 0) {
-            console.log(`Found ${elements.length} results with selector: ${selector}`);
+            // Log the text content of the first few elements for verification
+            const sampleElements = await Promise.all(elements.slice(0, 3).map(async (element: ElementHandle) => {
+              const text = await page.evaluate((el: Element) => el.textContent, element);
+              return text?.trim();
+            }));
+            console.log('Sample elements found:', sampleElements);
+            
             resultsFound = true;
             break;
           }
@@ -125,8 +143,9 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
         return [];
       }
 
-      // Extract job listings
-      console.log(`Extracting listings from ${site.name}...`);
+      // Extract job listings with detailed logging
+      console.log('=== Job Extraction ===');
+      console.log('Starting job extraction process...');
       const jobs = await page.evaluate((params: { site: JobSite; prefLevel: string; keywords: string }) => {
         const { site, prefLevel, keywords } = params;
         const searchTerms = keywords.split(' ');
@@ -180,7 +199,7 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
             }
           }
 
-          // Extract and normalize keywords from title and company
+          // Extract and normalize keywords with detailed logging
           const titleLower = title.toLowerCase();
           const companyLower = company.toLowerCase();
           const titleWords = titleLower.split(/[\s,\-\(\)]+/).filter(Boolean);
@@ -188,13 +207,29 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
           const commonWords = new Set(['and', 'or', 'the', 'in', 'at', 'for', 'to', 'of', 'with', 'by', 'a', 'an']);
           const keywords = [...titleWords, ...companyWords].filter(word => !commonWords.has(word));
 
-          // More flexible keyword matching
+          console.log('=== Job Details ===');
+          console.log('Title:', title);
+          console.log('Company:', company);
+          console.log('Location:', location);
+          console.log('URL:', url);
+          console.log('Extracted keywords:', keywords);
+
+          // More flexible keyword matching with detailed logging
+          console.log('=== Keyword Matching ===');
+          console.log('Search terms:', searchTerms);
+          
           const searchTermMatches = searchTerms.filter(term => {
             const termLower = term.toLowerCase();
-            return (
-              titleLower.includes(termLower) || 
-              keywords.some(keyword => keyword.includes(termLower) || termLower.includes(keyword))
-            );
+            const titleMatch = titleLower.includes(termLower);
+            const keywordMatch = keywords.some(keyword => keyword.includes(termLower) || termLower.includes(keyword));
+            
+            console.log(`Term "${term}":`, {
+              titleMatch,
+              keywordMatch,
+              matched: titleMatch || keywordMatch
+            });
+            
+            return titleMatch || keywordMatch;
           });
 
           // Include jobs with any keyword match, with weighted scoring
