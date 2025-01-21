@@ -39,11 +39,11 @@ const jobSites: JobSite[] = [
     buildSearchUrl: (keywords, location) => 
       `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}&f_TPR=r86400&position=1&pageNum=0`,
     selectors: {
-      resultsList: ['.jobs-search__results-list > li', '.job-search-card', '.jobs-search-results__list-item'],
-      title: ['.base-search-card__title', '.job-card-list__title', '.jobs-unified-top-card__job-title'],
-      company: ['.base-search-card__subtitle', '.job-card-container__company-name', '.jobs-unified-top-card__company-name'],
-      location: ['.job-search-card__location', '.job-card-container__metadata-item', '.jobs-unified-top-card__bullet'],
-      link: ['a.base-card__full-link', 'a.job-card-list__title', 'a.job-card-container__link']
+      resultsList: ['.jobs-search-results__list-item', '.job-search-card', '.jobs-search-results-list__item'],
+      title: ['.job-card-list__title', '.job-card-container__link-wrapper', '.base-card__full-link'],
+      company: ['.job-card-container__primary-description', '.job-card-container__company-name', '.base-search-card__subtitle'],
+      location: ['.job-card-container__metadata', '.job-card-container__metadata-item', '.job-search-card__location'],
+      link: ['.job-card-container__link', '.job-card-list__title', '.base-card__full-link']
     }
   }
 ];
@@ -80,16 +80,23 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
       console.log(`Navigating to ${site.name}:`, searchUrl);
       try {
         await page.goto(searchUrl, { 
-          waitUntil: 'domcontentloaded',
-          timeout: 20000 
+          waitUntil: 'networkidle0',
+          timeout: 30000 
         });
       } catch (error) {
         console.log('Navigation error:', error);
-        throw error;
+        // Try again with less strict wait condition
+        await page.goto(searchUrl, { 
+          waitUntil: 'domcontentloaded',
+          timeout: 30000 
+        });
       }
 
       // Wait for initial content to load
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Take a screenshot for debugging
+      await page.screenshot({ path: `/tmp/${site.name}-page.png` }).catch(console.error);
 
       // Wait for job cards to load with better error handling
       console.log(`Waiting for ${site.name} results to load...`);
