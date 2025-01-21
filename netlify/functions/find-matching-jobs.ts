@@ -49,12 +49,12 @@ const jobSites: JobSite[] = [
     buildSearchUrl: (keywords, location) => 
       `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}&f_TPR=r86400&position=1&pageNum=0`,
     selectors: {
-      resultsList: ['.jobs-search-results__list-item', '.job-search-card', '.jobs-search-results-list__item'],
-      title: ['.job-card-list__title', '.job-card-container__link-wrapper', '.base-card__full-link'],
-      company: ['.job-card-container__primary-description', '.job-card-container__company-name', '.base-search-card__subtitle'],
-      location: ['.job-card-container__metadata', '.job-card-container__metadata-item', '.job-search-card__location'],
-      link: ['.job-card-container__link', '.job-card-list__title', '.base-card__full-link'],
-      description: ['.job-card-container__description', '.job-description', '.description__text']
+      resultsList: ['.jobs-search-results-list__item', '.job-card-container', '.job-card-list__item'],
+      title: ['.job-card-list__title', '.job-card-container__link', '.job-card-container__title'],
+      company: ['.job-card-container__company-name', '.job-card-container__primary-description', '.job-card-container__subtitle-link'],
+      location: ['.job-card-container__metadata-item', '.job-card-container__location', '.artdeco-entity-lockup__caption'],
+      link: ['.job-card-container__link', '.job-card-list__title', '.job-card-container__link-wrapper'],
+      description: ['.job-card-container__description', '.job-card-container__footer-item', '.job-card-container__metadata']
     }
   }
 ];
@@ -64,8 +64,8 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
   
   try {
     // Configure page for optimal performance
-    await page.setDefaultNavigationTimeout(20000);
-    await page.setDefaultTimeout(20000);
+    await page.setDefaultNavigationTimeout(30000);
+    await page.setDefaultTimeout(30000);
     await page.setRequestInterception(true);
     page.on('request', (req: HTTPRequest) => {
       const resourceType = req.resourceType();
@@ -76,10 +76,31 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
       }
     });
 
-    // Set minimal headers
+    // Set more realistic headers
     await page.setExtraHTTPHeaders({
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.9',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/122.0.0.0'
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+    });
+
+    // Set viewport to a common resolution
+    await page.setViewport({
+      width: 1920,
+      height: 1080,
+      deviceScaleFactor: 1,
+    });
+
+    // Add additional browser features
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => false });
+      Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
     });
 
     // Search the site
@@ -91,16 +112,17 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
       console.log(`Navigating to ${site.name}:`, searchUrl);
       try {
         await page.goto(searchUrl, { 
-          waitUntil: 'domcontentloaded',
-          timeout: 20000 
+          waitUntil: 'networkidle0',
+          timeout: 30000 
         });
+        console.log('Page loaded successfully');
       } catch (error) {
-        console.log('Navigation error:', error);
+        console.error('Navigation error:', error);
         throw error;
       }
 
-      // Wait for initial content to load
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for initial content to load with random delay
+      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
 
       // Wait for job cards to load with better error handling
       console.log(`Waiting for ${site.name} results to load...`);
@@ -109,7 +131,8 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
 
       for (const selector of site.selectors.resultsList) {
         try {
-          await page.waitForSelector(selector, { timeout: 10000 });
+          console.log(`Trying selector: ${selector}`);
+          await page.waitForSelector(selector, { timeout: 15000 });
           const elements = await page.$$(selector);
           if (elements.length > 0) {
             console.log(`Found ${elements.length} results with selector: ${selector}`);
@@ -202,6 +225,8 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
         }).filter(job => job.title && job.company);
       }, { site });
 
+      console.log(`Found ${rawJobs.length} raw jobs`);
+
       // Enhanced job analysis with OpenAI
       console.log('Analyzing jobs with OpenAI...');
       const analyzedJobs = await Promise.all(
@@ -283,6 +308,7 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
 }
 
 async function searchJobs(preferences: any) {
+  console.log('Launching browser with enhanced settings...');
   const browser = await puppeteer.launch({
     args: [
       ...chromium.args,
@@ -292,12 +318,18 @@ async function searchJobs(preferences: any) {
       '--disable-gpu',
       '--disable-web-security',
       '--disable-features=IsolateOrigins,site-per-process',
-      '--single-process'
+      '--single-process',
+      '--window-size=1920,1080',
+      '--ignore-certificate-errors',
+      '--enable-features=NetworkService',
+      '--allow-running-insecure-content',
+      '--disable-blink-features=AutomationControlled'
     ],
-    defaultViewport: { width: 800, height: 600 },
+    defaultViewport: { width: 1920, height: 1080 },
     executablePath: await chromium.executablePath(),
     headless: true
   });
+  console.log('Browser launched successfully');
 
   // Extract and validate search parameters
   const roles = preferences.roles || [];
