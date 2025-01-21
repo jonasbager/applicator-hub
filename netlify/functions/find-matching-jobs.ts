@@ -39,11 +39,11 @@ const jobSites: JobSite[] = [
     buildSearchUrl: (keywords, location) => 
       `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}`,
     selectors: {
-      resultsList: ['.jobs-search__results-list > li', '.job-search-card'],
-      title: ['.base-search-card__title', '.job-card-list__title'],
-      company: ['.base-search-card__subtitle', '.job-card-container__company-name'],
-      location: ['.job-search-card__location', '.job-card-container__metadata-item'],
-      link: ['a.base-card__full-link', 'a.job-card-list__title']
+      resultsList: ['.jobs-search__results-list > li', '.job-search-card', '.jobs-search-results__list-item'],
+      title: ['.base-search-card__title', '.job-card-list__title', '.jobs-unified-top-card__job-title'],
+      company: ['.base-search-card__subtitle', '.job-card-container__company-name', '.jobs-unified-top-card__company-name'],
+      location: ['.job-search-card__location', '.job-card-container__metadata-item', '.jobs-unified-top-card__bullet'],
+      link: ['a.base-card__full-link', 'a.job-card-list__title', 'a.job-card-container__link']
     }
   },
   {
@@ -52,50 +52,11 @@ const jobSites: JobSite[] = [
     buildSearchUrl: (keywords, location) => 
       `https://www.indeed.com/jobs?q=${encodeURIComponent(keywords)}&l=${encodeURIComponent(location)}`,
     selectors: {
-      resultsList: ['.job_seen_beacon', '.jobsearch-ResultsList > li'],
-      title: ['h2.jobTitle', '.jcs-JobTitle'],
-      company: ['.companyName', '.company_location > .companyName'],
-      location: ['.companyLocation', '.company_location > .companyLocation'],
-      link: ['h2.jobTitle a', '.jcs-JobTitle a']
-    }
-  },
-  {
-    name: 'Monster',
-    baseUrl: 'https://www.monster.com/jobs/search',
-    buildSearchUrl: (keywords, location) => 
-      `https://www.monster.com/jobs/search?q=${encodeURIComponent(keywords)}&where=${encodeURIComponent(location)}`,
-    selectors: {
-      resultsList: ['.job-search-resultsstyle__JobCardContainer', '.results-card'],
-      title: ['.title-container > a', '.job-title'],
-      company: ['.name', '.company'],
-      location: ['.location', '.job-location'],
-      link: ['.title-container > a', '.job-title > a']
-    }
-  },
-  {
-    name: 'TheHub',
-    baseUrl: 'https://thehub.io/jobs',
-    buildSearchUrl: (keywords, location) => 
-      `https://thehub.io/jobs?q=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}`,
-    selectors: {
-      resultsList: ['.job-card', '.job-posting-card'],
-      title: ['.job-card__title', '.job-posting-card__title'],
-      company: ['.job-card__company', '.job-posting-card__company'],
-      location: ['.job-card__location', '.job-posting-card__location'],
-      link: ['.job-card__link', '.job-posting-card__link']
-    }
-  },
-  {
-    name: 'Jobindex',
-    baseUrl: 'https://www.jobindex.dk/jobsoegning',
-    buildSearchUrl: (keywords, location) => 
-      `https://www.jobindex.dk/jobsoegning?q=${encodeURIComponent(keywords)}&area=${encodeURIComponent(location)}`,
-    selectors: {
-      resultsList: ['.jobsearch-result', '.jix-toolbar-content > div'],
-      title: ['.jix-toolbar-title', '.PaidJob-inner h4'],
-      company: ['.jix-toolbar-company', '.PaidJob-inner .company'],
-      location: ['.jix-toolbar-location', '.PaidJob-inner .area'],
-      link: ['.jix-toolbar-title a', '.PaidJob-inner h4 a']
+      resultsList: ['.job_seen_beacon', '.jobsearch-ResultsList > li', '.resultContent'],
+      title: ['h2.jobTitle', '.jcs-JobTitle', '.jobTitle'],
+      company: ['.companyName', '.company_location > .companyName', '.company'],
+      location: ['.companyLocation', '.company_location > .companyLocation', '.location'],
+      link: ['h2.jobTitle a', '.jcs-JobTitle a', '.jobTitle a']
     }
   }
 ];
@@ -110,49 +71,58 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
       'Accept-Language': 'en-US,en;q=0.9',
     });
 
-    // Configure page settings
-    await page.setDefaultNavigationTimeout(20000);
-    await page.setRequestInterception(true);
-    page.on('request', (req: { resourceType: () => string; abort: () => void; continue: () => void; }) => {
-      if (req.resourceType() === 'image' || req.resourceType() === 'stylesheet' || req.resourceType() === 'font') {
-        req.abort();
-      } else {
-        req.continue();
-      }
-    });
+    // Configure page settings with more permissive timeouts and no request blocking
+    await page.setDefaultNavigationTimeout(30000);
+    await page.setDefaultTimeout(30000);
 
     // Search the site
     try {
       console.log(`Searching ${site.name} with:`, { keywords, location });
       const searchUrl = site.buildSearchUrl(keywords, location);
 
-      // Navigate to job search
+      // Navigate to job search with more permissive settings
       console.log(`Navigating to ${site.name}:`, searchUrl);
       await page.goto(searchUrl, { 
-        waitUntil: 'networkidle0',
-        timeout: 20000 
+        waitUntil: 'domcontentloaded',
+        timeout: 30000 
       });
 
-      // Wait for job cards to load
+      // Wait for network to be idle
+      await page.waitForNetworkIdle({ timeout: 10000 }).catch(() => {
+        console.log('Network idle timeout, continuing anyway');
+      });
+
+      // Wait for job cards to load with better error handling
       console.log(`Waiting for ${site.name} results to load...`);
       let resultsFound = false;
+      let lastError = null;
+
       for (const selector of site.selectors.resultsList) {
         try {
-          await page.waitForSelector(selector, { timeout: 10000 });
-          resultsFound = true;
-          break;
+          await page.waitForSelector(selector, { timeout: 15000 });
+          const elements = await page.$$(selector);
+          if (elements.length > 0) {
+            console.log(`Found ${elements.length} results with selector: ${selector}`);
+            resultsFound = true;
+            break;
+          }
         } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.log(`Selector ${selector} not found:`, errorMessage);
+          lastError = error instanceof Error ? error : new Error(errorMessage);
           continue;
         }
       }
 
       if (!resultsFound) {
-        console.log(`No results found on ${site.name}`);
+        console.log(`No results found on ${site.name}`, lastError);
+        // Take a screenshot for debugging
+        await page.screenshot({ path: `/tmp/${site.name}-no-results.png` }).catch(console.error);
         return [];
       }
 
-      // Wait a bit for dynamic content
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait longer for dynamic content
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
       // Extract job listings
       console.log(`Extracting listings from ${site.name}...`);
@@ -209,23 +179,41 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
             }
           }
 
-          // Extract keywords from title
-          const titleLower = title.toLowerCase();
-          const titleWords = titleLower.split(/\W+/).filter(Boolean);
-          const commonWords = new Set(['and', 'or', 'the', 'in', 'at', 'for', 'to', 'of', 'with', 'by']);
-          const keywords = titleWords.filter(word => !commonWords.has(word));
+      // Extract and normalize keywords from title and company
+      const titleLower = title.toLowerCase();
+      const companyLower = company.toLowerCase();
+      const titleWords = titleLower.split(/[\s,\-\(\)]+/).filter(Boolean);
+      const companyWords = companyLower.split(/[\s,\-\(\)]+/).filter(Boolean);
+      const commonWords = new Set(['and', 'or', 'the', 'in', 'at', 'for', 'to', 'of', 'with', 'by', 'a', 'an']);
+      const keywords = [...titleWords, ...companyWords].filter(word => !commonWords.has(word));
 
-          // Calculate similarity score based on keyword matches
-          const searchTermMatches = searchTerms.filter(term => 
-            titleLower.includes(term.toLowerCase()) || 
-            keywords.some(keyword => keyword.includes(term.toLowerCase()))
-          );
+          // More flexible keyword matching
+          const searchTermMatches = searchTerms.filter(term => {
+            const termLower = term.toLowerCase();
+            return (
+              titleLower.includes(termLower) || 
+              keywords.some(keyword => keyword.includes(termLower) || termLower.includes(keyword))
+            );
+          });
 
-          // Only include jobs that match at least one search term
-          if (searchTermMatches.length === 0) return null;
+          // Include jobs with any keyword match, with weighted scoring
+          const exactMatches = searchTermMatches.filter(term => 
+            titleLower.includes(term.toLowerCase())
+          ).length;
+          const partialMatches = searchTermMatches.length - exactMatches;
+          
+          // Calculate weighted similarity score (0.0 to 1.0)
+          const similarity = (exactMatches + partialMatches * 0.5) / searchTerms.length;
 
-          // Calculate similarity score (0.0 to 1.0)
-          const similarity = searchTermMatches.length / searchTerms.length;
+          // Log matches for debugging
+          console.log('Job match:', {
+            title,
+            keywords,
+            searchTerms,
+            exactMatches,
+            partialMatches,
+            similarity
+          });
 
           // Add level to keywords for future reference
           keywords.push(prefLevel.toLowerCase());
