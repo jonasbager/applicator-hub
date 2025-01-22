@@ -44,28 +44,30 @@ interface JobSite {
 
 const jobSites: JobSite[] = [
   {
-    name: 'LinkedIn',
-    baseUrl: 'https://www.linkedin.com/jobs/search',
+    name: 'TheHub',
+    baseUrl: 'https://thehub.io/jobs',
     buildSearchUrl: (keywords, location) => 
-      `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}&f_TPR=r86400&position=1&pageNum=0`,
+      `https://thehub.io/jobs?q=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}&sortBy=recent`,
     selectors: {
-      resultsList: ['.jobs-search-results-list__item', '.job-card-container', '.job-card-list__item'],
-      title: ['.job-card-list__title', '.job-card-container__link', '.job-card-container__title'],
-      company: ['.job-card-container__company-name', '.job-card-container__primary-description', '.job-card-container__subtitle-link'],
-      location: ['.job-card-container__metadata-item', '.job-card-container__location', '.artdeco-entity-lockup__caption'],
-      link: ['.job-card-container__link', '.job-card-list__title', '.job-card-container__link-wrapper'],
-      description: ['.job-card-container__description', '.job-card-container__footer-item', '.job-card-container__metadata']
+      resultsList: ['.job-card', '.job-posting-card'],
+      title: ['.job-card__title', '.job-posting-card__title'],
+      company: ['.job-card__company', '.job-posting-card__company'],
+      location: ['.job-card__location', '.job-posting-card__location'],
+      link: ['.job-card__link', '.job-posting-card__link', 'a.job-card'],
+      description: ['.job-card__description', '.job-posting-card__description']
     }
   }
 ];
 
 async function searchSite(browser: any, site: JobSite, keywords: string, location: string, preferences: any): Promise<JobMatch[]> {
+  console.log(`Starting search on ${site.name} with:`, { keywords, location });
   const page = await browser.newPage();
   
   try {
-    // Configure page for optimal performance
-    await page.setDefaultNavigationTimeout(30000);
-    await page.setDefaultTimeout(30000);
+    // Configure page with longer timeouts
+    await page.setDefaultNavigationTimeout(45000);
+    await page.setDefaultTimeout(45000);
+    console.log('Page configuration complete');
     await page.setRequestInterception(true);
     page.on('request', (req: HTTPRequest) => {
       const resourceType = req.resourceType();
@@ -103,29 +105,57 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
       Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
     });
 
-    // Search the site
+    // Search the site with enhanced error handling
     try {
-      console.log(`Searching ${site.name} with:`, { keywords, location });
       const searchUrl = site.buildSearchUrl(keywords, location);
-
-      // Navigate to job search with optimized settings
       console.log(`Navigating to ${site.name}:`, searchUrl);
+
+      // Log pre-navigation state
+      console.log('Current page URL:', page.url());
+      console.log('Navigation starting...');
       try {
-        await page.goto(searchUrl, { 
+        console.log('Starting page navigation...');
+        const response = await page.goto(searchUrl, { 
           waitUntil: 'networkidle0',
           timeout: 30000 
         });
-        console.log('Page loaded successfully');
+        
+        if (!response) {
+          throw new Error('No response received from page navigation');
+        }
+
+        const status = response.status();
+        console.log(`Page loaded with status: ${status}`);
+        
+        if (status !== 200) {
+          throw new Error(`Page returned status code ${status}`);
+        }
+
+        // Log response headers for debugging
+        const headers = response.headers();
+        console.log('Response headers:', headers);
+
+        // Check if we got the expected content
+        const content = await page.content();
+        if (!content.includes('thehub.io')) {
+          console.log('Unexpected page content. First 500 characters:', content.substring(0, 500));
+          throw new Error('Loaded page does not appear to be TheHub');
+        }
+
+        console.log('Page loaded successfully and verified as TheHub');
       } catch (error) {
         console.error('Navigation error:', error);
+        console.error('Current URL:', page.url());
         throw error;
       }
 
-      // Wait for initial content to load with random delay
-      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
+      // Wait for initial content with progress logging
+      const randomDelay = 2000 + Math.random() * 3000;
+      console.log(`Waiting ${Math.round(randomDelay)}ms for initial content...`);
+      await new Promise(resolve => setTimeout(resolve, randomDelay));
 
-      // Wait for job cards to load with better error handling
-      console.log(`Waiting for ${site.name} results to load...`);
+      // Enhanced job card loading with detailed logging
+      console.log(`Attempting to locate job cards using selectors:`, site.selectors.resultsList);
       let resultsFound = false;
       let lastError = null;
 
@@ -148,12 +178,13 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
       }
 
       if (!resultsFound) {
-        console.log(`No results found on ${site.name}`, lastError);
+        console.log(`No results found on ${site.name}. Page content:`, await page.content());
+        console.log('Last error:', lastError);
         return [];
       }
 
-      // Extract and analyze job listings with OpenAI
-      console.log(`Extracting and analyzing listings from ${site.name}...`);
+      // Enhanced job extraction logging
+      console.log(`Beginning job extraction from ${site.name}...`);
       const rawJobs = await page.evaluate((params: { site: JobSite }) => {
         const { site } = params;
         let cards = null;
@@ -227,22 +258,41 @@ async function searchSite(browser: any, site: JobSite, keywords: string, locatio
 
       console.log(`Found ${rawJobs.length} raw jobs`);
 
-      // Enhanced job analysis with OpenAI
-      console.log('Analyzing jobs with OpenAI...');
+      // Enhanced job analysis with OpenAI and detailed error logging
+      console.log(`Starting OpenAI analysis for ${rawJobs.length} jobs...`);
       const analyzedJobs = await Promise.all(
-        rawJobs.map(async (job: RawJob) => {
+        rawJobs.map(async (job: RawJob, index: number) => {
           try {
+            console.log(`Analyzing job ${index + 1}/${rawJobs.length}:`, {
+              title: job.title,
+              company: job.company
+            });
+
             // First, analyze the job details
             const analysis = await analyzeJob(job);
-            console.log('Job analysis:', analysis);
+            if (!analysis) {
+              throw new Error('Job analysis returned null');
+            }
+
+            console.log(`Job ${index + 1} analysis result:`, {
+              level: analysis.level,
+              skillsCount: analysis.skills.length,
+              keywordsCount: analysis.keywords.length
+            });
 
             // Then, calculate match score with user preferences
+            console.log(`Calculating match score for job ${index + 1} with preferences:`, {
+              userSkills: preferences.skills?.length || 0,
+              userLevel: preferences.level?.length || 0,
+              userRoles: preferences.roles?.length || 0
+            });
+
             const matchScore = await matchJobToPreferences(analysis, {
               skills: preferences.skills || [],
               level: preferences.level || [],
               roles: preferences.roles || []
             });
-            console.log('Match score:', matchScore);
+            console.log(`Job ${index + 1} match score:`, matchScore);
 
             // Calculate keyword relevance
             const keywordRelevance = analysis.keywords.filter((keyword: string) => 
