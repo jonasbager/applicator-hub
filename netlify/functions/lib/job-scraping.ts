@@ -26,9 +26,9 @@ export async function scrapeJobs(keywords: string[], location: string): Promise<
   try {
     // Use the Netlify function instead of Python service
     // When running in browser, use window.location.origin
-    // When running in Netlify Functions, use relative path
+    // When running in Netlify Functions, use process.env.URL
     const functionPath = '/.netlify/functions/scrape-job';
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.URL || 'https://staging.applymate.app';
     const response = await axios.post(`${baseUrl}${functionPath}`, {
       keywords: keywords.join(' '),
       location,
