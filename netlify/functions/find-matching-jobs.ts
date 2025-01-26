@@ -2,7 +2,7 @@ import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { JobMatch } from './types/job-match';
 import { analyzeJob, matchJobToPreferences } from './lib/openai';
-import { query, QueryOptions, LinkedInJob } from 'linkedin-jobs-api';
+import { scrapeJobs } from './lib/job-scraping';
 
 if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('Required environment variables are not configured');
@@ -35,7 +35,7 @@ interface JobPreferences {
 }
 
 async function searchJobs(preferences: JobPreferences): Promise<JobMatch[]> {
-  console.log('Starting LinkedIn job search...');
+  console.log('Starting job search...');
   
   try {
     // Extract search parameters
@@ -45,70 +45,19 @@ async function searchJobs(preferences: JobPreferences): Promise<JobMatch[]> {
     const level = preferences.level || ['Entry Level'];
 
     // Build search keywords
-    const keywords = [...roles, ...skills].filter(Boolean).join(' ');
+    const keywords = [...roles, ...skills].filter(Boolean);
     const location = locations[0] || 'Remote';
 
     console.log('Search parameters:', { keywords, location, level });
 
-    // Search LinkedIn Jobs using linkedin-jobs-api
-    const queryOptions: QueryOptions = {
-      keyword: keywords,
-      location: location,
-      dateSincePosted: 'past-24h',
-      jobType: 'full-time',
-      remoteFilter: 'remote',
-      limit: '25'
-    };
-    console.log('Fetching jobs from LinkedIn with options:', queryOptions);
-    
-    let response;
-    try {
-      response = await query(queryOptions);
-      console.log(`Found ${response?.length || 0} jobs from LinkedIn`);
-      
-      if (!response || !Array.isArray(response)) {
-        console.error('Invalid response from LinkedIn API:', response);
-        throw new Error('Invalid response from LinkedIn API');
-      }
-
-      if (response.length === 0) {
-        console.log('No jobs found with search parameters:', { keywords, location });
-        return [];
-      }
-    } catch (error) {
-      console.error('Error querying LinkedIn API:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack
-        });
-      }
-      throw new Error(`Failed to fetch jobs from LinkedIn: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-
-    // Transform LinkedIn jobs to our format
-    console.log('Transforming LinkedIn jobs to internal format...');
-    const rawJobs = response.map((job: LinkedInJob, index: number): RawJob => {
-      console.log(`Processing job ${index + 1}:`, {
-        title: job.title,
-        company: job.company,
-        hasDescription: !!job.description
-      });
-      return {
-        title: job.title || '',
-        company: job.company || '',
-        location: job.location || '',
-        url: job.link || '',
-        description: job.description || ''
-      };
-    });
+    // Scrape jobs from multiple sources
+    const rawJobs = await scrapeJobs(keywords, location);
+    console.log(`Found ${rawJobs.length} jobs from all sources`);
 
     if (rawJobs.length === 0) {
-      console.log('No valid jobs found after transformation');
+      console.log('No jobs found with search parameters:', { keywords, location });
       return [];
     }
-    console.log(`Successfully transformed ${rawJobs.length} jobs`);
 
     // Analyze jobs with OpenAI
     console.log('Analyzing jobs with OpenAI...');
