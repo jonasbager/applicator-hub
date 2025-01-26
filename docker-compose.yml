@@ -8,3 +8,4 @@ services:
       - ./data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
+    shm_size: '2gb'  # Increase shared memory for Chrome
