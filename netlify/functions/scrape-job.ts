@@ -322,12 +322,14 @@ export const handler: Handler = async (event) => {
         });
 
         // Extract job listings using Cheerio
+        console.log('LinkedIn search response:', response.data);
         const $ = cheerio.load(response.data);
-        const jobs = $('.job-search-card').map((_: number, el: any) => ({
+        console.log('Found job cards:', $('.jobs-search__results-list li').length);
+        const jobs = $('.jobs-search__results-list li').map((_: number, el: any) => ({
           position: $(el).find('.base-search-card__title').text().trim(),
           company: $(el).find('.base-search-card__subtitle').text().trim(),
           location: $(el).find('.job-search-card__location').text().trim(),
-          url: $(el).find('a.base-card__full-link').attr('href') || '',
+          url: $(el).find('.base-card__full-link').attr('href') || '',
           description: $(el).find('.base-search-card__metadata').text().trim(),
           source: 'LinkedIn'
         })).get();
