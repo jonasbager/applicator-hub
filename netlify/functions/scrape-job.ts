@@ -308,14 +308,20 @@ export const handler: Handler = async (event) => {
       
       // Use LinkedIn Jobs API to search for jobs
       // Ensure the URL is properly formatted for LinkedIn's API
-      const searchUrl = new URL('https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search');
+      const searchUrl = new URL('https://www.linkedin.com/jobs/search');
       searchUrl.searchParams.append('keywords', keywords);
       searchUrl.searchParams.append('location', location);
       searchUrl.searchParams.append('f_TPR', 'r86400');
       searchUrl.searchParams.append('start', '0');
+      searchUrl.searchParams.append('position', '1');
+      searchUrl.searchParams.append('pageNum', '0');
+      searchUrl.searchParams.append('geoId', '');
+      searchUrl.searchParams.append('f_E', '2'); // Entry level
       
       try {
-        const response = await axios.get(searchUrl.toString(), {
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(searchUrl.toString())}`;
+        console.log('Using proxy URL:', proxyUrl);
+        const response = await axios.get(proxyUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
           }
