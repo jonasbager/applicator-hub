@@ -1,33 +1,10 @@
 version: '3.8'
 
 services:
-  scraping-service:
+  scraper:
     build: ./scraping-service
-    ports:
-      - "3001:3001"
     volumes:
       - ./scraping-service:/app
+      - ./data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  app:
-    build: .
-    ports:
-      - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-      - SCRAPING_SERVICE_URL=http://scraping-service:3001
-    depends_on:
-      - scraping-service
-    networks:
-      - app-network
-
-networks:
-  app-network:
-    driver: bridge
