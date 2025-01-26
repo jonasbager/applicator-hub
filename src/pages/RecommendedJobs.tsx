@@ -3,10 +3,11 @@ import { useUser } from '@clerk/clerk-react';
 import { AppSidebar } from '../components/AppSidebar';
 import { RecommendedJobCard } from '../components/RecommendedJobCard';
 import { Button } from '../components/ui/button';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useToast } from '../components/ui/use-toast';
 import { getUserId } from '../lib/user-id';
 import { JobMatch } from '../types/recommended-job';
+import { LoadingSkeleton } from '../components/ui/loading-skeleton';
 
 export default function RecommendedJobs() {
   const { user } = useUser();
@@ -34,13 +35,22 @@ export default function RecommendedJobs() {
       });
 
       const data = await response.json();
-      console.log('Response from find-matching-jobs:', data);
+      console.log('Response from find-matching-jobs:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        data: JSON.stringify(data, null, 2)
+      });
 
       if (!response.ok) {
-        throw new Error(data.details || data.error || 'Failed to fetch matching jobs');
+        throw new Error(
+          `Failed to fetch matching jobs: ${response.status} ${response.statusText}\n` +
+          `Details: ${data.details || data.error || 'No error details provided'}`
+        );
       }
 
       if (data.message) {
+        console.log('Server message:', data.message);
         toast({
           title: 'Note',
           description: data.message
@@ -48,14 +58,29 @@ export default function RecommendedJobs() {
       }
 
       if (!Array.isArray(data.jobs)) {
-        console.error('Invalid jobs data:', data);
-        throw new Error('Invalid response format');
+        console.error('Invalid jobs data:', {
+          type: typeof data.jobs,
+          value: data.jobs,
+          fullResponse: data
+        });
+        throw new Error('Invalid response format: jobs is not an array');
       }
 
       setJobs(data.jobs);
-      console.log(`Found ${data.jobs.length} jobs`);
+      console.log('Jobs found:', {
+        count: data.jobs.length,
+        jobs: data.jobs.map((job: JobMatch) => ({
+          title: job.title,
+          company: job.company,
+          similarity: job.similarity
+        }))
+      });
     } catch (error) {
-      console.error('Error fetching jobs:', error);
+      console.error('Error fetching jobs:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -87,7 +112,7 @@ export default function RecommendedJobs() {
               className="gap-2"
             >
               {refreshing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <LoadingSkeleton className="h-4 w-4 rounded-full" />
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
@@ -96,8 +121,17 @@ export default function RecommendedJobs() {
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <LoadingSkeleton key={i} className="h-[200px] rounded-lg">
+                  <div className="h-full p-6 space-y-4">
+                    <div className="h-6 w-3/4 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse" />
+                  </div>
+                </LoadingSkeleton>
+              ))}
             </div>
           ) : jobs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
