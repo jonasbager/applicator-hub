@@ -5,6 +5,7 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 
 // Job schema matching the database schema
 const jobSchema = z.object({
@@ -299,13 +300,57 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    const { url } = JSON.parse(event.body || '{}');
+    const { url, keywords, location, mode } = JSON.parse(event.body || '{}');
 
+    // Handle bulk job search mode
+    if (mode === 'search' && keywords && location) {
+      console.log('Bulk job search mode:', { keywords, location });
+      
+      // Use LinkedIn Jobs API to search for jobs
+      const searchUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}&f_TPR=r86400&start=0`;
+      
+      try {
+        const response = await axios.get(searchUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+          }
+        });
+
+        // Extract job listings using Cheerio
+        const $ = cheerio.load(response.data);
+        const jobs = $('.job-search-card').map((_: number, el: any) => ({
+          position: $(el).find('.base-search-card__title').text().trim(),
+          company: $(el).find('.base-search-card__subtitle').text().trim(),
+          location: $(el).find('.job-search-card__location').text().trim(),
+          url: $(el).find('a.base-card__full-link').attr('href') || '',
+          description: $(el).find('.base-search-card__metadata').text().trim(),
+          source: 'LinkedIn'
+        })).get();
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(jobs)
+        };
+      } catch (error) {
+        console.error('Error searching jobs:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            error: 'Failed to search jobs',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          })
+        };
+      }
+    }
+
+    // Handle single URL scraping mode
     if (!url) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'URL is required' }),
+        body: JSON.stringify({ error: 'URL is required for single job scraping' }),
       };
     }
 
