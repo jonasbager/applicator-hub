@@ -24,7 +24,9 @@ export default function RecommendedJobs() {
       const userId = getUserId(user.id);
       console.log('Fetching jobs for user:', userId);
 
-      const response = await fetch('/.netlify/functions/find-matching-jobs', {
+      const functionPath = '/.netlify/functions/find-matching-jobs';
+      const baseUrl = window.location.origin;
+      const response = await fetch(`${baseUrl}${functionPath}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

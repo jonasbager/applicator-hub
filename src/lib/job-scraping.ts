@@ -10,8 +10,10 @@ export interface JobDetails {
   start_date?: DateValue;
 }
 
-// Always use Netlify function
-const SCRAPE_URL = '/.netlify/functions/scrape-job';
+// Build the full URL for the Netlify function
+const functionPath = '/.netlify/functions/scrape-job';
+const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+const SCRAPE_URL = `${baseUrl}${functionPath}`;
 
 /**
  * Scrape job details from a URL
