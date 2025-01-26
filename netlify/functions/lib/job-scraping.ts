@@ -25,7 +25,11 @@ export async function scrapeJobs(keywords: string[], location: string): Promise<
   
   try {
     // Use the Netlify function instead of Python service
-    const response = await axios.post('/.netlify/functions/scrape-job', {
+    // When running in browser, use window.location.origin
+    // When running in Netlify Functions, use relative path
+    const functionPath = '/.netlify/functions/scrape-job';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const response = await axios.post(`${baseUrl}${functionPath}`, {
       keywords: keywords.join(' '),
       location,
       mode: 'search' // Add mode to indicate bulk search vs single URL
