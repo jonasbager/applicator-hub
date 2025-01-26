@@ -7,7 +7,7 @@ import { RefreshCw } from 'lucide-react';
 import { useToast } from '../components/ui/use-toast';
 import { getUserId } from '../lib/user-id';
 import { JobMatch } from '../types/recommended-job';
-import { LoadingSkeleton } from '../components/ui/loading-skeleton';
+import { Spinner } from '../components/ui/spinner';
 
 export default function RecommendedJobs() {
   const { user } = useUser();
@@ -112,7 +112,7 @@ export default function RecommendedJobs() {
               className="gap-2"
             >
               {refreshing ? (
-                <LoadingSkeleton className="h-4 w-4 rounded-full" />
+                <Spinner className="h-4 w-4" />
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
@@ -121,17 +121,8 @@ export default function RecommendedJobs() {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <LoadingSkeleton key={i} className="h-[200px] rounded-lg">
-                  <div className="h-full p-6 space-y-4">
-                    <div className="h-6 w-3/4 bg-gray-200 rounded animate-pulse" />
-                    <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse" />
-                    <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse" />
-                    <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse" />
-                  </div>
-                </LoadingSkeleton>
-              ))}
+            <div className="flex justify-center items-center py-12">
+              <Spinner className="h-8 w-8" />
             </div>
           ) : jobs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
