@@ -307,10 +307,15 @@ export const handler: Handler = async (event) => {
       console.log('Bulk job search mode:', { keywords, location });
       
       // Use LinkedIn Jobs API to search for jobs
-      const searchUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(keywords)}&location=${encodeURIComponent(location)}&f_TPR=r86400&start=0`;
+      // Ensure the URL is properly formatted for LinkedIn's API
+      const searchUrl = new URL('https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search');
+      searchUrl.searchParams.append('keywords', keywords);
+      searchUrl.searchParams.append('location', location);
+      searchUrl.searchParams.append('f_TPR', 'r86400');
+      searchUrl.searchParams.append('start', '0');
       
       try {
-        const response = await axios.get(searchUrl, {
+        const response = await axios.get(searchUrl.toString(), {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
           }
