@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { JobMatch } from './types/job-match';
 import { analyzeJob, matchJobToPreferences } from './lib/openai';
 import { scrapeJobs } from './lib/job-scraping';
+import axios from 'axios';
 
 if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('Required environment variables are not configured');
@@ -179,98 +180,26 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Get user's preferences with detailed logging
-    console.log('Getting preferences for user:', userId);
+    // For now, just call scrape-job directly
+    console.log('Calling scrape-job directly...');
     
-    // Log Supabase connection details (without sensitive info)
-    console.log('Supabase connection:', {
-      url: process.env.VITE_SUPABASE_URL ? 'Set' : 'Missing',
-      serviceRole: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'Missing'
+    const functionPath = '/.netlify/functions/scrape-job';
+    const baseUrl = process.env.URL || 'http://localhost:8888';
+    
+    const response = await axios.post(`${baseUrl}${functionPath}`, {}, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
 
-    // Fetch preferences
-    const { data: preferences, error: prefError } = await supabase
-      .from('job_preferences')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    // Log raw response
-    console.log('Supabase response:', {
-      data: preferences,
-      error: prefError,
-      hasData: Boolean(preferences),
-      hasError: Boolean(prefError)
-    });
-
-    if (prefError) {
-      console.error('Error fetching preferences:', {
-        code: prefError.code,
-        message: prefError.message,
-        details: prefError.details,
-        hint: prefError.hint
-      });
-      throw new Error(`Failed to fetch preferences: ${prefError.message}`);
-    }
-
-    if (!preferences) {
-      console.error('No preferences found for user:', userId);
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          jobs: [],
-          message: 'Please set up your job preferences first'
-        }),
-      };
-    }
-
-    // Log found preferences with type information
-    console.log('Found preferences:', {
-      roles: preferences.roles,
-      rolesType: Array.isArray(preferences.roles) ? 'array' : typeof preferences.roles,
-      skills: preferences.skills,
-      skillsType: Array.isArray(preferences.skills) ? 'array' : typeof preferences.skills,
-      locations: preferences.locations,
-      locationsType: Array.isArray(preferences.locations) ? 'array' : typeof preferences.locations,
-      level: preferences.level,
-      levelType: Array.isArray(preferences.level) ? 'array' : typeof preferences.level,
-      raw: preferences
-    });
-
-    // Parse and validate preferences
-    const validatedPreferences: JobPreferences = {
-      roles: Array.isArray(preferences.roles) ? preferences.roles : [],
-      skills: Array.isArray(preferences.skills) ? preferences.skills : [],
-      locations: Array.isArray(preferences.locations) ? preferences.locations : [],
-      level: Array.isArray(preferences.level) ? preferences.level : ['Entry Level']
-    };
-
-    console.log('Validated preferences:', validatedPreferences);
-
-    // Validate preferences
-    if (!validatedPreferences.roles.length && !validatedPreferences.skills.length) {
-      console.log('No roles or skills found in preferences');
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          jobs: [],
-          message: 'Please add some roles or skills to your preferences'
-        }),
-      };
-    }
-
-    // Search jobs
-    const jobs = await searchJobs(validatedPreferences);
-    console.log(`Found ${jobs.length} total jobs`);
+    console.log('Scrape-job response:', response.data);
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        jobs: jobs,
-      }),
+        jobs: response.data
+      })
     };
 
   } catch (error: unknown) {
