@@ -306,32 +306,33 @@ export const handler: Handler = async (event) => {
     if (mode === 'search' && keywords && location) {
       console.log('Bulk job search mode:', { keywords, location });
       
-      // Use LinkedIn Jobs API to search for jobs
-      // Ensure the URL is properly formatted for LinkedIn's API
-      const searchUrl = new URL('https://www.linkedin.com/jobs/search');
-      searchUrl.searchParams.append('keywords', keywords);
-      searchUrl.searchParams.append('location', location);
-      searchUrl.searchParams.append('f_TPR', 'r86400');
-      searchUrl.searchParams.append('start', '0');
-      searchUrl.searchParams.append('position', '1');
-      searchUrl.searchParams.append('pageNum', '0');
-      searchUrl.searchParams.append('geoId', '');
-      searchUrl.searchParams.append('f_E', '2'); // Entry level
+      const jobs = [];
+      
+      // Search LinkedIn Jobs
+      const linkedinUrl = new URL('https://www.linkedin.com/jobs/search');
+      linkedinUrl.searchParams.append('keywords', keywords);
+      linkedinUrl.searchParams.append('location', location);
+      linkedinUrl.searchParams.append('f_TPR', 'r86400');
+      linkedinUrl.searchParams.append('start', '0');
+      linkedinUrl.searchParams.append('position', '1');
+      linkedinUrl.searchParams.append('pageNum', '0');
+      linkedinUrl.searchParams.append('geoId', '');
+      linkedinUrl.searchParams.append('f_E', '2'); // Entry level
       
       try {
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(searchUrl.toString())}`;
-        console.log('Using proxy URL:', proxyUrl);
-        const response = await axios.get(proxyUrl, {
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(linkedinUrl.toString())}`;
+        console.log('Using LinkedIn proxy URL:', proxyUrl);
+        const linkedinResponse = await axios.get(proxyUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
           }
         });
 
-        // Extract job listings using Cheerio
-        console.log('LinkedIn search response:', response.data);
-        const $ = cheerio.load(response.data);
-        console.log('Found job cards:', $('.jobs-search__results-list li').length);
-        const jobs = $('.jobs-search__results-list li').map((_: number, el: any) => ({
+        // Extract LinkedIn job listings
+        console.log('LinkedIn search response received');
+        const $ = cheerio.load(linkedinResponse.data);
+        console.log('Found LinkedIn job cards:', $('.jobs-search__results-list li').length);
+        const linkedinJobs = $('.jobs-search__results-list li').map((_: number, el: any) => ({
           position: $(el).find('.base-search-card__title').text().trim(),
           company: $(el).find('.base-search-card__subtitle').text().trim(),
           location: $(el).find('.job-search-card__location').text().trim(),
@@ -339,23 +340,51 @@ export const handler: Handler = async (event) => {
           description: $(el).find('.base-search-card__metadata').text().trim(),
           source: 'LinkedIn'
         })).get();
-
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify(jobs)
-        };
+        
+        jobs.push(...linkedinJobs);
       } catch (error) {
-        console.error('Error searching jobs:', error);
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({
-            error: 'Failed to search jobs',
-            details: error instanceof Error ? error.message : 'Unknown error'
-          })
-        };
+        console.error('Error searching LinkedIn jobs:', error);
       }
+
+      // Search TheHub.io
+      const thehubUrl = new URL('https://thehub.io/jobs');
+      thehubUrl.searchParams.append('search', keywords);
+      thehubUrl.searchParams.append('countries', location.includes('Denmark') ? 'Denmark' : 'Remote');
+      
+      try {
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(thehubUrl.toString())}`;
+        console.log('Using TheHub proxy URL:', proxyUrl);
+        const thehubResponse = await axios.get(proxyUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+          }
+        });
+
+        // Extract TheHub job listings
+        console.log('TheHub search response received');
+        const $ = cheerio.load(thehubResponse.data);
+        console.log('Found TheHub job cards:', $('article.job-card').length);
+        const thehubJobs = $('article.job-card').map((_: number, el: any) => ({
+          position: $(el).find('h2').text().trim(),
+          company: $(el).find('h3').text().trim(),
+          location: $(el).find('.location').text().trim(),
+          url: $(el).find('a').attr('href') || '',
+          description: $(el).find('.description').text().trim(),
+          source: 'TheHub'
+        })).get();
+
+        jobs.push(...thehubJobs);
+      } catch (error) {
+        console.error('Error searching TheHub jobs:', error);
+      }
+
+      // Return combined results
+      console.log(`Found total ${jobs.length} jobs from all sources`);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(jobs)
+      };
     }
 
     // Handle single URL scraping mode
