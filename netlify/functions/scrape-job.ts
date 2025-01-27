@@ -10,8 +10,8 @@ export const handler: Handler = async (event) => {
   };
 
   try {
-    // Just fetch the first job from Jobindex's front page
-    const jobindexUrl = 'https://www.jobindex.dk/';
+    // Search for software jobs
+    const jobindexUrl = 'https://www.jobindex.dk/jobsoegning/it/systemudvikling';
         
     console.log('Fetching Jobindex homepage...');
     const response = await axios.get(jobindexUrl, {
@@ -29,10 +29,9 @@ export const handler: Handler = async (event) => {
 
     // Try different job listing selectors
     const selectors = [
-      '.PaidJob',
-      '.jix_robotjob',
-      '.jobsearch-result',
-      '.job-posting'
+      '#result_list_box .jix-jobbox',  // Main job listing container
+      '#result_list_box .jobsearch-result', // Alternative job listing container
+      '#result_list_box article' // Generic article container
     ];
 
     let firstJob;
@@ -51,7 +50,11 @@ export const handler: Handler = async (event) => {
     }
 
     // Try different title selectors
-    const titleSelectors = ['h3 a', 'h4 a', '.job-title a', '.position a'];
+    const titleSelectors = [
+      '.jix-toolbar h4 a',  // Main title selector
+      '.jobsearch-result-header h4 a', // Alternative title selector
+      'h4 a' // Generic title selector
+    ];
     let title = '';
     for (const selector of titleSelectors) {
       const el = firstJob.find(selector);
@@ -63,7 +66,11 @@ export const handler: Handler = async (event) => {
     }
 
     // Try different company selectors
-    const companySelectors = ['.company', '.company-name', '.employer', '.jix-toolbar-top strong'];
+    const companySelectors = [
+      '.jix-toolbar-top .company-name',  // Main company selector
+      '.jix-toolbar-top strong', // Alternative company selector
+      '[class*="company"]' // Generic company selector
+    ];
     let company = '';
     for (const selector of companySelectors) {
       const el = firstJob.find(selector);
@@ -78,7 +85,11 @@ export const handler: Handler = async (event) => {
     const url = firstJob.find('a').first().attr('href');
 
     // Try different description selectors
-    const descriptionSelectors = ['.jobtext', '.description', '.job-description'];
+    const descriptionSelectors = [
+      '.jix-job-body',  // Main description selector
+      '.job-text', // Alternative description selector
+      '.jobsearch-result-description' // Generic description selector
+    ];
     let description = '';
     for (const selector of descriptionSelectors) {
       const el = firstJob.find(selector);
