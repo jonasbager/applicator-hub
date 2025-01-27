@@ -180,25 +180,33 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // For now, just call scrape-job directly
-    console.log('Calling scrape-job directly...');
+    // When running in Netlify Functions, we can just require and call the handler directly
+    console.log('Calling scrape-job handler directly...');
     
-    const functionPath = '/.netlify/functions/scrape-job';
-    const baseUrl = process.env.URL || 'http://localhost:8888';
-    
-    const response = await axios.post(`${baseUrl}${functionPath}`, {}, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    const { handler: scrapeJobHandler } = require('./scrape-job');
+    const scrapeResponse = await scrapeJobHandler(
+      {
+        ...event,
+        body: JSON.stringify({ mode: 'search' })
+      },
+      {} as any,
+      () => {}
+    );
 
-    console.log('Scrape-job response:', response.data);
+    console.log('Scrape-job response:', scrapeResponse);
+
+    if (scrapeResponse.statusCode !== 200) {
+      throw new Error(`Scrape job failed: ${scrapeResponse.body}`);
+    }
+
+    const jobs = JSON.parse(scrapeResponse.body);
+    console.log('Parsed jobs:', jobs);
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        jobs: response.data
+        jobs: jobs
       })
     };
 
