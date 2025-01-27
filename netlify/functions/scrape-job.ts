@@ -306,85 +306,69 @@ export const handler: Handler = async (event) => {
     if (mode === 'search' && keywords && location) {
       console.log('Bulk job search mode:', { keywords, location });
       
-      const jobs = [];
-      
-      // Search LinkedIn Jobs
-      const linkedinUrl = new URL('https://www.linkedin.com/jobs/search');
-      linkedinUrl.searchParams.append('keywords', keywords);
-      linkedinUrl.searchParams.append('location', location);
-      linkedinUrl.searchParams.append('f_TPR', 'r86400');
-      linkedinUrl.searchParams.append('start', '0');
-      linkedinUrl.searchParams.append('position', '1');
-      linkedinUrl.searchParams.append('pageNum', '0');
-      linkedinUrl.searchParams.append('geoId', '');
-      linkedinUrl.searchParams.append('f_E', '2'); // Entry level
-      
       try {
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(linkedinUrl.toString())}`;
-        console.log('Using LinkedIn proxy URL:', proxyUrl);
-        const linkedinResponse = await axios.get(proxyUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-          }
-        });
-
-        // Extract LinkedIn job listings
-        console.log('LinkedIn search response received');
-        const $ = cheerio.load(linkedinResponse.data);
-        console.log('Found LinkedIn job cards:', $('.jobs-search__results-list li').length);
-        const linkedinJobs = $('.jobs-search__results-list li').map((_: number, el: any) => ({
-          position: $(el).find('.base-search-card__title').text().trim(),
-          company: $(el).find('.base-search-card__subtitle').text().trim(),
-          location: $(el).find('.job-search-card__location').text().trim(),
-          url: $(el).find('.base-card__full-link').attr('href') || '',
-          description: $(el).find('.base-search-card__metadata').text().trim(),
-          source: 'LinkedIn'
-        })).get();
+        // Search Jobindex.dk
+        // Convert keywords to URL-friendly format and ensure Danish encoding
+        const searchKeywords = encodeURIComponent(keywords);
+        const jobindexUrl = `https://www.jobindex.dk/jobsoegning?q=${searchKeywords}`;
         
-        jobs.push(...linkedinJobs);
-      } catch (error) {
-        console.error('Error searching LinkedIn jobs:', error);
-      }
-
-      // Search TheHub.io
-      const thehubUrl = new URL('https://thehub.io/jobs');
-      thehubUrl.searchParams.append('search', keywords);
-      thehubUrl.searchParams.append('countries', location.includes('Denmark') ? 'Denmark' : 'Remote');
-      
-      try {
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(thehubUrl.toString())}`;
-        console.log('Using TheHub proxy URL:', proxyUrl);
-        const thehubResponse = await axios.get(proxyUrl, {
+        console.log('Fetching jobs from Jobindex:', jobindexUrl);
+        const response = await axios.get(jobindexUrl, {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept-Language': 'da-DK,da;q=0.9,en-US;q=0.8,en;q=0.7'
           }
         });
 
-        // Extract TheHub job listings
-        console.log('TheHub search response received');
-        const $ = cheerio.load(thehubResponse.data);
-        console.log('Found TheHub job cards:', $('article.job-card').length);
-        const thehubJobs = $('article.job-card').map((_: number, el: any) => ({
-          position: $(el).find('h2').text().trim(),
-          company: $(el).find('h3').text().trim(),
-          location: $(el).find('.location').text().trim(),
-          url: $(el).find('a').attr('href') || '',
-          description: $(el).find('.description').text().trim(),
-          source: 'TheHub'
-        })).get();
+        // Parse job listings
+        const $ = cheerio.load(response.data);
+        console.log('Parsing Jobindex response');
+        
+        // Find all job listings using Jobindex's specific selectors
+        const jobs = $('.jobsearch-result').map((_: number, el: any) => {
+          const $el = $(el);
+          const titleEl = $el.find('h4 a');
+          const companyEl = $el.find('.jix-toolbar-top .company-name');
+          const locationEl = $el.find('.jix-toolbar-top .location');
+          const descriptionEl = $el.find('.job-text');
+          
+          const title = titleEl.text().trim();
+          const company = companyEl.text().trim();
+          const location = locationEl.text().trim() || 'Denmark';
+          const url = titleEl.attr('href');
+          const description = descriptionEl.text().trim();
 
-        jobs.push(...thehubJobs);
+          // Only return if we have all required fields
+          if (title && company && url && description) {
+            return {
+              position: title,
+              company: company,
+              location: location,
+              url: url.startsWith('http') ? url : `https://www.jobindex.dk${url}`,
+              description: description,
+              source: 'Jobindex'
+            };
+          }
+          return null;
+        }).get().filter(Boolean);
+
+        console.log(`Found ${jobs.length} jobs on Jobindex`);
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(jobs)
+        };
       } catch (error) {
-        console.error('Error searching TheHub jobs:', error);
+        console.error('Error searching Jobindex jobs:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            error: 'Failed to search jobs',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          })
+        };
       }
-
-      // Return combined results
-      console.log(`Found total ${jobs.length} jobs from all sources`);
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(jobs)
-      };
     }
 
     // Handle single URL scraping mode

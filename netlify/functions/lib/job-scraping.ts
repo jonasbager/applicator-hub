@@ -29,10 +29,19 @@ export async function scrapeJobs(keywords: string[], location: string): Promise<
     // When running in Netlify Functions, use process.env.URL
     const functionPath = '/.netlify/functions/scrape-job';
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.URL || 'https://staging.applymate.app';
+    // Format keywords for better search results
+    // Remove any empty strings and join with AND for better matching
+    const cleanedKeywords = keywords
+      .map(k => k.trim())
+      .filter(k => k.length > 0)
+      .join(' AND ');
+
+    console.log('Formatted search keywords:', cleanedKeywords);
+    
     const response = await axios.post(`${baseUrl}${functionPath}`, {
-      keywords: keywords.join(' '),
+      keywords: cleanedKeywords,
       location,
-      mode: 'search' // Add mode to indicate bulk search vs single URL
+      mode: 'search'
     });
 
     if (!response.data) {
