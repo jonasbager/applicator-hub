@@ -24,19 +24,82 @@ export const handler: Handler = async (event) => {
     const $ = cheerio.load(response.data);
     console.log('Loaded HTML, looking for jobs...');
 
-    // Find the first job listing
-    const firstJob = $('.jix_robotjob').first();
-    console.log('Found first job element:', firstJob.length > 0);
+    // Save HTML for debugging
+    console.log('Raw HTML:', response.data);
 
-    if (firstJob.length === 0) {
+    // Try different job listing selectors
+    const selectors = [
+      '.PaidJob',
+      '.jix_robotjob',
+      '.jobsearch-result',
+      '.job-posting'
+    ];
+
+    let firstJob;
+    for (const selector of selectors) {
+      const jobs = $(selector);
+      console.log(`Found ${jobs.length} jobs with selector: ${selector}`);
+      if (jobs.length > 0) {
+        firstJob = jobs.first();
+        console.log(`Using selector: ${selector}`);
+        break;
+      }
+    }
+
+    if (!firstJob) {
       throw new Error('No jobs found on page');
     }
 
-    // Extract job details
-    const title = firstJob.find('h3 a').text().trim();
-    const company = firstJob.find('.jix-toolbar-top strong').text().trim();
-    const url = firstJob.find('h3 a').attr('href');
-    const description = firstJob.find('.jobtext').text().trim();
+    // Try different title selectors
+    const titleSelectors = ['h3 a', 'h4 a', '.job-title a', '.position a'];
+    let title = '';
+    for (const selector of titleSelectors) {
+      const el = firstJob.find(selector);
+      if (el.length > 0) {
+        title = el.text().trim();
+        console.log(`Found title with selector: ${selector}`);
+        break;
+      }
+    }
+
+    // Try different company selectors
+    const companySelectors = ['.company', '.company-name', '.employer', '.jix-toolbar-top strong'];
+    let company = '';
+    for (const selector of companySelectors) {
+      const el = firstJob.find(selector);
+      if (el.length > 0) {
+        company = el.text().trim();
+        console.log(`Found company with selector: ${selector}`);
+        break;
+      }
+    }
+
+    // Try to get URL from any link in the job card
+    const url = firstJob.find('a').first().attr('href');
+
+    // Try different description selectors
+    const descriptionSelectors = ['.jobtext', '.description', '.job-description'];
+    let description = '';
+    for (const selector of descriptionSelectors) {
+      const el = firstJob.find(selector);
+      if (el.length > 0) {
+        description = el.text().trim();
+        console.log(`Found description with selector: ${selector}`);
+        break;
+      }
+    }
+
+    // If no description in job card, try to get some preview text
+    if (!description) {
+      description = firstJob.text().trim();
+    }
+
+    console.log('Extracted job details:', {
+      title,
+      company,
+      url,
+      descriptionLength: description?.length
+    });
 
     console.log('Extracted job details:', { title, company, url });
 
