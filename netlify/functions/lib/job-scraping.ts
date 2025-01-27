@@ -27,8 +27,11 @@ export async function scrapeJobs(keywords: string[], location: string): Promise<
     // Use the Netlify function instead of Python service
     // When running in browser, use window.location.origin
     // When running in Netlify Functions, use process.env.URL
+    // When running in Netlify Functions, we need to call the function directly
     const functionPath = '/.netlify/functions/scrape-job';
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.URL || 'https://staging.applymate.app';
+    const baseUrl = process.env.URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8888');
+    
+    console.log('Making request to:', `${baseUrl}${functionPath}`);
     // Format keywords for better search results
     // Remove any empty strings and join with AND for better matching
     const cleanedKeywords = keywords
@@ -38,15 +41,38 @@ export async function scrapeJobs(keywords: string[], location: string): Promise<
 
     console.log('Formatted search keywords:', cleanedKeywords);
     
-    const response = await axios.post(`${baseUrl}${functionPath}`, {
+    // Add request logging
+    const requestData = {
       keywords: cleanedKeywords,
       location,
       mode: 'search'
+    };
+    console.log('Request data:', requestData);
+
+    const response = await axios.post(`${baseUrl}${functionPath}`, requestData, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 30000 // Increase timeout to 30 seconds
+    });
+
+    // Log full response for debugging
+    console.log('Scraping service response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      data: response.data
     });
 
     if (!response.data) {
       console.error('Invalid response from scraping service:', response.data);
       throw new Error('Invalid response from scraping service');
+    }
+
+    // Validate response data structure
+    if (!Array.isArray(response.data) && typeof response.data !== 'object') {
+      console.error('Unexpected response format:', response.data);
+      throw new Error('Unexpected response format from scraping service');
     }
 
     // Convert response to ScrapedJob format

@@ -179,38 +179,74 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Get user's preferences
+    // Get user's preferences with detailed logging
     console.log('Getting preferences for user:', userId);
+    
+    // Log Supabase connection details (without sensitive info)
+    console.log('Supabase connection:', {
+      url: process.env.VITE_SUPABASE_URL ? 'Set' : 'Missing',
+      serviceRole: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'Missing'
+    });
+
+    // Fetch preferences
     const { data: preferences, error: prefError } = await supabase
       .from('job_preferences')
       .select('*')
       .eq('user_id', userId)
       .single();
 
+    // Log raw response
+    console.log('Supabase response:', {
+      data: preferences,
+      error: prefError,
+      hasData: Boolean(preferences),
+      hasError: Boolean(prefError)
+    });
+
     if (prefError) {
-      console.error('Error fetching preferences:', prefError);
+      console.error('Error fetching preferences:', {
+        code: prefError.code,
+        message: prefError.message,
+        details: prefError.details,
+        hint: prefError.hint
+      });
       throw new Error(`Failed to fetch preferences: ${prefError.message}`);
     }
+
     if (!preferences) {
       console.error('No preferences found for user:', userId);
-      throw new Error('No preferences found');
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          jobs: [],
+          message: 'Please set up your job preferences first'
+        }),
+      };
     }
 
+    // Log found preferences with type information
     console.log('Found preferences:', {
       roles: preferences.roles,
+      rolesType: Array.isArray(preferences.roles) ? 'array' : typeof preferences.roles,
       skills: preferences.skills,
+      skillsType: Array.isArray(preferences.skills) ? 'array' : typeof preferences.skills,
       locations: preferences.locations,
+      locationsType: Array.isArray(preferences.locations) ? 'array' : typeof preferences.locations,
       level: preferences.level,
+      levelType: Array.isArray(preferences.level) ? 'array' : typeof preferences.level,
       raw: preferences
     });
 
-    // Ensure arrays exist and have default values
+    // Parse and validate preferences
     const validatedPreferences: JobPreferences = {
-      roles: preferences.roles || [],
-      skills: preferences.skills || [],
-      locations: preferences.locations || [],
-      level: preferences.level || ['Entry Level']
+      roles: Array.isArray(preferences.roles) ? preferences.roles : [],
+      skills: Array.isArray(preferences.skills) ? preferences.skills : [],
+      locations: Array.isArray(preferences.locations) ? preferences.locations : [],
+      level: Array.isArray(preferences.level) ? preferences.level : ['Entry Level']
     };
+
+    console.log('Validated preferences:', validatedPreferences);
 
     // Validate preferences
     if (!validatedPreferences.roles.length && !validatedPreferences.skills.length) {

@@ -324,32 +324,75 @@ export const handler: Handler = async (event) => {
         const $ = cheerio.load(response.data);
         console.log('Parsing Jobindex response');
         
-        // Find all job listings using Jobindex's specific selectors
-        const jobs = $('.jobsearch-result').map((_: number, el: any) => {
-          const $el = $(el);
-          const titleEl = $el.find('h4 a');
-          const companyEl = $el.find('.jix-toolbar-top .company-name');
-          const locationEl = $el.find('.jix-toolbar-top .location');
-          const descriptionEl = $el.find('.job-text');
-          
-          const title = titleEl.text().trim();
-          const company = companyEl.text().trim();
-          const location = locationEl.text().trim() || 'Denmark';
-          const url = titleEl.attr('href');
-          const description = descriptionEl.text().trim();
+        // Save HTML for debugging
+        console.log('Raw HTML response:', response.data);
+        
+        // Find all job listings
+        const jobElements = $('.jobsearch-result');
+        console.log('Found job elements:', jobElements.length);
+        
+        const jobs = jobElements.map((_: number, el: any) => {
+          try {
+            const $el = $(el);
+            
+            // Log the HTML of each job element
+            console.log('Job element HTML:', $el.html());
+            
+            // Try different selectors
+            const possibleTitleSelectors = [
+              'h4 a',
+              '.jobsearch-result-header a',
+              '.jix-toolbar-top a',
+              'a[href*="job"]'
+            ];
+            
+            let titleEl;
+            for (const selector of possibleTitleSelectors) {
+              titleEl = $el.find(selector);
+              if (titleEl.length > 0) {
+                console.log(`Found title with selector: ${selector}`);
+                break;
+              }
+            }
+            
+            const title = titleEl?.text().trim();
+            const company = $el.find('[class*="company"]').text().trim();
+            const location = $el.find('[class*="location"]').text().trim() || 'Denmark';
+            const url = titleEl?.attr('href');
+            const description = $el.find('[class*="description"], [class*="text"]').text().trim();
+            
+            console.log('Extracted job data:', {
+              title,
+              company,
+              location,
+              url,
+              descriptionLength: description?.length
+            });
 
-          // Only return if we have all required fields
-          if (title && company && url && description) {
-            return {
-              position: title,
-              company: company,
-              location: location,
-              url: url.startsWith('http') ? url : `https://www.jobindex.dk${url}`,
-              description: description,
-              source: 'Jobindex'
-            };
+            // Only return if we have all required fields
+            if (title && company && url && description) {
+              return {
+                position: title,
+                company: company,
+                location: location,
+                url: url.startsWith('http') ? url : `https://www.jobindex.dk${url}`,
+                description: description,
+                source: 'Jobindex'
+              };
+            }
+            
+            console.log('Missing required fields:', {
+              hasTitle: Boolean(title),
+              hasCompany: Boolean(company),
+              hasUrl: Boolean(url),
+              hasDescription: Boolean(description)
+            });
+            
+            return null;
+          } catch (error) {
+            console.error('Error parsing job element:', error);
+            return null;
           }
-          return null;
         }).get().filter(Boolean);
 
         console.log(`Found ${jobs.length} jobs on Jobindex`);
