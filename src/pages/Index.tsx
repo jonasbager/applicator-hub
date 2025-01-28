@@ -214,7 +214,7 @@ export function Index() {
           <DragDropContext onDragEnd={onDragEnd}>
             <div 
               className={cn(
-                "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 touch-manipulation",
+                "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 touch-manipulation",
                 isUpdating && "opacity-75"
               )}
               style={{
