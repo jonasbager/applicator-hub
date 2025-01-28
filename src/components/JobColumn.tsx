@@ -18,7 +18,8 @@ const statusTitles: Record<JobStatus, string> = {
   "Not Started": "Not Started",
   "In Progress": "In Progress",
   "Submitted": "Submitted",
-  "Interview": "Interview"
+  "Interview": "Interview",
+  "Rejected": "Rejected"
 };
 
 export function JobColumn({ 
