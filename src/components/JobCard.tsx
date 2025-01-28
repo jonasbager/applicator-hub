@@ -5,6 +5,7 @@ import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { cn } from '../lib/utils';
 import { getCompanyLogoUrl } from '../lib/company-logos';
+import { Check } from 'lucide-react';
 
 const deadlineColors: Record<string, string> = {
   green: 'bg-green-100 text-green-700',
@@ -61,7 +62,15 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
             cursor: 'grab' // Show grab cursor
           }}
         >
-      <div className="flex gap-4">
+      <div className="relative flex gap-4">
+        {job.in_joblog && (
+          <div className="absolute left-0 top-0 -translate-y-1/2">
+            <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs flex items-center gap-1">
+              <Check className="h-3 w-3" />
+              In Joblog
+            </Badge>
+          </div>
+        )}
         <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center">
           {(() => {
             console.log('Company:', job.company);
@@ -87,13 +96,8 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
           })()}
         </div>
       
-        {/* Status and deadline chips */}
-        <div className="absolute bottom-3 right-3 flex gap-2 items-center">
-          {job.in_joblog && (
-            <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">
-              In Joblog
-            </Badge>
-          )}
+        {/* Deadline chip */}
+        <div className="absolute bottom-3 right-3">
           <Badge 
             variant="secondary" 
             className={cn(
@@ -107,7 +111,7 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
           </Badge>
         </div>
         
-        <div>
+        <div className="flex-1">
           <h3 className="font-semibold text-lg text-gray-900 mb-1">
             {job.position}
           </h3>
