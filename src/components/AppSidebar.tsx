@@ -7,7 +7,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const menuItems = [
   { title: "Applications", icon: Briefcase, path: "/jobs" },
-  { title: "Recommended", icon: Sparkles, path: "/recommended", className: "text-yellow-600 hover:text-yellow-700" },
   { title: "Archived", icon: Archive, path: "/archived" },
   { title: "Profile", icon: UserCircle, path: "/profile" }
 ];
@@ -97,14 +96,10 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
                     "hover:bg-muted",
-                    location.pathname === item.path && "bg-muted",
-                    item.className
+                    location.pathname === item.path && "bg-muted"
                   )}
                 >
-                  <item.icon className={cn(
-                    "h-5 w-5",
-                    item.title === "Recommended" && "text-yellow-500"
-                  )} />
+                  <item.icon className="h-5 w-5" />
                   <span>{item.title}</span>
                 </Link>
               </li>

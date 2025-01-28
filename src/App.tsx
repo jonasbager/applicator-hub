@@ -78,6 +78,7 @@ export default function App() {
             </Protected>
           }
         />
+        {/* Temporarily hidden - Recommended page
         <Route
           path="/recommended"
           element={
@@ -86,6 +87,7 @@ export default function App() {
             </Protected>
           }
         />
+        */}
         <Route
           path="/archived"
           element={
