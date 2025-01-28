@@ -62,15 +62,7 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
             cursor: 'grab' // Show grab cursor
           }}
         >
-      <div className="relative flex gap-4">
-        {job.in_joblog && (
-          <div className="absolute left-0 top-0 -translate-y-1/2">
-            <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs flex items-center gap-1">
-              <Check className="h-3 w-3" />
-              In Joblog
-            </Badge>
-          </div>
-        )}
+      <div className="flex gap-4">
         <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center">
           {(() => {
             console.log('Company:', job.company);
@@ -96,27 +88,35 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
           })()}
         </div>
       
-        {/* Deadline chip */}
-        <div className="absolute bottom-3 right-3">
-          <Badge 
-            variant="secondary" 
-            className={cn(
-              "text-xs",
-              job.status === 'Rejected' 
-                ? statusColors['Rejected']
-                : deadlineColors[getDeadlineStatus(job.deadline || null)]
-            )}
-          >
-            {job.status === 'Rejected' ? 'Rejected' : getDeadlineText(job.deadline || null)}
-          </Badge>
-        </div>
-        
         <div className="flex-1">
-          <h3 className="font-semibold text-lg text-gray-900 mb-1">
-            {job.position}
-          </h3>
-          <div className="text-gray-600 text-sm">
-            {job.company}
+          <div className="mb-6">
+            <h3 className="font-semibold text-lg leading-tight text-gray-900">
+              {job.position}
+            </h3>
+            <div className="text-gray-500 text-sm -mt-0.5">
+              {job.company}
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center">
+            {job.in_joblog && (
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                In Joblog
+              </Badge>
+            )}
+            {!job.in_joblog && <div />} {/* Spacer when no joblog badge */}
+            <Badge 
+              variant="secondary" 
+              className={cn(
+                "text-xs",
+                job.status === 'Rejected' 
+                  ? statusColors['Rejected']
+                  : deadlineColors[getDeadlineStatus(job.deadline || null)]
+              )}
+            >
+              {job.status === 'Rejected' ? 'Rejected' : getDeadlineText(job.deadline || null)}
+            </Badge>
           </div>
         </div>
       </div>
