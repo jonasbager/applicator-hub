@@ -5,6 +5,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
+import { Checkbox } from "./ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Job, getDeadlineStatus, formatDate } from "../types/job";
 import { useToast } from "./ui/use-toast";
@@ -31,6 +32,7 @@ export function JobDetailsModal({
   const { userId } = useAuth();
   const { supabase } = useSupabase();
   const [notes, setNotes] = useState('');
+  const [inJoblog, setInJoblog] = useState(false);
   const [applicationUrl, setApplicationUrl] = useState('');
   const [deadline, setDeadline] = useState<string>("");
   const [deadlineType, setDeadlineType] = useState<string>("unknown");
@@ -46,6 +48,7 @@ export function JobDetailsModal({
     if (open && job) {
       setNotes(job.notes?.join('\n') || '');
       setApplicationUrl(job.application_draft_url || '');
+      setInJoblog(job.in_joblog || false);
       
       // Handle deadline
       if (job.deadline === 'ASAP') {
@@ -272,9 +275,56 @@ export function JobDetailsModal({
           </DialogHeader>
 
           <div className="space-y-6">
-            <div>
-              <h3 className="font-semibold mb-2">Company</h3>
-              <p>{job.company}</p>
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-semibold mb-2">Company</h3>
+                <p>{job.company}</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="joblog"
+                  checked={inJoblog}
+                  onCheckedChange={async (checked) => {
+                    if (!userId) return;
+                    setIsSaving(true);
+                    try {
+                      const { data: updatedJob, error } = await supabase
+                        .from('jobs')
+                        .update({ in_joblog: checked })
+                        .eq('id', job.id)
+                        .eq('user_id', getUserId(userId))
+                        .select('*')
+                        .single();
+
+                      if (error) throw error;
+                      if (onUpdate && updatedJob) {
+                        onUpdate(updatedJob);
+                      }
+                      setInJoblog(!!checked);
+
+                      toast({
+                        title: "Success",
+                        description: checked ? "Added to Joblog" : "Removed from Joblog",
+                      });
+                    } catch (error) {
+                      console.error('Error updating joblog status:', error);
+                      toast({
+                        variant: "destructive",
+                        title: "Error",
+                        description: error instanceof Error ? error.message : "Failed to update joblog status",
+                      });
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="joblog"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Added to Joblog
+                </label>
+              </div>
             </div>
 
             <div>

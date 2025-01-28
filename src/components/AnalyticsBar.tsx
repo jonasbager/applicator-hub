@@ -61,14 +61,8 @@ export function AnalyticsBar({ jobs, loading = false }: AnalyticsBarProps) {
     return daysUntil >= 0 && daysUntil <= 7;
   }).length;
 
-  // Calculate upcoming start dates
-  const upcomingStarts = jobs.filter(job => {
-    if (!job.start_date || job.start_date === 'ASAP') return false;
-    const startDate = new Date(job.start_date);
-    const now = new Date();
-    const daysUntil = Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    return daysUntil >= 0 && daysUntil <= 14;
-  }).length;
+  // Calculate rejected applications
+  const rejectedJobs = jobs.filter(job => job.status === 'Rejected').length;
 
   const metrics: Metric[] = [
     {
@@ -107,13 +101,13 @@ export function AnalyticsBar({ jobs, loading = false }: AnalyticsBarProps) {
       subtitle: upcomingDeadlines === 1 ? "due soon" : "due soon",
     },
     {
-      title: "Start Dates",
-      value: upcomingStarts,
+      title: "Rejected",
+      value: rejectedJobs,
       icon: Calendar,
-      colorClass: "bg-purple-500/10",
-      iconColorClass: "text-purple-500",
-      tooltip: "Jobs starting in the next 14 days",
-      subtitle: upcomingStarts === 1 ? "upcoming" : "upcoming",
+      colorClass: "bg-red-500/10",
+      iconColorClass: "text-red-500",
+      tooltip: "Applications that were rejected",
+      percentage: totalJobs ? Math.round((rejectedJobs / totalJobs) * 100) : 0,
     },
   ];
 

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   scraper:
     build: ./scraping-service
@@ -8,4 +6,4 @@ services:
       - ./data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
-    shm_size: '2gb'  # Increase shared memory for Chrome
+    command: python spider.py

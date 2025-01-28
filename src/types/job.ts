@@ -1,10 +1,11 @@
-export type JobStatus = 'Not Started' | 'In Progress' | 'Submitted' | 'Interview';
+export type JobStatus = 'Not Started' | 'In Progress' | 'Submitted' | 'Interview' | 'Rejected';
 
 export const JOB_STATUS_ORDER: JobStatus[] = [
   'Not Started',
   'In Progress',
   'Submitted',
-  'Interview'
+  'Interview',
+  'Rejected'
 ];
 
 export type DateValue = string | 'ASAP' | null;  // string for ISO dates, 'ASAP', or null for unknown
@@ -15,6 +16,7 @@ export interface Job {
   user_id: string;
   position: string;
   company: string;
+  company_url?: string;
   description: string;
   keywords: string[];
   url: string;
@@ -26,6 +28,7 @@ export interface Job {
   created_at: string;
   updated_at: string;
   archived?: boolean;
+  in_joblog?: boolean;
 }
 
 export function getDeadlineStatus(deadline?: DateValue): DeadlineStatus {

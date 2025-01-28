@@ -1,67 +1,102 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+import scrapy
+from scrapy.crawler import CrawlerProcess
 import json
-import time
 import os
 
-def scrape_jobs():
-    # Set up Chrome options
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-
-    # Initialize the driver
-    driver = webdriver.Chrome(options=options)
+class JobindexSpider(scrapy.Spider):
+    name = 'jobindex'
     
-    try:
-        # Navigate to the page
-        url = 'https://thehub.io/jobs?search=Marketing&countries=Denmark'
-        print(f'Navigating to {url}')
-        driver.get(url)
+    def __init__(self, keywords=None, location=None, *args, **kwargs):
+        super(JobindexSpider, self).__init__(*args, **kwargs)
+        self.keywords = keywords or 'developer'
+        self.location = location or 'denmark'
+        # Format URL with search parameters
+        self.start_urls = [
+            f'https://www.jobindex.dk/jobsoegning?q={self.keywords}&location={self.location}'
+        ]
+        print(f'Starting spider with URL: {self.start_urls[0]}')
+
+    def parse(self, response):
+        print(f'Parsing response from {response.url}')
         
-        # Wait for job cards to load
-        print('Waiting for job cards to load...')
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "job-card"))
-        )
+        # Find all job listings
+        jobs = response.css('.jobsearch-result')
+        print(f'Found {len(jobs)} jobs')
         
-        # Let the page fully render
-        time.sleep(2)
-        
-        # Find all job cards
-        job_cards = driver.find_elements(By.CLASS_NAME, "job-card")
-        print(f'Found {len(job_cards)} job cards')
-        
-        jobs = []
-        for card in job_cards:
+        for job in jobs:
             try:
-                job = {
-                    'title': card.find_element(By.CSS_SELECTOR, "h3").text.strip(),
-                    'company': card.find_element(By.CSS_SELECTOR, ".company").text.strip(),
-                    'location': card.find_element(By.CSS_SELECTOR, ".location").text.strip(),
-                    'url': card.find_element(By.TAG_NAME, "a").get_attribute("href"),
-                    'description': card.find_element(By.CSS_SELECTOR, ".description").text.strip(),
-                    'source': 'TheHub'
+                # Extract job details
+                title = job.css('h4 a::text').get()
+                company = job.css('.jix-toolbar-top strong::text').get()
+                url = job.css('h4 a::attr(href)').get()
+                description = job.css('.job-text::text').get()
+                
+                # Clean up the data
+                title = title.strip() if title else ''
+                company = company.strip() if company else ''
+                description = description.strip() if description else ''
+                
+                # Make URL absolute
+                if url and not url.startswith('http'):
+                    url = f'https://www.jobindex.dk{url}'
+                
+                print(f'Extracted job: {title} at {company}')
+                
+                yield {
+                    'position': title,
+                    'company': company,
+                    'location': 'Denmark',
+                    'url': url,
+                    'description': description,
+                    'source': 'Jobindex'
                 }
-                print(f'Extracted job: {job}')
-                jobs.append(job)
             except Exception as e:
                 print(f'Error extracting job: {e}')
                 continue
-            
-        # Create data directory if it doesn't exist
-        os.makedirs('data', exist_ok=True)
-            
-        # Save to JSON file
-        with open('data/jobs.json', 'w') as f:
-            json.dump(jobs, f, indent=2)
-            print(f'Saved {len(jobs)} jobs to data/jobs.json')
-            
-    finally:
-        driver.quit()
+
+def scrape_jobs(keywords=None, location=None):
+    print('Starting job scraping...')
+    
+    # Create data directory if it doesn't exist
+    os.makedirs('data', exist_ok=True)
+    
+    # Configure the crawler process
+    process = CrawlerProcess({
+        'USER_AGENT': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'ROBOTSTXT_OBEY': True,
+        'CONCURRENT_REQUESTS': 1,
+        'DOWNLOAD_DELAY': 2,
+        'COOKIES_ENABLED': False,
+        'DEFAULT_REQUEST_HEADERS': {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'da-DK,da;q=0.9,en-US;q=0.8,en;q=0.7',
+        }
+    })
+    
+    # Create a list to store the results
+    results = []
+    
+    # Define pipeline to collect items
+    def collect_items(item, spider):
+        results.append(item)
+        return item
+    
+    # Add pipeline to process
+    process.spider = JobindexSpider
+    process.spider.custom_settings = {
+        'ITEM_PIPELINES': {'__main__.collect_items': 100}
+    }
+    
+    # Run the spider
+    process.crawl(JobindexSpider, keywords=keywords, location=location)
+    process.start()
+    
+    # Save results to file
+    with open('data/jobs.json', 'w') as f:
+        json.dump(results, f, indent=2)
+    print(f'Saved {len(results)} jobs to data/jobs.json')
+    
+    return results
 
 if __name__ == '__main__':
     scrape_jobs()

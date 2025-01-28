@@ -14,6 +14,14 @@ const deadlineColors: Record<string, string> = {
   unknown: 'bg-gray-100 text-gray-700'
 };
 
+const statusColors: Record<string, string> = {
+  'Rejected': 'bg-red-100 text-red-700',
+  'In Progress': 'bg-blue-100 text-blue-700',
+  'Interview': 'bg-green-100 text-green-700',
+  'Submitted': 'bg-purple-100 text-purple-700',
+  'Not Started': 'bg-gray-100 text-gray-700'
+};
+
 function getDeadlineText(deadline: DateValue): string {
   if (!deadline) return 'No deadline';
   if (deadline === 'ASAP') return 'ASAP';
@@ -79,16 +87,23 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
           })()}
         </div>
       
-        {/* Deadline chip */}
-        <div className="absolute bottom-3 right-3">
+        {/* Status and deadline chips */}
+        <div className="absolute bottom-3 right-3 flex gap-2 items-center">
+          {job.in_joblog && (
+            <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">
+              In Joblog
+            </Badge>
+          )}
           <Badge 
             variant="secondary" 
             className={cn(
               "text-xs",
-              deadlineColors[getDeadlineStatus(job.deadline || null)]
+              job.status === 'Rejected' 
+                ? statusColors['Rejected']
+                : deadlineColors[getDeadlineStatus(job.deadline || null)]
             )}
           >
-            {getDeadlineText(job.deadline || null)}
+            {job.status === 'Rejected' ? 'Rejected' : getDeadlineText(job.deadline || null)}
           </Badge>
         </div>
         
