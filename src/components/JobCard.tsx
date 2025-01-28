@@ -90,7 +90,7 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
       
         <div className="flex-1">
           <div className="mb-6">
-            <h3 className="font-semibold text-lg leading-tight text-gray-900">
+            <h3 className="font-medium text-base leading-snug text-gray-900 line-clamp-2 max-h-[40px] overflow-hidden">
               {job.position}
             </h3>
             <div className="text-gray-500 text-sm -mt-0.5">

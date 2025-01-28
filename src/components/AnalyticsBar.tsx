@@ -28,7 +28,7 @@ interface Metric {
 export function AnalyticsBar({ jobs, loading = false }: AnalyticsBarProps) {
   if (loading) {
     return (
-      <div className="fixed bottom-6 right-6 w-[calc(100%-288px-48px)]">
+      <div className="fixed bottom-6 right-6 w-[calc(100%-224px-48px)]">
         <div className="bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg p-4">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -112,7 +112,7 @@ export function AnalyticsBar({ jobs, loading = false }: AnalyticsBarProps) {
   ];
 
   return (
-    <div className="fixed bottom-6 right-6 w-[calc(100%-288px-48px)]">
+      <div className="fixed bottom-6 right-6 w-[calc(100%-224px-48px)]">
       <div className="bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg p-4">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           {metrics.map((metric, index) => (
