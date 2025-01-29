@@ -62,62 +62,58 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
             cursor: 'grab' // Show grab cursor
           }}
         >
-      <div className="flex gap-4">
-        <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center">
-          {(() => {
-            console.log('Company:', job.company);
-            console.log('Company URL:', job.company_url);
-            console.log('API Key:', import.meta.env.VITE_LOGO_API_KEY);
-            const logoUrl = getCompanyLogoUrl(job);
-            console.log('Generated Logo URL:', logoUrl);
-            return !imageError && logoUrl ? (
-              <img
-                src={logoUrl}
-                alt={`${job.company} logo`}
-                className="w-full h-full object-contain p-2"
-                onError={(e) => {
-                  console.error('Logo load error for', job.company, e);
-                  setImageError(true);
-                }}
-              />
-            ) : (
-              <span className="text-gray-500 text-lg font-bold">
-                {job.company.charAt(0)}
-              </span>
-            );
-          })()}
+      <div className="flex flex-col h-full">
+        {/* Header: Logo and Company Name */}
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gray-100">
+            {(() => {
+              const logoUrl = getCompanyLogoUrl(job);
+              return !imageError && logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt={`${job.company} logo`}
+                  className="w-full h-full object-contain p-1.5"
+                  onError={(e) => {
+                    console.error('Logo load error for', job.company, e);
+                    setImageError(true);
+                  }}
+                />
+              ) : (
+                <span className="text-gray-500 text-sm font-medium">
+                  {job.company.charAt(0)}
+                </span>
+              );
+            })()}
+          </div>
+          <span className="text-gray-600 text-sm font-medium">{job.company}</span>
         </div>
-      
-        <div className="flex-1">
-          <div className="mb-6">
-            <h3 className="font-medium text-base leading-snug text-gray-900 line-clamp-2 max-h-[40px] overflow-hidden">
-              {job.position}
-            </h3>
-            <div className="text-gray-500 text-sm -mt-0.5">
-              {job.company}
-            </div>
-          </div>
 
-          <div className="flex justify-between items-center">
-            {job.in_joblog && (
-              <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs flex items-center gap-1">
-                <Check className="h-3 w-3" />
-                In Joblog
-              </Badge>
-            )}
-            {!job.in_joblog && <div />} {/* Spacer when no joblog badge */}
-            <Badge 
-              variant="secondary" 
-              className={cn(
-                "text-xs",
-                job.status === 'Rejected' 
-                  ? statusColors['Rejected']
-                  : deadlineColors[getDeadlineStatus(job.deadline || null)]
-              )}
-            >
-              {job.status === 'Rejected' ? 'Rejected' : getDeadlineText(job.deadline || null)}
+        {/* Job Title */}
+        <h3 className="font-medium text-base leading-snug text-gray-900 line-clamp-2 max-h-[40px] overflow-hidden mb-4">
+          {job.position}
+        </h3>
+
+        {/* Bottom Chips */}
+        <div className="mt-auto flex justify-between items-center">
+          {job.in_joblog ? (
+            <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs flex items-center gap-1">
+              <Check className="h-3 w-3" />
+              In Joblog
             </Badge>
-          </div>
+          ) : (
+            <div />
+          )}
+          <Badge 
+            variant="secondary" 
+            className={cn(
+              "text-xs",
+              job.status === 'Rejected' 
+                ? statusColors['Rejected']
+                : deadlineColors[getDeadlineStatus(job.deadline || null)]
+            )}
+          >
+            {job.status === 'Rejected' ? 'Rejected' : getDeadlineText(job.deadline || null)}
+          </Badge>
         </div>
       </div>
         </Card>
