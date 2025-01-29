@@ -28,7 +28,6 @@
     to = "https://exact-viper-93.accounts.dev/sign-in"
     status = 301
     force = true
-
   [[context.develop.redirects]]
     from = "/sign-up"
     to = "https://exact-viper-93.accounts.dev/sign-up"
