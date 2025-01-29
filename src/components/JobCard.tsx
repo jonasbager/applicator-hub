@@ -52,7 +52,7 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           className={cn(
-            "p-6 hover:shadow-lg transition-shadow duration-200 relative",
+            "p-[15px] hover:shadow-lg transition-shadow duration-200 relative",
             onClick && "cursor-pointer",
             "touch-manipulation" // Add touch handling
           )}
@@ -65,7 +65,7 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
       <div className="flex flex-col h-full">
         {/* Header: Logo and Company Name */}
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gray-100">
+          <div className="w-10 h-10 overflow-hidden flex items-center justify-center">
             {(() => {
               const logoUrl = getCompanyLogoUrl(job);
               return !imageError && logoUrl ? (
@@ -89,7 +89,7 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
         </div>
 
         {/* Job Title */}
-        <h3 className="font-medium text-base leading-snug text-gray-900 line-clamp-2 max-h-[40px] overflow-hidden mb-4">
+        <h3 className="font-medium text-base leading-snug text-gray-900 truncate mb-4">
           {job.position}
         </h3>
 
