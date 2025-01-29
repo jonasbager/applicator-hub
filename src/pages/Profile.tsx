@@ -818,16 +818,6 @@ export default function Profile() {
                 </div>
               </Card>
 
-              {/* Recommended Jobs Link */}
-              <div className="mt-6 text-center">
-                <Button
-                  onClick={() => navigate('/recommended')}
-                  className="gap-2"
-                >
-                  <span>See recommended jobs based on your skills</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
             </>
           )}
         </div>
