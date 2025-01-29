@@ -1,6 +1,34 @@
 import { Handler } from '@netlify/functions';
+import { CheerioWebBaseLoader } from '@langchain/community/document_loaders/web/cheerio';
+import { ChatOpenAI } from '@langchain/openai';
+import { PromptTemplate } from '@langchain/core/prompts';
+import { StructuredOutputParser } from '@langchain/core/output_parsers';
+import { z } from 'zod';
 import axios from 'axios';
-import * as cheerio from 'cheerio';
+
+// Job schema matching the database schema
+const jobSchema = z.object({
+  position: z.string(),
+  company: z.string(),
+  description: z.string(),
+  keywords: z.array(z.string()),
+  url: z.string().url()
+});
+
+function trimContent(content: string): string {
+  // Remove script and style tags content
+  content = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  content = content.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+  
+  // Remove HTML tags
+  content = content.replace(/<[^>]+>/g, ' ');
+  
+  // Remove extra whitespace
+  content = content.replace(/\s+/g, ' ').trim();
+  
+  // Take first 8000 characters (roughly 2000 tokens)
+  return content.slice(0, 8000);
+}
 
 export const handler: Handler = async (event) => {
   const headers = {
@@ -9,139 +37,140 @@ export const handler: Handler = async (event) => {
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
-  try {
-    // Search for software jobs
-    const jobindexUrl = 'https://www.jobindex.dk/jobsoegning/it/systemudvikling';
-        
-    console.log('Fetching Jobindex homepage...');
-    const response = await axios.get(jobindexUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept-Language': 'da-DK,da;q=0.9'
-      }
-    });
-
-    const $ = cheerio.load(response.data);
-    console.log('Loaded HTML, looking for jobs...');
-
-    // Save HTML for debugging
-    console.log('Raw HTML:', response.data);
-
-    // Try different job listing selectors
-    const selectors = [
-      '#result_list_box .jix-jobbox',  // Main job listing container
-      '#result_list_box .jobsearch-result', // Alternative job listing container
-      '#result_list_box article' // Generic article container
-    ];
-
-    let firstJob;
-    for (const selector of selectors) {
-      const jobs = $(selector);
-      console.log(`Found ${jobs.length} jobs with selector: ${selector}`);
-      if (jobs.length > 0) {
-        firstJob = jobs.first();
-        console.log(`Using selector: ${selector}`);
-        break;
-      }
-    }
-
-    if (!firstJob) {
-      throw new Error('No jobs found on page');
-    }
-
-    // Try different title selectors
-    const titleSelectors = [
-      '.jix-toolbar h4 a',  // Main title selector
-      '.jobsearch-result-header h4 a', // Alternative title selector
-      'h4 a' // Generic title selector
-    ];
-    let title = '';
-    for (const selector of titleSelectors) {
-      const el = firstJob.find(selector);
-      if (el.length > 0) {
-        title = el.text().trim();
-        console.log(`Found title with selector: ${selector}`);
-        break;
-      }
-    }
-
-    // Try different company selectors
-    const companySelectors = [
-      '.jix-toolbar-top .company-name',  // Main company selector
-      '.jix-toolbar-top strong', // Alternative company selector
-      '[class*="company"]' // Generic company selector
-    ];
-    let company = '';
-    for (const selector of companySelectors) {
-      const el = firstJob.find(selector);
-      if (el.length > 0) {
-        company = el.text().trim();
-        console.log(`Found company with selector: ${selector}`);
-        break;
-      }
-    }
-
-    // Try to get URL from any link in the job card
-    const url = firstJob.find('a').first().attr('href');
-
-    // Try different description selectors
-    const descriptionSelectors = [
-      '.jix-job-body',  // Main description selector
-      '.job-text', // Alternative description selector
-      '.jobsearch-result-description' // Generic description selector
-    ];
-    let description = '';
-    for (const selector of descriptionSelectors) {
-      const el = firstJob.find(selector);
-      if (el.length > 0) {
-        description = el.text().trim();
-        console.log(`Found description with selector: ${selector}`);
-        break;
-      }
-    }
-
-    // If no description in job card, try to get some preview text
-    if (!description) {
-      description = firstJob.text().trim();
-    }
-
-    console.log('Extracted job details:', {
-      title,
-      company,
-      url,
-      descriptionLength: description?.length
-    });
-
-    console.log('Extracted job details:', { title, company, url });
-
-    const job = {
-      position: title,
-      company: company,
-      location: 'Denmark',
-      url: url?.startsWith('http') ? url : `https://www.jobindex.dk${url}`,
-      description: description,
-      source: 'Jobindex',
-      level: ['Entry Level'],
-      keywords: ['Software'],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      similarity: 1.0
-    };
-
+  // Handle CORS preflight request
+  if (event.httpMethod === 'OPTIONS') {
     return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify([job])
+      statusCode: 204,
+      headers
     };
-  } catch (error: unknown) {
-    console.error('Error scraping job:', error);
-    const err = error as Error;
+  }
+
+  try {
+    // Check OpenAI API key first
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('OpenAI API key is missing');
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Configuration error',
+          details: 'OpenAI API key is not configured'
+        })
+      };
+    }
+
+    if (!event.body) {
+      throw new Error('Missing request body');
+    }
+
+    const { url } = JSON.parse(event.body);
+    if (!url) {
+      throw new Error('Missing URL parameter');
+    }
+
+    // Load webpage content
+    console.log('Loading webpage content from:', url);
+    const loader = new CheerioWebBaseLoader(url);
+    const docs = await loader.load();
+    const htmlContent = trimContent(docs[0].pageContent);
+    console.log('Webpage content loaded, length:', htmlContent.length);
+
+    // Initialize OpenAI
+    console.log('Initializing OpenAI...');
+    const model = new ChatOpenAI({
+      modelName: 'gpt-3.5-turbo',
+      temperature: 0,
+      openAIApiKey: process.env.OPENAI_API_KEY
+    });
+
+    // Create a parser for structured output
+    const parser = StructuredOutputParser.fromZodSchema(jobSchema);
+
+    // Create a prompt template for job extraction
+    const promptTemplate = new PromptTemplate({
+      template: `Extract key information from the following job posting content.
+      Return a JSON object with these EXACT field names:
+      - "position": The job position or title
+      - "company": The company name
+      - "description": A brief one-sentence summary
+      - "keywords": An array of 8-12 key skills, technologies, requirements, or qualifications. Look for:
+          * Required skills and competencies
+          * Technical requirements
+          * Years of experience requirements
+          * Education requirements
+          * Language requirements
+          * Industry knowledge
+          * Management/leadership requirements
+      - "url": The provided URL
+
+      Be thorough in extracting keywords. Look through the entire content for relevant information.
+
+      Make sure to follow the exact format specified in the instructions below:
+
+      {format_instructions}
+      
+      Job Content: {html_content}`,
+      inputVariables: ['html_content'],
+      partialVariables: {
+        format_instructions: parser.getFormatInstructions()
+      }
+    });
+
+    // Format the prompt with the HTML content
+    const prompt = await promptTemplate.format({
+      html_content: htmlContent
+    });
+
+    console.log('Sending request to OpenAI...');
+    const response = await model.invoke(prompt);
+    console.log('Received response from OpenAI');
+
+    try {
+      // Parse the response into our schema
+      const parsedJob = await parser.parse(response.content.toString());
+
+      // Add the original URL if not present
+      const jobDetails = {
+        ...parsedJob,
+        url: parsedJob.url || url
+      };
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(jobDetails)
+      };
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
+      // Try to extract required fields even if parsing fails
+      const responseText = response.content.toString();
+      const fallbackJob = {
+        position: responseText.match(/"position":\s*"([^"]+)"/)?.[1] || 'Unknown Position',
+        company: responseText.match(/"company":\s*"([^"]+)"/)?.[1] || 'Unknown Company',
+        description: responseText.match(/"description":\s*"([^"]+)"/)?.[1] || 'No description available',
+        keywords: [],
+        url: url
+      };
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(fallbackJob)
+      };
+    }
+  } catch (err: unknown) {
+    const error = err as Error;
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
-        error: 'Failed to scrape job',
-        details: err.message
+        error: 'Failed to scrape job details',
+        details: error.message
       })
     };
   }
