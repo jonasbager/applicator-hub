@@ -11,6 +11,7 @@
     "rollback": "NODE_OPTIONS='--loader ts-node/esm' node --experimental-specifier-resolution=node rollback.ts",
     "rollback:dry": "npm run rollback -- --dry-run",
     "backup": "mkdir -p backups && NODE_OPTIONS='--loader ts-node/esm' node --experimental-specifier-resolution=node backup.ts",
+    "update-matches": "NODE_OPTIONS='--loader ts-node/esm' node --experimental-specifier-resolution=node update-job-matches.ts",
     "typecheck": "tsc --noEmit",
     "postinstall": "npm i -g typescript @types/node"
   },
