@@ -13,6 +13,7 @@ import { Archive, CalendarClock, CalendarDays } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 import { useSupabase } from "../lib/supabase";
 import { getUserId } from "../lib/user-id";
+import { calculateMatchPercentage } from "../lib/job-matching-utils";
 
 export interface JobDetailsModalProps {
   open: boolean;
@@ -41,6 +42,8 @@ export function JobDetailsModal({
   const [isSaving, setIsSaving] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [editablePosition, setEditablePosition] = useState('');
+  const [editableCompany, setEditableCompany] = useState('');
   const { toast } = useToast();
 
   // Reset form when job changes or modal opens
@@ -49,6 +52,8 @@ export function JobDetailsModal({
       setNotes(job.notes?.join('\n') || '');
       setApplicationUrl(job.application_draft_url || '');
       setInJoblog(job.in_joblog || false);
+      setEditablePosition(job.position);
+      setEditableCompany(job.company);
       
       // Handle deadline
       if (job.deadline === 'ASAP') {
@@ -83,6 +88,59 @@ export function JobDetailsModal({
     green: "bg-green-100 text-green-800",
     asap: "bg-red-100 text-red-800",
     unknown: "bg-gray-100 text-gray-800"
+  };
+
+  const handleUpdateDetails = async (field: 'position' | 'company', value: string) => {
+    if (!userId || !job) return;
+    setIsSaving(true);
+    try {
+      // Get user preferences to calculate match percentage
+      const { data: preferences } = await supabase
+        .from('job_preferences')
+        .select('*')
+        .eq('user_id', getUserId(userId))
+        .single();
+
+      // Calculate new match percentage if preferences exist
+      let matchPercentage = job.match_percentage;
+      if (preferences) {
+        matchPercentage = calculateMatchPercentage(
+          job.keywords,
+          field === 'position' ? value : job.position,
+          preferences
+        );
+      }
+
+      const { data: updatedJob, error } = await supabase
+        .from('jobs')
+        .update({ 
+          [field]: value,
+          match_percentage: matchPercentage 
+        })
+        .eq('id', job.id)
+        .eq('user_id', getUserId(userId))
+        .select('*')
+        .single();
+
+      if (error) throw error;
+      if (onUpdate && updatedJob) {
+        onUpdate(updatedJob);
+      }
+
+      toast({
+        title: "Success",
+        description: `${field === 'position' ? 'Position' : 'Company'} updated successfully`,
+      });
+    } catch (error) {
+      console.error(`Error updating ${field}:`, error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : `Failed to update ${field}`,
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSaveNotes = async () => {
@@ -266,9 +324,20 @@ export function JobDetailsModal({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>{job.position}</span>
-              <Badge variant="outline" className="text-sm mr-8">
+            <DialogTitle className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <Input
+                  value={editablePosition}
+                  onChange={(e) => setEditablePosition(e.target.value)}
+                  className="font-semibold text-lg"
+                  onBlur={() => {
+                    if (editablePosition !== job.position) {
+                      handleUpdateDetails('position', editablePosition);
+                    }
+                  }}
+                />
+              </div>
+              <Badge variant="outline" className="text-sm">
                 {job.status}
               </Badge>
             </DialogTitle>
@@ -278,7 +347,17 @@ export function JobDetailsModal({
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-semibold mb-2">Company</h3>
-                <p>{job.company}</p>
+                <div className="flex gap-2">
+                  <Input
+                    value={editableCompany}
+                    onChange={(e) => setEditableCompany(e.target.value)}
+                    onBlur={() => {
+                      if (editableCompany !== job.company) {
+                        handleUpdateDetails('company', editableCompany);
+                      }
+                    }}
+                  />
+                </div>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox 
