@@ -62,23 +62,24 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
             cursor: 'grab' // Show grab cursor
           }}
         >
+      <div className="flex flex-col h-full relative">
           {/* Match Percentage Chip */}
           {job.match_percentage !== undefined && (
             <Badge 
               variant="secondary" 
               className={cn(
-                "absolute top-2 right-2 text-xs",
+                "absolute top-0 right-0 text-xs",
                 job.match_percentage >= 80 ? "bg-green-100 text-green-700" :
-                job.match_percentage >= 60 ? "bg-blue-100 text-blue-700" :
+                job.match_percentage >= 60 ? "bg-yellow-100 text-yellow-700" :
+                job.match_percentage >= 40 ? "bg-red-100 text-red-700" :
                 "bg-gray-100 text-gray-700"
               )}
             >
               {job.match_percentage}% Match
             </Badge>
           )}
-      <div className="flex flex-col h-full">
         {/* Header: Logo and Company Name */}
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3 mb-3 mt-6">
           <div className="w-10 h-10 overflow-hidden flex items-center justify-center">
             {(() => {
               const logoUrl = getCompanyLogoUrl(job);
