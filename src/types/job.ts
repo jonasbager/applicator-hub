@@ -29,6 +29,7 @@ export interface Job {
   updated_at: string;
   archived?: boolean;
   in_joblog?: boolean;
+  match_percentage?: number;
 }
 
 export function getDeadlineStatus(deadline?: DateValue): DeadlineStatus {

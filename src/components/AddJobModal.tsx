@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -9,6 +9,8 @@ import { Loader2, Sparkles } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { useAuth } from "@clerk/clerk-react";
 import { JobStatus } from "../types/job";
+import { JobPreferences } from "../types/resume";
+import { calculateMatchPercentage } from "../lib/job-matching-utils";
 import { useSupabase } from "../lib/supabase";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
@@ -23,6 +25,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
   const { supabase } = useSupabase();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [preferences, setPreferences] = useState<JobPreferences | null>(null);
   const { toast } = useToast();
   const [jobDetails, setJobDetails] = useState({
     position: "",
@@ -37,6 +40,33 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
   const [startDateType, setStartDateType] = useState<string>("unknown");
 
   // Reset form when modal closes
+  // Load user preferences
+  useEffect(() => {
+    async function loadPreferences() {
+      if (!userId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('job_preferences')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+
+        if (error) throw error;
+        setPreferences(data);
+      } catch (error) {
+        console.error('Error loading preferences:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to load preferences'
+        });
+      }
+    }
+
+    loadPreferences();
+  }, [userId, supabase]);
+
   useEffect(() => {
     if (!open) {
       resetForm();
@@ -147,6 +177,16 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
       const finalStartDate = startDateType === 'ASAP' ? 'ASAP' : 
                            startDateType === 'custom' ? startDate : null;
 
+      // Calculate match percentage
+      let matchPercentage: number | undefined;
+      if (preferences) {
+        matchPercentage = calculateMatchPercentage(
+          jobDetails.keywords,
+          jobDetails.position,
+          preferences
+        );
+      }
+
       const { error } = await supabase
         .from('jobs')
         .insert([{
@@ -162,7 +202,8 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
           archived: false,
           created_at: new Date().toISOString(),
           deadline: finalDeadline,
-          start_date: finalStartDate
+          start_date: finalStartDate,
+          match_percentage: matchPercentage
         }]);
 
       if (error) throw error;
