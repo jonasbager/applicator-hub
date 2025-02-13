@@ -70,8 +70,8 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
               className={cn(
                 "absolute top-0 right-0 text-xs",
                 job.match_percentage >= 80 ? "bg-green-100 text-green-700" :
-                job.match_percentage >= 60 ? "bg-yellow-100 text-yellow-700" :
-                job.match_percentage >= 40 ? "bg-red-100 text-red-700" :
+                job.match_percentage >= 50 ? "bg-yellow-100 text-yellow-700" :
+                job.match_percentage >= 30 ? "bg-red-100 text-red-700" :
                 "bg-gray-100 text-gray-700"
               )}
             >
