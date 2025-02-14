@@ -147,11 +147,15 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
       
       const details = await scrapeJobDetails(url);
       console.log('Scraped details:', details);
+      console.log('Raw HTML content length:', details.rawHtml?.length || 0);
+      
       setJobDetails({
         ...jobDetails,
         ...details,
-        url: url // Use the already converted URL
+        url: url, // Use the already converted URL
+        rawHtml: details.rawHtml // Make sure we keep the raw HTML
       });
+      
       toast({
         title: "Success",
         description: "Job details extracted successfully",
@@ -218,9 +222,10 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
       const jobId = newJob?.id;
       if (!jobId) throw new Error('Failed to create job');
 
-      // Create snapshot if URL exists
-      if (jobDetails.url) {
+      // Create snapshot if URL exists and we have raw HTML content
+      if (jobDetails.url && jobDetails.rawHtml) {
         try {
+          console.log('Creating snapshot with HTML length:', jobDetails.rawHtml.length);
           const { error: snapshotError } = await supabase
             .from('job_snapshots')
             .insert({
@@ -231,7 +236,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
               description: jobDetails.description,
               keywords: jobDetails.keywords,
               url: jobDetails.url,
-              html_content: jobDetails.rawHtml || jobDetails.description,
+              html_content: jobDetails.rawHtml,
               created_at: new Date().toISOString()
             });
 
@@ -256,6 +261,8 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
             description: "Failed to create job snapshot",
           });
         }
+      } else {
+        console.log('Skipping snapshot creation - no raw HTML content available');
       }
 
       onJobAdded();
