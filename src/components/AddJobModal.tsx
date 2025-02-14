@@ -187,9 +187,10 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         );
       }
 
-      const { error } = await supabase
+      // Create job
+      const { data: newJob, error: jobError } = await supabase
         .from('jobs')
-        .insert([{
+        .insert({
           user_id: userId,
           position: jobDetails.position,
           company: jobDetails.company,
@@ -204,9 +205,36 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
           deadline: finalDeadline,
           start_date: finalStartDate,
           match_percentage: matchPercentage
-        }]);
+        })
+        .select('id')
+        .single();
 
-      if (error) throw error;
+      if (jobError) throw jobError;
+      
+      // Get the created job's ID
+      const jobId = newJob?.id;
+      if (!jobId) throw new Error('Failed to create job');
+
+      // Create snapshot if URL exists
+      if (jobDetails.url) {
+        const { error: snapshotError } = await supabase
+          .from('job_snapshots')
+          .insert([{
+            job_id: jobId,
+            user_id: userId,
+            position: jobDetails.position,
+            company: jobDetails.company,
+            description: jobDetails.description,
+            keywords: jobDetails.keywords,
+            url: jobDetails.url,
+            html_content: jobDetails.description
+          }]);
+
+        if (snapshotError) {
+          console.error('Error creating snapshot:', snapshotError);
+          // Don't throw error here, just log it since the job was created successfully
+        }
+      }
 
       onJobAdded();
       onOpenChange(false);

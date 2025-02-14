@@ -14,7 +14,19 @@ import { useAuth } from "@clerk/clerk-react";
 import { useSupabase } from "../lib/supabase";
 import { getUserId } from "../lib/user-id";
 import { calculateMatchPercentage } from "../lib/job-matching-utils";
-import { scrapeJobDetails } from "../lib/job-scraping";
+
+interface JobSnapshot {
+  id: string;
+  job_id: string;
+  user_id: string;
+  position: string;
+  company: string;
+  description: string;
+  keywords: string[];
+  url: string;
+  html_content: string;
+  created_at: string;
+}
 
 export interface JobDetailsModalProps {
   open: boolean;
@@ -45,7 +57,7 @@ export function JobDetailsModal({
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [editablePosition, setEditablePosition] = useState('');
   const [editableCompany, setEditableCompany] = useState('');
-  const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
+  const [isLoadingSnapshot, setIsLoadingSnapshot] = useState(false);
   const { toast } = useToast();
 
   // Reset form when job changes or modal opens
@@ -92,42 +104,69 @@ export function JobDetailsModal({
     unknown: "bg-gray-100 text-gray-800"
   };
 
-  const handleCreateSnapshot = async () => {
-    if (!userId || !job || !job.url) return;
-    setIsCreatingSnapshot(true);
+  const handleViewSnapshot = async () => {
+    if (!userId || !job) return;
+    setIsLoadingSnapshot(true);
     try {
-      // Scrape current job content
-      const details = await scrapeJobDetails(job.url);
-      
-      // Store snapshot
-      const { error } = await supabase
+      // Get latest snapshot
+      const { data: snapshots, error } = await supabase
         .from('job_snapshots')
-        .insert([{
-          job_id: job.id,
-          user_id: getUserId(userId),
-          position: details.position,
-          company: details.company,
-          description: details.description,
-          keywords: details.keywords,
-          url: details.url,
-          html_content: details.description // Store the full HTML content
-        }]);
+        .select('*')
+        .eq('job_id', job.id)
+        .eq('user_id', getUserId(userId))
+        .order('created_at', { ascending: false })
+        .limit(1);
 
       if (error) throw error;
+      if (!snapshots?.length) {
+        toast({
+          title: "No snapshot found",
+          description: "This job doesn't have any snapshots yet.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const snapshot = snapshots[0];
+      // Open snapshot in new tab
+      const win = window.open('', '_blank');
+      if (win) {
+        win.document.write(`
+          <html>
+            <head>
+              <title>Job Snapshot - ${snapshot.position} at ${snapshot.company}</title>
+              <style>
+                body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; padding: 2rem; max-width: 800px; margin: 0 auto; }
+                .header { margin-bottom: 2rem; }
+                .timestamp { color: #666; font-size: 0.875rem; margin-top: 0.5rem; }
+                .content { white-space: pre-wrap; }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <h1>${snapshot.position}</h1>
+                <h2>${snapshot.company}</h2>
+                <div class="timestamp">Snapshot taken on ${new Date(snapshot.created_at).toLocaleString()}</div>
+              </div>
+              <div class="content">${snapshot.html_content}</div>
+            </body>
+          </html>
+        `);
+      }
 
       toast({
         title: "Success",
-        description: "Job snapshot created successfully",
+        description: "Opening job snapshot in new tab",
       });
     } catch (error) {
-      console.error('Error creating snapshot:', error);
+      console.error('Error viewing snapshot:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create snapshot",
+        description: error instanceof Error ? error.message : "Failed to view snapshot",
       });
     } finally {
-      setIsCreatingSnapshot(false);
+      setIsLoadingSnapshot(false);
     }
   };
 
@@ -555,12 +594,12 @@ export function JobDetailsModal({
                 <h3 className="font-semibold">Job Posting URL</h3>
                 {job.url && (
                   <Button
-                    onClick={handleCreateSnapshot}
-                    disabled={isCreatingSnapshot || !userId}
+                    onClick={handleViewSnapshot}
+                    disabled={isLoadingSnapshot || !userId}
                     className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600"
                     size="sm"
                   >
-                    {isCreatingSnapshot ? (
+                    {isLoadingSnapshot ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     ) : (
                       <History className="h-4 w-4 mr-2" />
@@ -581,7 +620,7 @@ export function JobDetailsModal({
                   </a>
                   <p className="text-sm text-muted-foreground mt-2">
                     <History className="h-4 w-4 inline-block mr-1" />
-                    Time Machine creates a snapshot of the job posting, so you can view it even if it gets taken down.
+                    Time Machine lets you view a snapshot of the job posting, even if it gets taken down.
                   </p>
                 </>
               )}
