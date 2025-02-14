@@ -8,6 +8,7 @@ export interface JobDetails {
   url: string;
   deadline?: DateValue;
   start_date?: DateValue;
+  rawHtml?: string;
 }
 
 // Build the full URL for the Netlify function
@@ -48,11 +49,15 @@ export async function scrapeJobDetails(url: string): Promise<JobDetails> {
       }
     }
 
+    // Get the raw HTML from the response
+    const rawHtml = data.rawHtml || jobDetails.description;
+
     // Ensure deadline and start_date are properly handled
     return {
       ...jobDetails,
       deadline: jobDetails.deadline || null,
       start_date: jobDetails.start_date || null,
+      rawHtml
     };
   } catch (error) {
     console.error('Error scraping job:', error);

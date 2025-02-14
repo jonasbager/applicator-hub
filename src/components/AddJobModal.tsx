@@ -4,7 +4,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { useToast } from "./ui/use-toast";
-import { scrapeJobDetails } from "../lib/job-scraping";
+import { scrapeJobDetails, JobDetails } from "../lib/job-scraping";
 import { Loader2, Sparkles } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { useAuth } from "@clerk/clerk-react";
@@ -28,12 +28,13 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
   const [loading, setLoading] = useState(false);
   const [preferences, setPreferences] = useState<JobPreferences | null>(null);
   const { toast } = useToast();
-  const [jobDetails, setJobDetails] = useState({
+  const [jobDetails, setJobDetails] = useState<JobDetails>({
     position: "",
     company: "",
     description: "",
     keywords: [] as string[],
     url: "",
+    rawHtml: ""
   });
   const [deadline, setDeadline] = useState<string>("");
   const [deadlineType, setDeadlineType] = useState<string>("unknown");
@@ -82,6 +83,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
       description: "",
       keywords: [],
       url: "",
+      rawHtml: ""
     });
     setDeadline("");
     setDeadlineType("unknown");
@@ -192,7 +194,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
       const { data: newJob, error: jobError } = await supabase
         .from('jobs')
         .insert({
-          user_id: userId,
+          user_id: getUserId(userId),
           position: jobDetails.position,
           company: jobDetails.company,
           description: jobDetails.description,
@@ -218,22 +220,41 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
 
       // Create snapshot if URL exists
       if (jobDetails.url) {
-        const { error: snapshotError } = await supabase
-          .from('job_snapshots')
-          .insert([{
-            job_id: jobId,
-            user_id: getUserId(userId),
-            position: jobDetails.position,
-            company: jobDetails.company,
-            description: jobDetails.description,
-            keywords: jobDetails.keywords,
-            url: jobDetails.url,
-            html_content: jobDetails.description
-          }]);
+        try {
+          const { error: snapshotError } = await supabase
+            .from('job_snapshots')
+            .insert({
+              job_id: jobId,
+              user_id: getUserId(userId),
+              position: jobDetails.position,
+              company: jobDetails.company,
+              description: jobDetails.description,
+              keywords: jobDetails.keywords,
+              url: jobDetails.url,
+              html_content: jobDetails.rawHtml || jobDetails.description,
+              created_at: new Date().toISOString()
+            });
 
-        if (snapshotError) {
-          console.error('Error creating snapshot:', snapshotError);
-          // Don't throw error here, just log it since the job was created successfully
+          if (snapshotError) {
+            console.error('Error creating snapshot:', snapshotError);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Failed to create job snapshot",
+            });
+          } else {
+            toast({
+              title: "Success",
+              description: "Job and snapshot created successfully",
+            });
+          }
+        } catch (error) {
+          console.error('Error creating snapshot:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to create job snapshot",
+          });
         }
       }
 
