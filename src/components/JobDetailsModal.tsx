@@ -171,6 +171,15 @@ export function JobDetailsModal({
       }
       
       // Write content with error handling
+      // Sanitize HTML content to prevent XSS
+      const sanitizedHtml = snapshot.html_content
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframes
+        .replace(/<link\b[^>]*>/gi, '') // Remove link tags
+        .replace(/<meta\b[^>]*>/gi, '') // Remove meta tags
+        .replace(/on\w+="[^"]*"/gi, '') // Remove inline event handlers
+        .replace(/javascript:/gi, ''); // Remove javascript: URLs
+
       const content = `
         <!DOCTYPE html>
         <html lang="en">
@@ -287,7 +296,7 @@ export function JobDetailsModal({
                   Snapshot taken on ${new Date(snapshot.created_at).toLocaleString()}
                 </div>
               </div>
-              <div class="content" dangerouslySetInnerHTML={{ __html: snapshot.html_content }}></div>
+              <div class="content" dangerouslySetInnerHTML={{ __html: sanitizedHtml }}></div>
             </div>
           </body>
         </html>
