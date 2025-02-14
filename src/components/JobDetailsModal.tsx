@@ -9,11 +9,12 @@ import { Checkbox } from "./ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Job, getDeadlineStatus, formatDate } from "../types/job";
 import { useToast } from "./ui/use-toast";
-import { Archive, CalendarClock, CalendarDays } from "lucide-react";
+import { Archive, CalendarClock, CalendarDays, History, Loader2 } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 import { useSupabase } from "../lib/supabase";
 import { getUserId } from "../lib/user-id";
 import { calculateMatchPercentage } from "../lib/job-matching-utils";
+import { scrapeJobDetails } from "../lib/job-scraping";
 
 export interface JobDetailsModalProps {
   open: boolean;
@@ -44,6 +45,7 @@ export function JobDetailsModal({
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [editablePosition, setEditablePosition] = useState('');
   const [editableCompany, setEditableCompany] = useState('');
+  const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
   const { toast } = useToast();
 
   // Reset form when job changes or modal opens
@@ -88,6 +90,45 @@ export function JobDetailsModal({
     green: "bg-green-100 text-green-800",
     asap: "bg-red-100 text-red-800",
     unknown: "bg-gray-100 text-gray-800"
+  };
+
+  const handleCreateSnapshot = async () => {
+    if (!userId || !job || !job.url) return;
+    setIsCreatingSnapshot(true);
+    try {
+      // Scrape current job content
+      const details = await scrapeJobDetails(job.url);
+      
+      // Store snapshot
+      const { error } = await supabase
+        .from('job_snapshots')
+        .insert([{
+          job_id: job.id,
+          user_id: getUserId(userId),
+          position: details.position,
+          company: details.company,
+          description: details.description,
+          keywords: details.keywords,
+          url: details.url,
+          html_content: details.description // Store the full HTML content
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Job snapshot created successfully",
+      });
+    } catch (error) {
+      console.error('Error creating snapshot:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create snapshot",
+      });
+    } finally {
+      setIsCreatingSnapshot(false);
+    }
   };
 
   const handleUpdateDetails = async (field: 'position' | 'company', value: string) => {
@@ -510,16 +551,39 @@ export function JobDetailsModal({
             </div>
 
             <div>
-              <h3 className="font-semibold mb-2">Job Posting URL</h3>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-semibold">Job Posting URL</h3>
+                {job.url && (
+                  <Button
+                    onClick={handleCreateSnapshot}
+                    disabled={isCreatingSnapshot || !userId}
+                    className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600"
+                    size="sm"
+                  >
+                    {isCreatingSnapshot ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <History className="h-4 w-4 mr-2" />
+                    )}
+                    Time Machine
+                  </Button>
+                )}
+              </div>
               {job.url && (
-                <a
-                  href={job.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline text-sm break-all"
-                >
-                  {job.url}
-                </a>
+                <>
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline text-sm break-all"
+                  >
+                    {job.url}
+                  </a>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    <History className="h-4 w-4 inline-block mr-1" />
+                    Time Machine creates a snapshot of the job posting, so you can view it even if it gets taken down.
+                  </p>
+                </>
               )}
             </div>
 
