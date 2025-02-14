@@ -171,119 +171,62 @@ export function JobDetailsModal({
       }
       
       // Write content with error handling
-      // Sanitize HTML content to prevent XSS and handle edge cases
-      const sanitizedHtml = (snapshot.html_content || '')
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
-        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframes
-        .replace(/<link\b[^>]*>/gi, '') // Remove link tags
-        .replace(/<meta\b[^>]*>/gi, '') // Remove meta tags
-        .replace(/on\w+="[^"]*"/gi, '') // Remove inline event handlers
-        .replace(/javascript:/gi, ''); // Remove javascript: URLs
+      // Clean up the HTML content
+      const cleanHtml = snapshot.html_content
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+        .replace(/on\w+="[^"]*"/gi, '')
+        .replace(/javascript:/gi, '');
 
-      // Create a minimal header that overlays the original content
-      const headerHtml = `
-        <style>
-          #time-machine-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 999999;
-            background: white;
-            padding: 0.75rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-family: system-ui, -apple-system, sans-serif;
-          }
-          #time-machine-header .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-          }
-          #time-machine-header img {
-            height: 2rem;
-            width: auto;
-          }
-          #time-machine-header .title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #111827;
-            margin: 0;
-          }
-          #time-machine-header .timestamp {
-            font-size: 0.875rem;
-            color: #6b7280;
-          }
-          /* Add margin to body to prevent content from hiding under header */
-          body { margin-top: 4rem !important; }
-        </style>
-        <div id="time-machine-header">
-          <div class="logo-section">
-            <img src="/logo.png" alt="Applicator Hub">
-            <h1 class="title">Time Machine</h1>
-          </div>
-          <div class="timestamp">
-            Snapshot from ${new Date(snapshot.created_at).toLocaleString()}
-          </div>
-        </div>
-      `;
-
-      // Inject our header into the original HTML while preserving all original styles
       const content = `
         <!DOCTYPE html>
-        <html lang="en">
+        <html>
           <head>
-            <title>Time Machine - ${snapshot.position} at ${snapshot.company}</title>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <base href="${new URL(snapshot.url).origin}">
+            <title>Time Machine - ${snapshot.position} at ${snapshot.company}</title>
+            <style>
+              .time-machine-banner {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 9999;
+                background: #f3f4f6;
+                padding: 8px;
+                text-align: center;
+                border-bottom: 1px solid #e5e7eb;
+                font-family: system-ui, -apple-system, sans-serif;
+                font-size: 13px;
+                color: #6b7280;
+              }
+              .time-machine-banner img {
+                height: 16px;
+                vertical-align: middle;
+                margin-right: 6px;
+              }
+              body {
+                margin-top: 40px;
+              }
+            </style>
           </head>
           <body>
-            ${headerHtml}
-            ${sanitizedHtml || `
-              <div style="text-align: center; padding: 2rem; font-family: system-ui, -apple-system, sans-serif;">
-                <p style="color: #6b7280; font-style: italic;">No content available in this snapshot.</p>
-                <p style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">This could mean the job posting has been removed or is no longer accessible.</p>
+            <div class="time-machine-banner">
+              <img src="/logo.png" alt="Applicator Hub">
+              Time Machine Snapshot from ${new Date(snapshot.created_at).toLocaleString()}
+            </div>
+            ${cleanHtml || `
+              <div style="text-align: center; padding: 2rem; color: #6b7280; font-family: system-ui;">
+                <p style="font-style: italic;">No content available in this snapshot.</p>
+                <p style="margin-top: 0.5rem; font-size: 0.875rem;">This could mean the job posting has been removed or is no longer accessible.</p>
               </div>
             `}
             <script>
-              // Ensure all links open in new tabs
-              // Handle all external resources safely
+              // Open all links in new tabs
               document.addEventListener('click', function(e) {
-                const link = e.target.closest('a');
-                if (link) {
+                if (e.target.tagName === 'A') {
                   e.preventDefault();
-                  const url = new URL(link.href, '${snapshot.url}');
-                  window.open(url.href, '_blank');
-                }
-              });
-
-              // Fix image sources
-              document.querySelectorAll('img').forEach(img => {
-                if (img.src) {
-                  try {
-                    img.src = new URL(img.getAttribute('src'), '${snapshot.url}').href;
-                  } catch (e) {
-                    console.warn('Failed to fix image URL:', e);
-                  }
-                }
-              });
-
-              // Fix background images in inline styles
-              document.querySelectorAll('[style*="background"]').forEach(el => {
-                const style = el.getAttribute('style');
-                if (style) {
-                  const urlMatch = style.match(/url\(['"]?([^'"]+)['"]?\)/);
-                  if (urlMatch) {
-                    try {
-                      const newUrl = new URL(urlMatch[1], '${snapshot.url}').href;
-                      el.setAttribute('style', style.replace(urlMatch[1], newUrl));
-                    } catch (e) {
-                      console.warn('Failed to fix background image URL:', e);
-                    }
-                  }
+                  window.open(e.target.href, '_blank');
                 }
               });
             </script>
