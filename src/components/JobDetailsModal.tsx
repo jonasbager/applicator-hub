@@ -126,6 +126,8 @@ export function JobDetailsModal({
     if (!userId || !job) return;
     setIsLoadingSnapshot(true);
     try {
+      console.log('Fetching snapshot for job:', job.id);
+      
       // Get latest snapshot
       const { data: snapshots, error } = await supabase
         .from('job_snapshots')
@@ -136,7 +138,11 @@ export function JobDetailsModal({
         .limit(1);
 
       if (error) throw error;
+      
+      console.log('Snapshot query result:', { snapshots });
+      
       if (!snapshots?.length) {
+        console.log('No snapshots found');
         toast({
           title: "No snapshot found",
           description: "This job doesn't have any snapshots yet.",
@@ -146,36 +152,52 @@ export function JobDetailsModal({
       }
 
       const snapshot = snapshots[0];
-      // Open snapshot in new tab
+      console.log('Found snapshot with HTML length:', snapshot.html_content.length);
+      // Open snapshot in new tab with error handling
       const win = window.open('', '_blank');
-      if (win) {
-        win.document.write(`
-          <html>
-            <head>
-              <title>Job Snapshot - ${snapshot.position} at ${snapshot.company}</title>
-              <style>
-                body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; padding: 2rem; max-width: 800px; margin: 0 auto; }
-                .header { margin-bottom: 2rem; }
-                .timestamp { color: #666; font-size: 0.875rem; margin-top: 0.5rem; }
-                .content { white-space: pre-wrap; }
-              </style>
-            </head>
-            <body>
-              <div class="header">
-                <h1>${snapshot.position}</h1>
-                <h2>${snapshot.company}</h2>
-                <div class="timestamp">Snapshot taken on ${new Date(snapshot.created_at).toLocaleString()}</div>
-              </div>
-              <div class="content">${snapshot.html_content}</div>
-            </body>
-          </html>
-        `);
+      if (!win) {
+        throw new Error('Failed to open new window');
       }
-
-      toast({
-        title: "Success",
-        description: "Opening job snapshot in new tab",
-      });
+      
+      // Write content with error handling
+      const content = `
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <title>Job Snapshot - ${snapshot.position} at ${snapshot.company}</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+              body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; padding: 2rem; max-width: 800px; margin: 0 auto; }
+              .header { margin-bottom: 2rem; }
+              .timestamp { color: #666; font-size: 0.875rem; margin-top: 0.5rem; }
+              .content { white-space: pre-wrap; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>${snapshot.position}</h1>
+              <h2>${snapshot.company}</h2>
+              <div class="timestamp">Snapshot taken on ${new Date(snapshot.created_at).toLocaleString()}</div>
+            </div>
+            <div class="content">${snapshot.html_content}</div>
+          </body>
+        </html>
+      `;
+      
+      try {
+        win.document.write(content);
+        win.document.close(); // Important: close the document
+        
+        toast({
+          title: "Success",
+          description: "Opening job snapshot in new tab",
+        });
+      } catch (writeError) {
+        console.error('Error writing snapshot content:', writeError);
+        win.close();
+        throw writeError;
+      }
     } catch (error) {
       console.error('Error viewing snapshot:', error);
       toast({
