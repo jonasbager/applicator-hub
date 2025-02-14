@@ -12,6 +12,7 @@ import { JobStatus } from "../types/job";
 import { JobPreferences } from "../types/resume";
 import { calculateMatchPercentage } from "../lib/job-matching-utils";
 import { useSupabase } from "../lib/supabase";
+import { getUserId } from "../lib/user-id";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 interface AddJobModalProps {
@@ -221,7 +222,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
           .from('job_snapshots')
           .insert([{
             job_id: jobId,
-            user_id: userId,
+            user_id: getUserId(userId),
             position: jobDetails.position,
             company: jobDetails.company,
             description: jobDetails.description,

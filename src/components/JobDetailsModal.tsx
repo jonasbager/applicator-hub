@@ -58,6 +58,24 @@ export function JobDetailsModal({
   const [editablePosition, setEditablePosition] = useState('');
   const [editableCompany, setEditableCompany] = useState('');
   const [isLoadingSnapshot, setIsLoadingSnapshot] = useState(false);
+  const [latestSnapshot, setLatestSnapshot] = useState<{ created_at: string } | null>(null);
+
+  // Load latest snapshot on open
+  useEffect(() => {
+    if (open && job && userId) {
+      supabase
+        .from('job_snapshots')
+        .select('created_at')
+        .eq('job_id', job.id)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+        .then(({ data }) => {
+          if (data) setLatestSnapshot(data);
+        });
+    }
+  }, [open, job, userId]);
   const { toast } = useToast();
 
   // Reset form when job changes or modal opens
@@ -113,7 +131,7 @@ export function JobDetailsModal({
         .from('job_snapshots')
         .select('*')
         .eq('job_id', job.id)
-        .eq('user_id', getUserId(userId))
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -591,7 +609,19 @@ export function JobDetailsModal({
 
             <div>
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold">Job Posting URL</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold">Job Posting URL</h3>
+                  {isLoadingSnapshot && (
+                    <span className="text-sm text-muted-foreground">
+                      Creating snapshot...
+                    </span>
+                  )}
+                  {latestSnapshot && !isLoadingSnapshot && (
+                    <span className="text-sm text-muted-foreground">
+                      Last snapshot: {new Date(latestSnapshot.created_at).toLocaleString()}
+                    </span>
+                  )}
+                </div>
                 {job.url && (
                   <Button
                     onClick={handleViewSnapshot}
