@@ -180,6 +180,57 @@ export function JobDetailsModal({
         .replace(/on\w+="[^"]*"/gi, '') // Remove inline event handlers
         .replace(/javascript:/gi, ''); // Remove javascript: URLs
 
+      // Create a minimal header that overlays the original content
+      const headerHtml = `
+        <style>
+          #time-machine-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 999999;
+            background: white;
+            padding: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: system-ui, -apple-system, sans-serif;
+          }
+          #time-machine-header .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+          }
+          #time-machine-header img {
+            height: 2rem;
+            width: auto;
+          }
+          #time-machine-header .title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #111827;
+            margin: 0;
+          }
+          #time-machine-header .timestamp {
+            font-size: 0.875rem;
+            color: #6b7280;
+          }
+          /* Add margin to body to prevent content from hiding under header */
+          body { margin-top: 4rem !important; }
+        </style>
+        <div id="time-machine-header">
+          <div class="logo-section">
+            <img src="/logo.png" alt="Applicator Hub">
+            <h1 class="title">Time Machine</h1>
+          </div>
+          <div class="timestamp">
+            Snapshot from ${new Date(snapshot.created_at).toLocaleString()}
+          </div>
+        </div>
+      `;
+
+      // Inject our header into the original HTML while preserving all original styles
       const content = `
         <!DOCTYPE html>
         <html lang="en">
@@ -187,126 +238,25 @@ export function JobDetailsModal({
             <title>Time Machine - ${snapshot.position} at ${snapshot.company}</title>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link rel="preconnect" href="https://fonts.googleapis.com">
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-            <style>
-              body {
-                font-family: 'Inter', system-ui, -apple-system, sans-serif;
-                line-height: 1.5;
-                margin: 0;
-                padding: 0;
-                background: #f8f9fa;
-                color: #1a1a1a;
-              }
-              .app-header {
-                background: white;
-                padding: 1.5rem;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 1rem;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-              }
-              .app-header img {
-                height: 3rem;
-                width: auto;
-              }
-              .app-header h1 {
-                font-size: 1.75rem;
-                font-weight: 600;
-                margin: 0;
-                color: #111827;
-              }
-              .container {
-                max-width: 800px;
-                margin: 2rem auto;
-                padding: 2rem;
-                background: white;
-                border-radius: 0.5rem;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-              }
-              .job-header {
-                margin-bottom: 2rem;
-                padding-bottom: 1rem;
-                border-bottom: 1px solid #e5e7eb;
-              }
-              .job-header h2 {
-                font-size: 1.875rem;
-                font-weight: 600;
-                margin: 0 0 0.5rem 0;
-                color: #111827;
-              }
-              .job-header h3 {
-                font-size: 1.5rem;
-                font-weight: 500;
-                margin: 0 0 1rem 0;
-                color: #4b5563;
-              }
-              .timestamp {
-                color: #6b7280;
-                font-size: 0.875rem;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-              }
-              .timestamp svg {
-                width: 1rem;
-                height: 1rem;
-              }
-              .content {
-                line-height: 1.6;
-              }
-              .content h1, .content h2, .content h3, .content h4 {
-                margin-top: 1.5em;
-                margin-bottom: 0.5em;
-                color: #111827;
-              }
-              .content p {
-                margin: 1em 0;
-              }
-              .content ul, .content ol {
-                margin: 1em 0;
-                padding-left: 1.5em;
-              }
-              .content li {
-                margin: 0.5em 0;
-              }
-              .content a {
-                color: #2563eb;
-                text-decoration: none;
-              }
-              .content a:hover {
-                text-decoration: underline;
-              }
-            </style>
+            <base href="${snapshot.url}">
           </head>
           <body>
-            <header class="app-header">
-              <img src="/logo.png" alt="Applicator Hub">
-              <h1>Time Machine</h1>
-            </header>
-            <div class="container">
-              <div class="job-header">
-                <h2>${snapshot.position}</h2>
-                <h3>${snapshot.company}</h3>
-                <div class="timestamp">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 6v6l4 2"/>
-                  </svg>
-                  Snapshot taken on ${new Date(snapshot.created_at).toLocaleString()}
-                </div>
+            ${headerHtml}
+            ${sanitizedHtml || `
+              <div style="text-align: center; padding: 2rem; font-family: system-ui, -apple-system, sans-serif;">
+                <p style="color: #6b7280; font-style: italic;">No content available in this snapshot.</p>
+                <p style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">This could mean the job posting has been removed or is no longer accessible.</p>
               </div>
-              <div class="content">
-                ${sanitizedHtml || `
-                  <div style="text-align: center; padding: 2rem; color: #6b7280; font-style: italic;">
-                    <p>No content available in this snapshot.</p>
-                    <p style="margin-top: 0.5rem; font-size: 0.875rem;">This could mean the job posting has been removed or is no longer accessible.</p>
-                  </div>
-                `}
-              </div>
-            </div>
+            `}
+            <script>
+              // Ensure all links open in new tabs
+              document.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                  e.preventDefault();
+                  window.open(e.target.href, '_blank');
+                }
+              });
+            </script>
           </body>
         </html>
       `;
