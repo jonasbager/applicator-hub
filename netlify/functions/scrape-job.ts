@@ -131,13 +131,16 @@ export const handler: Handler = async (event) => {
 
       // Get the raw HTML content before trimming
       const rawHtml = docs[0].pageContent;
+      console.log('Raw HTML content length:', rawHtml.length);
 
       // Add the original URL and raw HTML
       const jobDetails = {
         ...parsedJob,
         url: parsedJob.url || url,
-        rawHtml: rawHtml
+        rawHtml: rawHtml // This is the untrimmed HTML content
       };
+
+      console.log('Returning job details with HTML length:', jobDetails.rawHtml.length);
 
       return {
         statusCode: 200,
@@ -154,7 +157,7 @@ export const handler: Handler = async (event) => {
         description: responseText.match(/"description":\s*"([^"]+)"/)?.[1] || 'No description available',
         keywords: [],
         url: url,
-        rawHtml: docs[0].pageContent
+        rawHtml: docs[0].pageContent // Use the full HTML content for fallback too
       };
       return {
         statusCode: 200,
