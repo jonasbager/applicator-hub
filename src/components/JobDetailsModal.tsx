@@ -62,20 +62,31 @@ export function JobDetailsModal({
 
   // Load latest snapshot on open
   useEffect(() => {
-    if (open && job && userId) {
-      supabase
-        .from('job_snapshots')
-        .select('created_at')
-        .eq('job_id', job.id)
-        .eq('user_id', getUserId(userId))
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-        .then(({ data }) => {
-          if (data) setLatestSnapshot(data);
-        });
+    async function loadLatestSnapshot() {
+      if (!open || !job || !userId) return;
+
+      try {
+        // First check if any snapshots exist
+        const { data, error } = await supabase
+          .from('job_snapshots')
+          .select('id, created_at')
+          .eq('job_id', job.id)
+          .eq('user_id', getUserId(userId))
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (error) {
+          console.error('Error loading snapshot:', error);
+        } else if (data?.length > 0) {
+          setLatestSnapshot(data[0]);
+        }
+      } catch (error) {
+        console.error('Error loading snapshot:', error);
+      }
     }
-  }, [open, job, userId]);
+
+    loadLatestSnapshot();
+  }, [open, job, userId, supabase]);
   const { toast } = useToast();
 
   // Reset form when job changes or modal opens
