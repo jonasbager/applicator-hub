@@ -238,7 +238,7 @@ export function JobDetailsModal({
             <title>Time Machine - ${snapshot.position} at ${snapshot.company}</title>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <base href="${snapshot.url}">
+            <base href="${new URL(snapshot.url).origin}">
           </head>
           <body>
             ${headerHtml}
@@ -250,10 +250,40 @@ export function JobDetailsModal({
             `}
             <script>
               // Ensure all links open in new tabs
+              // Handle all external resources safely
               document.addEventListener('click', function(e) {
-                if (e.target.tagName === 'A') {
+                const link = e.target.closest('a');
+                if (link) {
                   e.preventDefault();
-                  window.open(e.target.href, '_blank');
+                  const url = new URL(link.href, '${snapshot.url}');
+                  window.open(url.href, '_blank');
+                }
+              });
+
+              // Fix image sources
+              document.querySelectorAll('img').forEach(img => {
+                if (img.src) {
+                  try {
+                    img.src = new URL(img.getAttribute('src'), '${snapshot.url}').href;
+                  } catch (e) {
+                    console.warn('Failed to fix image URL:', e);
+                  }
+                }
+              });
+
+              // Fix background images in inline styles
+              document.querySelectorAll('[style*="background"]').forEach(el => {
+                const style = el.getAttribute('style');
+                if (style) {
+                  const urlMatch = style.match(/url\(['"]?([^'"]+)['"]?\)/);
+                  if (urlMatch) {
+                    try {
+                      const newUrl = new URL(urlMatch[1], '${snapshot.url}').href;
+                      el.setAttribute('style', style.replace(urlMatch[1], newUrl));
+                    } catch (e) {
+                      console.warn('Failed to fix background image URL:', e);
+                    }
+                  }
                 }
               });
             </script>
