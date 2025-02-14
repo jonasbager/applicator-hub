@@ -67,7 +67,7 @@ export function JobDetailsModal({
         .from('job_snapshots')
         .select('created_at')
         .eq('job_id', job.id)
-        .eq('user_id', userId)
+        .eq('user_id', getUserId(userId))
         .order('created_at', { ascending: false })
         .limit(1)
         .single()
@@ -131,7 +131,7 @@ export function JobDetailsModal({
         .from('job_snapshots')
         .select('*')
         .eq('job_id', job.id)
-        .eq('user_id', userId)
+        .eq('user_id', getUserId(userId))
         .order('created_at', { ascending: false })
         .limit(1);
 
