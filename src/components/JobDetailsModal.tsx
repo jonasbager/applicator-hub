@@ -200,21 +200,23 @@ export function JobDetailsModal({
                 color: #1a1a1a;
               }
               .app-header {
-                background: linear-gradient(to right, #f59e0b, #ea580c);
-                padding: 1rem;
-                color: white;
+                background: white;
+                padding: 1.5rem;
                 display: flex;
+                flex-direction: column;
                 align-items: center;
                 gap: 1rem;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
               }
               .app-header img {
-                height: 2rem;
+                height: 3rem;
+                width: auto;
               }
               .app-header h1 {
-                font-size: 1.5rem;
+                font-size: 1.75rem;
                 font-weight: 600;
                 margin: 0;
+                color: #111827;
               }
               .container {
                 max-width: 800px;
@@ -297,11 +299,12 @@ export function JobDetailsModal({
                 </div>
               </div>
               <div class="content">
-                {sanitizedHtml ? (
-                  <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }}></div>
-                ) : (
-                  <p className="text-gray-500 italic">No content available in this snapshot.</p>
-                )}
+                ${sanitizedHtml || `
+                  <div style="text-align: center; padding: 2rem; color: #6b7280; font-style: italic;">
+                    <p>No content available in this snapshot.</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.875rem;">This could mean the job posting has been removed or is no longer accessible.</p>
+                  </div>
+                `}
               </div>
             </div>
           </body>
