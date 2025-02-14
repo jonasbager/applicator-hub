@@ -171,8 +171,8 @@ export function JobDetailsModal({
       }
       
       // Write content with error handling
-      // Sanitize HTML content to prevent XSS
-      const sanitizedHtml = snapshot.html_content
+      // Sanitize HTML content to prevent XSS and handle edge cases
+      const sanitizedHtml = (snapshot.html_content || '')
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
         .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframes
         .replace(/<link\b[^>]*>/gi, '') // Remove link tags
@@ -296,7 +296,13 @@ export function JobDetailsModal({
                   Snapshot taken on ${new Date(snapshot.created_at).toLocaleString()}
                 </div>
               </div>
-              <div class="content" dangerouslySetInnerHTML={{ __html: sanitizedHtml }}></div>
+              <div class="content">
+                {sanitizedHtml ? (
+                  <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }}></div>
+                ) : (
+                  <p className="text-gray-500 italic">No content available in this snapshot.</p>
+                )}
+              </div>
             </div>
           </body>
         </html>
