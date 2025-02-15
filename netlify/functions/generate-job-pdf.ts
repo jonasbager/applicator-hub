@@ -85,17 +85,31 @@ export const handler: Handler = async (event) => {
       throw pageError;
     }
 
-    // Generate PDF
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '20px',
-        right: '20px',
-        bottom: '20px',
-        left: '20px'
-      }
-    });
+    console.log('Generating PDF...');
+    let pdf;
+    try {
+      // Wait for any remaining network requests to finish
+      await page.waitForNetworkIdle({ timeout: 5000 }).catch(() => {
+        console.log('Network idle timeout reached, proceeding with PDF generation');
+      });
+
+      // Generate PDF
+      pdf = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '20px',
+          right: '20px',
+          bottom: '20px',
+          left: '20px'
+        },
+        timeout: 30000 // 30 second timeout for PDF generation
+      });
+      console.log('PDF generated successfully');
+    } catch (error: unknown) {
+      console.error('Error generating PDF:', error);
+      throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 
     console.log('Generated PDF, size:', pdf.length);
     await browser.close();
