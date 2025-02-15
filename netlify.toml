@@ -102,7 +102,7 @@
 
 [functions.scrape-job]
   included_files = []
-  external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio", "zod", "axios"]
+  external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio", "zod", "axios", "@supabase/supabase-js"]
   environment = { NODE_VERSION = "18.x", OPENAI_API_KEY = "${OPENAI_API_KEY}" }
 
 [functions.find-matching-jobs]

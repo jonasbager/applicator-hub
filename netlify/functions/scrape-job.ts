@@ -5,13 +5,6 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
 import axios from 'axios';
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // Job schema matching the database schema
 const jobSchema = z.object({
