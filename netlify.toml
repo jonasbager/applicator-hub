@@ -109,3 +109,9 @@
   included_files = []
   external_node_modules = ["linkedin-jobs-api", "@supabase/supabase-js", "axios", "openai"]
   environment = { NODE_VERSION = "18.x" }
+
+[functions.generate-job-pdf]
+  included_files = []
+  external_node_modules = ["puppeteer", "@supabase/supabase-js"]
+  environment = { NODE_VERSION = "18.x" }
+  timeout = "30s"

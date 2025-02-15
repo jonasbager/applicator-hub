@@ -26,6 +26,7 @@ interface JobSnapshot {
   url: string;
   html_content: string;
   created_at: string;
+  pdf_url: string;
 }
 
 export interface JobDetailsModalProps {
@@ -164,89 +165,72 @@ export function JobDetailsModal({
 
       const snapshot = snapshots[0];
       console.log('Found snapshot with HTML length:', snapshot.html_content.length);
+      
       // Open snapshot in new tab with error handling
       const win = window.open('', '_blank');
       if (!win) {
         throw new Error('Failed to open new window');
       }
-      
-      // Write content with error handling
-      // Clean up the HTML content
-      const cleanHtml = snapshot.html_content
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-        .replace(/on\w+="[^"]*"/gi, '')
-        .replace(/javascript:/gi, '');
 
-      const content = `
+      // Create a container with our header and the PDF viewer
+      win.document.write(`
         <!DOCTYPE html>
         <html>
           <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Time Machine - ${snapshot.position} at ${snapshot.company}</title>
+            <title>Job Snapshot</title>
             <style>
-              .time-machine-banner {
+              body { margin: 0; font-family: system-ui; }
+              .header {
                 position: fixed;
                 top: 0;
                 left: 0;
                 right: 0;
-                z-index: 9999;
-                background: #f3f4f6;
-                padding: 8px;
-                text-align: center;
+                background: #f9fafb;
                 border-bottom: 1px solid #e5e7eb;
-                font-family: system-ui, -apple-system, sans-serif;
-                font-size: 13px;
+                padding: 8px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                z-index: 1000;
+              }
+              .timestamp {
+                font-size: 11px;
                 color: #6b7280;
               }
-              .time-machine-banner img {
-                height: 16px;
-                vertical-align: middle;
-                margin-right: 6px;
+              .download-btn {
+                background: #2563eb;
+                color: white;
+                border: none;
+                padding: 4px 12px;
+                border-radius: 4px;
+                font-size: 12px;
+                cursor: pointer;
               }
-              body {
+              .download-btn:hover {
+                background: #1d4ed8;
+              }
+              .pdf-container {
                 margin-top: 40px;
+                width: 100%;
+                height: calc(100vh - 40px);
               }
             </style>
           </head>
           <body>
-            <div class="time-machine-banner">
-              <img src="/logo.png" alt="Applicator Hub">
-              Time Machine Snapshot from ${new Date(snapshot.created_at).toLocaleString()}
+            <div class="header">
+              <span class="timestamp">Snapshot from ${new Date(snapshot.created_at).toLocaleString()}</span>
+              <a href="${snapshot.pdf_url}" download class="download-btn">Download PDF</a>
             </div>
-            ${cleanHtml || `
-              <div style="text-align: center; padding: 2rem; color: #6b7280; font-family: system-ui;">
-                <p style="font-style: italic;">No content available in this snapshot.</p>
-                <p style="margin-top: 0.5rem; font-size: 0.875rem;">This could mean the job posting has been removed or is no longer accessible.</p>
-              </div>
-            `}
-            <script>
-              // Open all links in new tabs
-              document.addEventListener('click', function(e) {
-                if (e.target.tagName === 'A') {
-                  e.preventDefault();
-                  window.open(e.target.href, '_blank');
-                }
-              });
-            </script>
+            <iframe src="${snapshot.pdf_url}" class="pdf-container"></iframe>
           </body>
         </html>
-      `;
-      
-      try {
-        win.document.write(content);
-        win.document.close(); // Important: close the document
-        
-        toast({
-          title: "Success",
-          description: "Opening job snapshot in new tab",
-        });
-      } catch (writeError) {
-        console.error('Error writing snapshot content:', writeError);
-        win.close();
-        throw writeError;
-      }
+      `);
+      win.document.close();
+
+      toast({
+        title: "Success",
+        description: "Opening job snapshot in new tab",
+      });
     } catch (error) {
       console.error('Error viewing snapshot:', error);
       toast({

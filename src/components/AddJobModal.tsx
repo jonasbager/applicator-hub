@@ -248,10 +248,37 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
               description: "Failed to create job snapshot",
             });
           } else {
-            toast({
-              title: "Success",
-              description: "Job and snapshot created successfully",
-            });
+            // Generate PDF after snapshot is created
+            try {
+              const response = await fetch('/.netlify/functions/generate-job-pdf', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-user-id': userId
+                },
+                body: JSON.stringify({
+                  url: jobDetails.url,
+                  jobId,
+                  userId: getUserId(userId)
+                })
+              });
+
+              if (!response.ok) {
+                throw new Error('Failed to generate PDF');
+              }
+
+              toast({
+                title: "Success",
+                description: "Job, snapshot, and PDF created successfully",
+              });
+            } catch (pdfError) {
+              console.error('Error generating PDF:', pdfError);
+              toast({
+                variant: "destructive",
+                title: "Warning",
+                description: "Job created but PDF generation failed",
+              });
+            }
           }
         } catch (error) {
           console.error('Error creating snapshot:', error);

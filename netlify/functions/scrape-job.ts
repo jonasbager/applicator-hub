@@ -5,6 +5,13 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
 import axios from 'axios';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 // Job schema matching the database schema
 const jobSchema = z.object({
@@ -133,14 +140,14 @@ export const handler: Handler = async (event) => {
       const rawHtml = docs[0].pageContent;
       console.log('Raw HTML content length:', rawHtml.length);
 
-      // Add the original URL and raw HTML
+      // Add the original URL and HTML
       const jobDetails = {
         ...parsedJob,
         url: parsedJob.url || url,
-        rawHtml: rawHtml // This is the untrimmed HTML content
+        rawHtml: rawHtml
       };
 
-      console.log('Returning job details with HTML length:', jobDetails.rawHtml.length);
+      console.log('Returning job details with HTML');
 
       return {
         statusCode: 200,
