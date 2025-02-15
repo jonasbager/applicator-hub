@@ -24,6 +24,7 @@ export const handler: Handler = async (event) => {
     };
   }
 
+  let browser;
   try {
     console.log('Function started');
     
@@ -31,10 +32,10 @@ export const handler: Handler = async (event) => {
       throw new Error('Missing request body');
     }
 
-    const { url, jobId, userId } = JSON.parse(event.body);
-    console.log('Parsed parameters:', { url, jobId, userId });
+    const { htmlContent, jobId, userId } = JSON.parse(event.body);
+    console.log('Parsed parameters:', { jobId, userId, htmlContentLength: htmlContent?.length });
     
-    if (!url || !jobId || !userId) {
+    if (!htmlContent || !jobId || !userId) {
       throw new Error('Missing required parameters');
     }
 
@@ -44,16 +45,7 @@ export const handler: Handler = async (event) => {
 
     console.log('Launching browser with config...');
     const config = {
-      args: [
-        ...chromium.args,
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-        '--no-zygote',
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--font-render-hinting=none'
-      ],
+      args: chromium.args,
       defaultViewport: {
         width: 1200,
         height: 800,
@@ -61,80 +53,38 @@ export const handler: Handler = async (event) => {
       },
       executablePath,
       headless: true,
-      ignoreHTTPSErrors: true,
     };
     console.log('Browser config:', config);
 
-    const browser = await puppeteer.launch(config);
+    browser = await puppeteer.launch(config);
     console.log('Browser launched successfully');
+    
     const page = await browser.newPage();
 
-    // Set user agent to avoid detection
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
-
-    console.log('Setting up page...');
-    // Navigate to URL and wait for content to load
-    try {
-      const response = await page.goto(url, { 
-        waitUntil: 'networkidle0',
-        timeout: 20000 // 20 seconds timeout
-      });
-      
-      if (!response) {
-        throw new Error('Failed to get response from page');
-      }
-
-      const status = response.status();
-      console.log('Page response status:', status);
-
-      if (status === 403 || status === 401) {
-        throw new Error('Access denied - page requires authentication');
-      }
-
-      if (status >= 400) {
-        throw new Error(`Failed to load page: HTTP ${status}`);
-      }
-
-      // Check if we got a valid page
-      const content = await page.content();
-      if (!content || content.includes('Access Denied') || content.includes('Please sign in')) {
-        throw new Error('Page requires authentication or is not accessible');
-      }
-
-      console.log('Page loaded successfully');
-    } catch (pageError) {
-      console.error('Error loading page:', pageError);
-      throw pageError;
-    }
+    console.log('Setting page content...');
+    // Set the HTML content directly
+    await page.setContent(htmlContent, {
+      waitUntil: 'networkidle0',
+      timeout: 20000
+    });
+    console.log('Page content set successfully');
 
     console.log('Generating PDF...');
-    let pdf;
-    try {
-      // Wait for any remaining network requests to finish
-      await page.waitForNetworkIdle({ timeout: 5000 }).catch(() => {
-        console.log('Network idle timeout reached, proceeding with PDF generation');
-      });
+    const pdf = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '20px',
+        right: '20px',
+        bottom: '20px',
+        left: '20px'
+      },
+      timeout: 30000 // 30 second timeout for PDF generation
+    });
+    console.log('PDF generated successfully');
 
-      // Generate PDF
-      pdf = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '20px',
-          right: '20px',
-          bottom: '20px',
-          left: '20px'
-        },
-        timeout: 30000 // 30 second timeout for PDF generation
-      });
-      console.log('PDF generated successfully');
-    } catch (error: unknown) {
-      console.error('Error generating PDF:', error);
-      throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-
-    console.log('Generated PDF, size:', pdf.length);
     await browser.close();
+    browser = undefined;
     console.log('Browser closed');
 
     console.log('Uploading to Supabase Storage...');
@@ -182,6 +132,13 @@ export const handler: Handler = async (event) => {
 
   } catch (error) {
     console.error('Error generating PDF:', error);
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.error('Error closing browser:', closeError);
+      }
+    }
     return {
       statusCode: 500,
       headers,
