@@ -1,5 +1,6 @@
 import { Handler } from '@netlify/functions';
-import puppeteer from 'puppeteer';
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client
@@ -33,9 +34,12 @@ export const handler: Handler = async (event) => {
       throw new Error('Missing required parameters');
     }
 
-    // Launch browser
+    // Launch browser with chromium
     const browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
     });
     const page = await browser.newPage();
 
