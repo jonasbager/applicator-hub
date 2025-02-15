@@ -75,10 +75,32 @@ export const handler: Handler = async (event) => {
     console.log('Setting up page...');
     // Navigate to URL and wait for content to load
     try {
-      await page.goto(url, { 
+      const response = await page.goto(url, { 
         waitUntil: 'networkidle0',
         timeout: 20000 // 20 seconds timeout
       });
+      
+      if (!response) {
+        throw new Error('Failed to get response from page');
+      }
+
+      const status = response.status();
+      console.log('Page response status:', status);
+
+      if (status === 403 || status === 401) {
+        throw new Error('Access denied - page requires authentication');
+      }
+
+      if (status >= 400) {
+        throw new Error(`Failed to load page: HTTP ${status}`);
+      }
+
+      // Check if we got a valid page
+      const content = await page.content();
+      if (!content || content.includes('Access Denied') || content.includes('Please sign in')) {
+        throw new Error('Page requires authentication or is not accessible');
+      }
+
       console.log('Page loaded successfully');
     } catch (pageError) {
       console.error('Error loading page:', pageError);
