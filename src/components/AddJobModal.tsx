@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+// Rewriting the entire file to fix any stray characters and ensure valid syntax
+
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -32,48 +34,46 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     position: "",
     company: "",
     description: "",
-    keywords: [] as string[],
+    keywords: [],
     url: "",
     rawHtml: ""
   });
-  const [deadline, setDeadline] = useState<string>("");
-  const [deadlineType, setDeadlineType] = useState<string>("unknown");
-  const [startDate, setStartDate] = useState<string>("");
-  const [startDateType, setStartDateType] = useState<string>("unknown");
+  const [deadline, setDeadline] = useState("");
+  const [deadlineType, setDeadlineType] = useState("unknown");
+  const [startDate, setStartDate] = useState("");
+  const [startDateType, setStartDateType] = useState("unknown");
 
   // Reset form when modal closes
-  // Load user preferences
-  useEffect(() => {
-    async function loadPreferences() {
-      if (!userId) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('job_preferences')
-          .select('*')
-          .eq('user_id', userId)
-          .single();
-
-        if (error) throw error;
-        setPreferences(data);
-      } catch (error) {
-        console.error('Error loading preferences:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Failed to load preferences'
-        });
-      }
-    }
-
-    loadPreferences();
-  }, [userId, supabase]);
-
   useEffect(() => {
     if (!open) {
       resetForm();
     }
   }, [open]);
+
+  // Load user preferences
+  useEffect(() => {
+    async function loadPreferences() {
+      if (!userId) return;
+      try {
+        const { data, error } = await supabase
+          .from("job_preferences")
+          .select("*")
+          .eq("user_id", userId)
+          .single();
+
+        if (error) throw error;
+        setPreferences(data);
+      } catch (err) {
+        console.error("Error loading preferences:", err);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load preferences"
+        });
+      }
+    }
+    loadPreferences();
+  }, [userId, supabase, toast]);
 
   const resetForm = () => {
     setUrl("");
@@ -91,100 +91,83 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     setStartDateType("unknown");
   };
 
-  const getLinkedInJobUrl = (url: string): string => {
+  function getLinkedInJobUrl(possibleUrl: string): string {
     try {
-      // Extract job ID from URL
-      const jobId = url.match(/(?:currentJobId=|jobs\/view\/)(\d+)/)?.[1];
+          const jobId = possibleUrl.match(/(?:currentJobId=|jobs\/view\/)(\d+)/)?.[1];
       if (!jobId) {
-        return url;
+        return possibleUrl;
       }
-
-      // Convert to direct job URL
       return `https://www.linkedin.com/jobs/view/${jobId}`;
-    } catch (error) {
-      console.error('Error parsing LinkedIn URL:', error);
-      return url;
+    } catch (err) {
+      console.error("Error parsing LinkedIn URL:", err);
+      return possibleUrl;
     }
-  };
+  }
 
-  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  function handleUrlChange(e: React.ChangeEvent<HTMLInputElement>) {
     const newUrl = e.target.value;
-    
-    // If it's a LinkedIn URL, convert it to direct job URL immediately
-    if (newUrl.includes('linkedin.com/jobs')) {
+    if (newUrl.includes("linkedin.com/jobs")) {
       const directUrl = getLinkedInJobUrl(newUrl);
-      console.log('Converting LinkedIn URL:', { original: newUrl, direct: directUrl });
       setUrl(directUrl);
-      // Also update jobDetails.url to keep them in sync
-      setJobDetails(prev => ({ ...prev, url: directUrl }));
+      setJobDetails((prev) => ({ ...prev, url: directUrl }));
     } else {
       setUrl(newUrl);
-      setJobDetails(prev => ({ ...prev, url: newUrl }));
+      setJobDetails((prev) => ({ ...prev, url: newUrl }));
     }
-  };
+  }
 
   // Keep URL fields in sync
   useEffect(() => {
     if (jobDetails.url !== url) {
       setUrl(jobDetails.url);
     }
-  }, [jobDetails.url]);
+  }, [jobDetails.url, url]);
 
-  const fetchDetails = async () => {
+  async function fetchDetails() {
     if (!url) {
       toast({
         variant: "destructive",
         title: "URL required",
-        description: "Please enter a job posting URL",
+        description: "Please enter a job posting URL"
       });
       return;
     }
-
     setLoading(true);
     try {
-      // No need to convert URL here since we do it on input change
-      console.log('Scraping URL:', url);
-      
       const details = await scrapeJobDetails(url);
-      console.log('Scraped details:', details);
-      console.log('Raw HTML content length:', details.rawHtml?.length || 0);
-      
-      setJobDetails({
-        ...jobDetails,
+      setJobDetails((prev) => ({
+        ...prev,
         ...details,
-        url: url, // Use the already converted URL
-        rawHtml: details.rawHtml // Make sure we keep the raw HTML
-      });
-      
+        url,
+        rawHtml: details.rawHtml || ""
+      }));
       toast({
         title: "Success",
-        description: "Job details extracted successfully",
+        description: "Job details extracted successfully"
       });
-    } catch (error) {
-      console.error("Error fetching job details:", error);
+    } catch (err) {
+      console.error("Error fetching job details:", err);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to fetch job details",
+        description: err instanceof Error ? err.message : "Failed to fetch job details"
       });
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!userId) return;
-    
     setLoading(true);
 
     try {
-      const finalDeadline = deadlineType === 'ASAP' ? 'ASAP' : 
-                           deadlineType === 'custom' ? deadline : null;
-      const finalStartDate = startDateType === 'ASAP' ? 'ASAP' : 
-                           startDateType === 'custom' ? startDate : null;
+      const finalDeadline =
+        deadlineType === "ASAP" ? "ASAP" : deadlineType === "custom" ? deadline : null;
+      const finalStartDate =
+        startDateType === "ASAP" ? "ASAP" : startDateType === "custom" ? startDate : null;
 
-      // Calculate match percentage
       let matchPercentage: number | undefined;
       if (preferences) {
         matchPercentage = calculateMatchPercentage(
@@ -194,9 +177,8 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         );
       }
 
-      // Create job
       const { data: newJob, error: jobError } = await supabase
-        .from('jobs')
+        .from("jobs")
         .insert({
           user_id: getUserId(userId),
           position: jobDetails.position,
@@ -204,133 +186,134 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
           description: jobDetails.description,
           keywords: jobDetails.keywords,
           url: jobDetails.url,
-          status: 'Not Started' as JobStatus,
+          status: "Not Started" as JobStatus,
           notes: [],
-          application_draft_url: '',
+          application_draft_url: "",
           archived: false,
           created_at: new Date().toISOString(),
           deadline: finalDeadline,
           start_date: finalStartDate,
           match_percentage: matchPercentage
         })
-        .select('id')
+        .select("id")
         .single();
 
       if (jobError) throw jobError;
-      
-      // Get the created job's ID
       const jobId = newJob?.id;
-      if (!jobId) throw new Error('Failed to create job');
+      if (!jobId) {
+        throw new Error("Failed to create job");
+      }
 
-      // Create snapshot if URL exists and we have raw HTML content
+      // Create snapshot
       if (jobDetails.url && jobDetails.rawHtml) {
-        try {
-          console.log('Creating snapshot with HTML length:', jobDetails.rawHtml.length);
-          const { error: snapshotError } = await supabase
-            .from('job_snapshots')
-            .insert({
-              job_id: jobId,
-              user_id: getUserId(userId),
-              position: jobDetails.position,
-              company: jobDetails.company,
-              description: jobDetails.description,
-              keywords: jobDetails.keywords,
-              url: jobDetails.url,
-              html_content: jobDetails.rawHtml,
-              created_at: new Date().toISOString()
-            });
+        const { error: snapshotError } = await supabase
+          .from("job_snapshots")
+          .insert({
+            job_id: jobId,
+            user_id: getUserId(userId),
+            position: jobDetails.position,
+            company: jobDetails.company,
+            description: jobDetails.description,
+            keywords: jobDetails.keywords,
+            url: jobDetails.url,
+            html_content: jobDetails.rawHtml,
+            created_at: new Date().toISOString()
+          });
 
-          if (snapshotError) {
-            console.error('Error creating snapshot:', snapshotError);
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: "Failed to create job snapshot",
-            });
-          } else {
-            // Generate PDF after snapshot is created
-            try {
-              // Generate PDF
-              const response = await fetch('/.netlify/functions/generate-job-pdf', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  url: jobDetails.url
-                })
-              });
-
-              if (!response.ok) {
-                throw new Error('Failed to generate PDF');
-              }
-
-              // Get the PDF blob
-              const blob = await response.blob();
-              
-              // Create a URL for the blob
-              const url = window.URL.createObjectURL(blob);
-              
-              // Create a link and click it to download
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `${jobDetails.company}-${jobDetails.position}.pdf`;
-              document.body.appendChild(a);
-              a.click();
-              
-              // Cleanup
-              window.URL.revokeObjectURL(url);
-              document.body.removeChild(a);
-
-              toast({
-                title: "Success",
-                description: "Job added and PDF downloaded successfully",
-              });
-            } catch (pdfError) {
-              console.error('Error generating PDF:', pdfError);
-              toast({
-                variant: "destructive",
-                title: "Warning",
-                description: "Job created but PDF generation failed",
-              });
-            }
-          }
-        } catch (error) {
-          console.error('Error creating snapshot:', error);
+        if (snapshotError) {
+          console.error("Error creating snapshot:", snapshotError);
           toast({
             variant: "destructive",
             title: "Error",
-            description: "Failed to create job snapshot",
+            description: "Failed to create job snapshot"
           });
+        } else {
+          // Now generate PDF
+          try {
+            const response = await fetch("/.netlify/functions/generate-job-pdf", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                url: jobDetails.url
+              })
+            });
+
+            // Upload PDF to storage
+            const blob = await response.blob();
+            const storageName = "pdf_snapshots";
+            const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
+            const fileName = `snapshot-${jobId}-${dateStr}.pdf`;
+
+            const { error: uploadError } = await supabase.storage
+              .from(storageName)
+              .upload(fileName, blob, { contentType: "application/pdf" });
+
+            if (uploadError) {
+              throw new Error(`Failed to upload PDF to storage: ${uploadError.message}`);
+            }
+
+            const { data: publicUrlData } = supabase.storage
+              .from(storageName)
+              .getPublicUrl(fileName);
+
+            if (publicUrlData.publicUrl) {
+              const { error: snapshotUpdateError } = await supabase
+                .from("job_snapshots")
+                .update({ pdf_url: publicUrlData.publicUrl })
+                .eq("job_id", jobId)
+                .eq("user_id", getUserId(userId))
+                .order("created_at", { ascending: false })
+                .limit(1);
+
+              if (snapshotUpdateError) {
+                console.error("Error updating pdf_url in job_snapshots:", snapshotUpdateError);
+              }
+            }
+
+            if (!response.ok) {
+              throw new Error("Failed to generate PDF");
+            }
+
+            toast({
+              title: "Success",
+              description: "Job added successfully. PDF saved in snapshots."
+            });
+          } catch (pdfError) {
+            console.error("Error generating PDF:", pdfError);
+            toast({
+              variant: "destructive",
+              title: "Warning",
+              description: "Job created but PDF generation failed"
+            });
+          }
         }
-      } else {
-        console.log('Skipping snapshot creation - no raw HTML content available');
       }
 
       onJobAdded();
       onOpenChange(false);
       resetForm();
-      
       toast({
         title: "Success",
-        description: "Job added successfully",
+        description: "Job added successfully"
       });
-    } catch (error) {
-      console.error("Error saving job:", error);
+    } catch (err) {
+      console.error("Error saving job:", err);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save job",
+        description: err instanceof Error ? err.message : "Failed to save job"
       });
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleCancel = () => {
+  function handleCancel() {
     resetForm();
     onOpenChange(false);
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -338,6 +321,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         <DialogHeader>
           <DialogTitle>Add New Job</DialogTitle>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* AI Auto-fill Section */}
           <div className="relative rounded-lg border bg-gradient-to-br from-yellow-50 to-orange-50 p-4">
@@ -377,15 +361,18 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               Key Skills & Requirements
-              <Badge variant="secondary" className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
+              <Badge
+                variant="secondary"
+                className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white"
+              >
                 AI Extracted
               </Badge>
             </Label>
             <div className="min-h-20 p-4 bg-muted rounded-lg">
               {jobDetails.keywords.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {jobDetails.keywords.map((keyword: string, index: number) => (
-                    <Badge 
+                  {jobDetails.keywords.map((keyword, index) => (
+                    <Badge
                       key={index}
                       variant="secondary"
                       className="text-sm py-1 px-3 bg-gradient-to-r from-yellow-100 to-orange-100"
@@ -412,7 +399,10 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                   id="position"
                   value={jobDetails.position}
                   onChange={(e) =>
-                    setJobDetails({ ...jobDetails, position: e.target.value })
+                    setJobDetails((prev) => ({
+                      ...prev,
+                      position: e.target.value
+                    }))
                   }
                   placeholder="e.g. Frontend Developer"
                   disabled={loading}
@@ -424,7 +414,10 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                   id="company"
                   value={jobDetails.company}
                   onChange={(e) =>
-                    setJobDetails({ ...jobDetails, company: e.target.value })
+                    setJobDetails((prev) => ({
+                      ...prev,
+                      company: e.target.value
+                    }))
                   }
                   placeholder="e.g. Acme Inc"
                   disabled={loading}
@@ -438,7 +431,10 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                 id="description"
                 value={jobDetails.description}
                 onChange={(e) =>
-                  setJobDetails({ ...jobDetails, description: e.target.value })
+                  setJobDetails((prev) => ({
+                    ...prev,
+                    description: e.target.value
+                  }))
                 }
                 placeholder="Enter job description"
                 disabled={loading}
@@ -446,11 +442,15 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
             </div>
 
             <div className="grid grid-cols-2 gap-6">
+              {/* Start Date */}
               <div>
                 <Label>Start Date</Label>
                 <div className="flex flex-col gap-2">
                   <div className="flex gap-2 min-w-0">
-                    <Select value={startDateType} onValueChange={setStartDateType}>
+                    <Select
+                      value={startDateType}
+                      onValueChange={setStartDateType}
+                    >
                       <SelectTrigger className="w-[120px]">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
@@ -472,11 +472,15 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                 </div>
               </div>
 
+              {/* Deadline */}
               <div>
                 <Label>Application Deadline</Label>
                 <div className="flex flex-col gap-2">
                   <div className="flex gap-2 min-w-0">
-                    <Select value={deadlineType} onValueChange={setDeadlineType}>
+                    <Select
+                      value={deadlineType}
+                      onValueChange={setDeadlineType}
+                    >
                       <SelectTrigger className="w-[120px]">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
@@ -505,7 +509,10 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                 id="url"
                 value={jobDetails.url}
                 onChange={(e) =>
-                  setJobDetails({ ...jobDetails, url: e.target.value })
+                  setJobDetails((prev) => ({
+                    ...prev,
+                    url: e.target.value
+                  }))
                 }
                 placeholder="https://..."
                 disabled={loading}
