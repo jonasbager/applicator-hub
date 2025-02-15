@@ -50,10 +50,17 @@ export const handler: Handler = async (event) => {
         '--disable-gpu',
         '--single-process',
         '--no-zygote',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--font-render-hinting=none'
       ],
-      defaultViewport: chromium.defaultViewport,
+      defaultViewport: {
+        width: 1200,
+        height: 800,
+        deviceScaleFactor: 1,
+      },
       executablePath,
-      headless: chromium.headless,
+      headless: true,
       ignoreHTTPSErrors: true,
     };
     console.log('Browser config:', config);
@@ -62,8 +69,8 @@ export const handler: Handler = async (event) => {
     console.log('Browser launched successfully');
     const page = await browser.newPage();
 
-    // Set viewport size
-    await page.setViewport({ width: 1200, height: 800 });
+    // Set user agent to avoid detection
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
 
     console.log('Setting up page...');
     // Navigate to URL and wait for content to load
