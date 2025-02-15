@@ -87,6 +87,12 @@
   force = true
 
 [[redirects]]
+  from = "/.netlify/functions/generate-job-pdf"
+  to = "/.netlify/functions/generate-job-pdf"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

@@ -21,26 +21,48 @@ export const handler: Handler = async (event) => {
 
   let browser;
   try {
+    console.log('Function started');
+    
     if (!event.body) {
       throw new Error('Missing request body');
     }
 
     const { url, jobId, userId } = JSON.parse(event.body);
+    console.log('Request parameters:', { url, jobId, userId });
+    
     if (!url || !jobId || !userId) {
       throw new Error('Missing required parameters');
     }
 
+    console.log('Getting chromium path...');
+    const executablePath = await chromium.executablePath();
+    console.log('Chromium path:', executablePath);
+
+    console.log('Launching browser...');
     browser = await puppeteer.launch({
       args: chromium.args,
-      executablePath: await chromium.executablePath(),
+      executablePath,
       headless: chromium.headless,
     });
+    console.log('Browser launched successfully');
 
+    console.log('Creating new page...');
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle0' });
-    const pdf = await page.pdf({ format: 'A4' });
-    await browser.close();
+    console.log('Page created');
 
+    console.log('Navigating to URL:', url);
+    await page.goto(url, { waitUntil: 'networkidle0' });
+    console.log('Page loaded');
+
+    console.log('Generating PDF...');
+    const pdf = await page.pdf({ format: 'A4' });
+    console.log('PDF generated, size:', pdf.length);
+
+    await browser.close();
+    browser = undefined;
+    console.log('Browser closed');
+
+    console.log('Uploading to Supabase...');
     const filename = `${jobId}.pdf`;
     const storagePath = `jobs/${userId}/${filename}`;
 
@@ -51,19 +73,29 @@ export const handler: Handler = async (event) => {
         upsert: true
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw uploadError;
+    }
+    console.log('PDF uploaded successfully');
 
+    console.log('Getting public URL...');
     const { data: { publicUrl } } = supabase.storage
       .from('job-snapshots')
       .getPublicUrl(storagePath);
 
+    console.log('Updating database...');
     const { error: updateError } = await supabase
       .from('job_snapshots')
       .update({ pdf_url: publicUrl })
       .eq('job_id', jobId)
       .eq('user_id', userId);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error('Database update error:', updateError);
+      throw updateError;
+    }
+    console.log('Database updated successfully');
 
     return {
       statusCode: 200,
@@ -72,10 +104,21 @@ export const handler: Handler = async (event) => {
     };
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+
     if (browser) {
-      await browser.close().catch(console.error);
+      try {
+        await browser.close();
+        console.log('Browser closed after error');
+      } catch (closeError) {
+        console.error('Error closing browser:', closeError);
+      }
     }
+
     return {
       statusCode: 500,
       headers,
