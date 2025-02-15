@@ -257,7 +257,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                   'x-user-id': userId
                 },
                 body: JSON.stringify({
-                  htmlContent: jobDetails.rawHtml,
+                  url: jobDetails.url,
                   jobId,
                   userId: getUserId(userId)
                 })
