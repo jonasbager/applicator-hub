@@ -4,7 +4,7 @@
     "@langchain/community": "^0.3.18",
     "@langchain/openai": "^0.3.14",
     "@netlify/functions": "^2.5.1",
-    "@sparticuz/chromium": "^119.0.2",
+    "@sparticuz/chromium": "^121.0.0",
     "@supabase/supabase-js": "^2.39.7",
     "axios": "^1.7.9",
     "cheerio": "^1.0.0-rc.12",
