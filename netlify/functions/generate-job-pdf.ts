@@ -25,29 +25,58 @@ export const handler: Handler = async (event) => {
   }
 
   try {
+    console.log('Function started');
+    
     if (!event.body) {
       throw new Error('Missing request body');
     }
 
     const { url, jobId, userId } = JSON.parse(event.body);
+    console.log('Parsed parameters:', { url, jobId, userId });
+    
     if (!url || !jobId || !userId) {
       throw new Error('Missing required parameters');
     }
 
-    // Launch browser with chromium
-    const browser = await puppeteer.launch({
-      args: chromium.args,
+    console.log('Getting chromium path...');
+    const executablePath = await chromium.executablePath();
+    console.log('Chromium path:', executablePath);
+
+    console.log('Launching browser with config...');
+    const config = {
+      args: [
+        ...chromium.args,
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--single-process',
+        '--no-zygote',
+      ],
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
+      executablePath,
       headless: chromium.headless,
-    });
+      ignoreHTTPSErrors: true,
+    };
+    console.log('Browser config:', config);
+
+    const browser = await puppeteer.launch(config);
+    console.log('Browser launched successfully');
     const page = await browser.newPage();
 
     // Set viewport size
     await page.setViewport({ width: 1200, height: 800 });
 
+    console.log('Setting up page...');
     // Navigate to URL and wait for content to load
-    await page.goto(url, { waitUntil: 'networkidle0' });
+    try {
+      await page.goto(url, { 
+        waitUntil: 'networkidle0',
+        timeout: 20000 // 20 seconds timeout
+      });
+      console.log('Page loaded successfully');
+    } catch (pageError) {
+      console.error('Error loading page:', pageError);
+      throw pageError;
+    }
 
     // Generate PDF
     const pdf = await page.pdf({
@@ -61,8 +90,11 @@ export const handler: Handler = async (event) => {
       }
     });
 
+    console.log('Generated PDF, size:', pdf.length);
     await browser.close();
+    console.log('Browser closed');
 
+    console.log('Uploading to Supabase Storage...');
     // Upload PDF to Supabase Storage
     const filename = `${jobId}.pdf`;
     const storagePath = `jobs/${userId}/${filename}`;
@@ -74,8 +106,13 @@ export const handler: Handler = async (event) => {
         upsert: true
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw uploadError;
+    }
+    console.log('PDF uploaded successfully');
 
+    console.log('Getting public URL...');
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
       .from('job-snapshots')
@@ -88,7 +125,11 @@ export const handler: Handler = async (event) => {
       .eq('job_id', jobId)
       .eq('user_id', userId);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error('Update error:', updateError);
+      throw updateError;
+    }
+    console.log('Database updated successfully');
 
     return {
       statusCode: 200,
