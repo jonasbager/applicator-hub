@@ -91,7 +91,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
 
   function getLinkedInJobUrl(possibleUrl: string): string {
     try {
-          const jobId = possibleUrl.match(/(?:currentJobId=|jobs\/view\/)(\d+)/)?.[1];
+      const jobId = possibleUrl.match(/(?:currentJobId=|jobs\/view\/)(\d+)/)?.[1];
       if (!jobId) {
         return possibleUrl;
       }
@@ -264,26 +264,20 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
               throw new Error(`Failed to upload PDF to storage: ${uploadError.message}`);
             }
 
-            console.log('PDF uploaded successfully, getting public URL...');
-            const { data: publicUrlData } = supabase.storage
-              .from(storageName)
-              .getPublicUrl(fileName);
+            // Store just the file path instead of full URL
+            console.log('Updating job snapshot with PDF path...');
+            const { error: snapshotUpdateError } = await supabase
+              .from("job_snapshots")
+              .update({ pdf_url: fileName })
+              .eq("job_id", jobId)
+              .eq("user_id", getUserId(userId))
+              .order("created_at", { ascending: false })
+              .limit(1);
 
-            if (publicUrlData.publicUrl) {
-              console.log('Updating job snapshot with PDF URL...');
-              const { error: snapshotUpdateError } = await supabase
-                .from("job_snapshots")
-                .update({ pdf_url: publicUrlData.publicUrl })
-                .eq("job_id", jobId)
-                .eq("user_id", getUserId(userId))
-                .order("created_at", { ascending: false })
-                .limit(1);
-
-              if (snapshotUpdateError) {
-                console.error("Error updating pdf_url in job_snapshots:", snapshotUpdateError);
-              } else {
-                console.log('Job snapshot updated successfully');
-              }
+            if (snapshotUpdateError) {
+              console.error("Error updating pdf_url in job_snapshots:", snapshotUpdateError);
+            } else {
+              console.log('Job snapshot updated successfully');
             }
 
             toast({
