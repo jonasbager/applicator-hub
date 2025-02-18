@@ -228,6 +228,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         } else {
           // Now generate PDF
           try {
+            console.log('Generating PDF for URL:', jobDetails.url);
             const response = await fetch("/.netlify/functions/generate-job-pdf", {
               method: "POST",
               headers: {
@@ -238,12 +239,19 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
               })
             });
 
-            // Upload PDF to storage
+            if (!response.ok) {
+              const errorData = await response.text();
+              console.error('PDF generation failed:', errorData);
+              throw new Error(`Failed to generate PDF: ${response.status} ${response.statusText}`);
+            }
+
+            console.log('PDF generated successfully, uploading to storage...');
             const blob = await response.blob();
             const storageName = "pdf_snapshots";
             const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
             const fileName = `${getUserId(userId)}/${jobId}-${dateStr}.pdf`;
 
+            console.log('Uploading PDF to storage:', fileName);
             const { error: uploadError } = await supabase.storage
               .from(storageName)
               .upload(fileName, blob, { 
@@ -252,14 +260,17 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
               });
 
             if (uploadError) {
+              console.error('Storage upload error:', uploadError);
               throw new Error(`Failed to upload PDF to storage: ${uploadError.message}`);
             }
 
+            console.log('PDF uploaded successfully, getting public URL...');
             const { data: publicUrlData } = supabase.storage
               .from(storageName)
               .getPublicUrl(fileName);
 
             if (publicUrlData.publicUrl) {
+              console.log('Updating job snapshot with PDF URL...');
               const { error: snapshotUpdateError } = await supabase
                 .from("job_snapshots")
                 .update({ pdf_url: publicUrlData.publicUrl })
@@ -270,11 +281,9 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
 
               if (snapshotUpdateError) {
                 console.error("Error updating pdf_url in job_snapshots:", snapshotUpdateError);
+              } else {
+                console.log('Job snapshot updated successfully');
               }
-            }
-
-            if (!response.ok) {
-              throw new Error("Failed to generate PDF");
             }
 
             toast({
