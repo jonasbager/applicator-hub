@@ -32,7 +32,7 @@ export const handler: Handler = async (event) => {
 
     console.log('Launching browser...');
     browser = await puppeteer.launch({
-      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
+      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
       defaultViewport: {
@@ -44,17 +44,32 @@ export const handler: Handler = async (event) => {
     console.log('Creating new page...');
     const page = await browser.newPage();
     
+    // Block unnecessary resources
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+      const resourceType = request.resourceType();
+      if (resourceType === 'image' || resourceType === 'font' || resourceType === 'media') {
+        request.abort();
+      } else {
+        request.continue();
+      }
+    });
+
     console.log('Setting user agent...');
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36');
 
     console.log('Navigating to URL...');
     await page.goto(url, { 
-      waitUntil: 'networkidle0',
-      timeout: 30000 // 30 second timeout
+      waitUntil: 'domcontentloaded', // Changed from networkidle0 to be faster
+      timeout: 20000 // 20 second timeout
     });
 
-    console.log('Waiting for content to load...');
-    await page.waitForTimeout(2000); // Give the page a moment to fully render
+    console.log('Waiting for main content...');
+    // Wait for the main content to be available
+    await page.waitForFunction(() => {
+      const content = document.body.textContent || '';
+      return content.length > 100; // Basic check that some content is loaded
+    }, { timeout: 5000 });
 
     console.log('Generating PDF...');
     const pdf = await page.pdf({ 
@@ -65,7 +80,9 @@ export const handler: Handler = async (event) => {
         right: '20px',
         bottom: '20px',
         left: '20px'
-      }
+      },
+      preferCSSPageSize: true,
+      omitBackground: true // Reduce PDF size
     });
 
     console.log('PDF generated successfully');

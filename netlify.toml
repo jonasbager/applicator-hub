@@ -120,5 +120,5 @@
   included_files = []
   external_node_modules = ["puppeteer-core", "@sparticuz/chromium", "@supabase/supabase-js"]
   environment = { NODE_VERSION = "18.x" }
-  timeout = "60s"
-  memory = 2048
+  timeout = "30s"
+  memory = 3008
