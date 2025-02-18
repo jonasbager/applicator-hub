@@ -172,21 +172,39 @@ export function JobDetailsModal({
         throw new Error('Failed to open new window');
       }
 
-      // Get signed URL for the PDF
-      const pdfPath = snapshot.pdf_url.split('/').pop(); // Get filename from URL
-      if (!pdfPath) {
-        throw new Error('Invalid PDF URL');
+      // Check if snapshot has a PDF URL
+      if (!snapshot.pdf_url) {
+        console.error('No PDF URL found in snapshot:', snapshot);
+        throw new Error('No PDF URL found for this snapshot');
       }
+
+      // Extract the path from the full URL
+      // Example URL: https://xxx.supabase.co/storage/v1/object/public/pdf_snapshots/user_123/file.pdf
+      const urlParts = snapshot.pdf_url.split('/pdf_snapshots/');
+      if (urlParts.length < 2) {
+        console.error('Invalid PDF URL format:', snapshot.pdf_url);
+        throw new Error('Invalid PDF URL format');
+      }
+
+      const pdfPath = urlParts[1]; // This will be "user_123/file.pdf"
+      console.log('Getting signed URL for path:', pdfPath);
 
       const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('pdf_snapshots')
         .createSignedUrl(pdfPath, 60 * 60); // 1 hour expiry
 
       if (signedUrlError) {
+        console.error('Error getting signed URL:', signedUrlError);
         throw signedUrlError;
       }
 
+      if (!signedUrlData?.signedUrl) {
+        console.error('No signed URL returned:', signedUrlData);
+        throw new Error('Failed to get signed URL');
+      }
+
       const signedUrl = signedUrlData.signedUrl;
+      console.log('Got signed URL:', signedUrl);
 
       // Create a container with our header and the PDF viewer
       win.document.write(`
