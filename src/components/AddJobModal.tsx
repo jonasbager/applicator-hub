@@ -1,5 +1,3 @@
-// Rewriting the entire file to fix any stray characters and ensure valid syntax
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Input } from "./ui/input";
@@ -244,11 +242,14 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
             const blob = await response.blob();
             const storageName = "pdf_snapshots";
             const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
-            const fileName = `snapshot-${jobId}-${dateStr}.pdf`;
+            const fileName = `${getUserId(userId)}/${jobId}-${dateStr}.pdf`;
 
             const { error: uploadError } = await supabase.storage
               .from(storageName)
-              .upload(fileName, blob, { contentType: "application/pdf" });
+              .upload(fileName, blob, { 
+                contentType: "application/pdf",
+                upsert: true
+              });
 
             if (uploadError) {
               throw new Error(`Failed to upload PDF to storage: ${uploadError.message}`);
