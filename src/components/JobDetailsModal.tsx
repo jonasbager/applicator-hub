@@ -143,11 +143,13 @@ export function JobDetailsModal({
       // Get latest snapshot
       const { data: snapshots, error } = await supabase
         .from('job_snapshots')
-        .select('*')
+        .select('id, created_at, pdf_url')
         .eq('job_id', job.id)
         .eq('user_id', getUserId(userId))
         .order('created_at', { ascending: false })
         .limit(1);
+
+      console.log('Snapshot query result:', snapshots);
 
       if (error) throw error;
       
@@ -164,7 +166,7 @@ export function JobDetailsModal({
       }
 
       const snapshot = snapshots[0];
-      console.log('Found snapshot with HTML length:', snapshot.html_content.length);
+      console.log('Found snapshot:', snapshot);
       
       // Open snapshot in new tab with error handling
       const win = window.open('', '_blank');
@@ -178,15 +180,8 @@ export function JobDetailsModal({
         throw new Error('No PDF URL found for this snapshot');
       }
 
-      // Extract the path from the full URL
-      // Example URL: https://xxx.supabase.co/storage/v1/object/public/pdf_snapshots/user_123/file.pdf
-      const urlParts = snapshot.pdf_url.split('/pdf_snapshots/');
-      if (urlParts.length < 2) {
-        console.error('Invalid PDF URL format:', snapshot.pdf_url);
-        throw new Error('Invalid PDF URL format');
-      }
-
-      const pdfPath = urlParts[1]; // This will be "user_123/file.pdf"
+      // The pdf_url is already just the file path
+      const pdfPath = snapshot.pdf_url;
       console.log('Getting signed URL for path:', pdfPath);
 
       const { data: signedUrlData, error: signedUrlError } = await supabase.storage
