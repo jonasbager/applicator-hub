@@ -172,6 +172,22 @@ export function JobDetailsModal({
         throw new Error('Failed to open new window');
       }
 
+      // Get signed URL for the PDF
+      const pdfPath = snapshot.pdf_url.split('/').pop(); // Get filename from URL
+      if (!pdfPath) {
+        throw new Error('Invalid PDF URL');
+      }
+
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('pdf_snapshots')
+        .createSignedUrl(pdfPath, 60 * 60); // 1 hour expiry
+
+      if (signedUrlError) {
+        throw signedUrlError;
+      }
+
+      const signedUrl = signedUrlData.signedUrl;
+
       // Create a container with our header and the PDF viewer
       win.document.write(`
         <!DOCTYPE html>
@@ -219,9 +235,9 @@ export function JobDetailsModal({
           <body>
             <div class="header">
               <span class="timestamp">Snapshot from ${new Date(snapshot.created_at).toLocaleString()}</span>
-              <a href="${snapshot.pdf_url}" download class="download-btn">Download PDF</a>
+              <a href="${signedUrl}" download class="download-btn">Download PDF</a>
             </div>
-            <iframe src="${snapshot.pdf_url}" class="pdf-container"></iframe>
+            <iframe src="${signedUrl}" class="pdf-container"></iframe>
           </body>
         </html>
       `);
