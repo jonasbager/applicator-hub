@@ -71,18 +71,22 @@ export function JobDetailsModal({
 
       try {
         // First check if any snapshots exist
+        // First check if any snapshots exist for this specific job
         const { data, error } = await supabase
           .from('job_snapshots')
           .select('*')
-          .eq('job_id', job.id)
-          .eq('user_id', getUserId(userId))
+          .match({
+            job_id: job.id,
+            user_id: getUserId(userId)
+          })
           .order('created_at', { ascending: false })
-          .limit(1);
+          .maybeSingle();
 
-        if (error) {
-          console.error('Error loading snapshot:', error);
-        } else if (data?.length > 0) {
-          setLatestSnapshot(data[0]);
+        if (error) throw error;
+        
+        if (data) {
+          console.log('Found snapshot:', data);
+          setLatestSnapshot(data);
         }
       } catch (error) {
         console.error('Error loading snapshot:', error);
