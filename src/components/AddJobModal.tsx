@@ -5,7 +5,7 @@ import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { useToast } from "./ui/use-toast";
 import { scrapeJobDetails, JobDetails } from "../lib/job-scraping";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, History } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { useAuth } from "@clerk/clerk-react";
 import { JobStatus } from "../types/job";
@@ -273,19 +273,34 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
               throw snapshotError;
             }
 
-            // Show a descriptive notification about the Time Machine feature
+            // Show a concise notification
             toast({
-              title: `Time Machine Snapshot Created`,
-              description: `A backup of "${jobDetails.position}" at ${jobDetails.company} has been saved. You can access this snapshot later using the Time Machine feature if the job posting becomes unavailable.`,
-              duration: 5000
+              title: (
+                <div className="flex items-center gap-2">
+                  <div className="p-1 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full">
+                    <History className="h-4 w-4 text-white" />
+                  </div>
+                  <span>Time Machine Snapshot Created</span>
+                </div>
+              ),
+              description: "Access this backup anytime through Time Machine",
+              duration: 3000,
+              className: "time-machine-toast"
             });
           } catch (error) {
             console.error("Error creating snapshot:", error);
             // Show error toast but don't block the flow
             toast({
               variant: "destructive",
-              title: "Time Machine Snapshot Failed",
-              description: "The job was added successfully, but we couldn't create a backup snapshot. You can try creating one later through the Time Machine feature.",
+              title: (
+                <div className="flex items-center gap-2">
+                  <div className="p-1 bg-red-100 rounded-full">
+                    <History className="h-4 w-4 text-red-500" />
+                  </div>
+                  <span>Time Machine Failed</span>
+                </div>
+              ),
+              description: "Job added. Try creating a backup later through Time Machine.",
               duration: 5000
             });
           }

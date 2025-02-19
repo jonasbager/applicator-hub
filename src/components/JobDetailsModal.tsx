@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { PdfViewer } from "./ui/pdf-viewer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
 import { Badge } from "./ui/badge";
@@ -59,7 +60,9 @@ export function JobDetailsModal({
   const [editablePosition, setEditablePosition] = useState('');
   const [editableCompany, setEditableCompany] = useState('');
   const [isLoadingSnapshot, setIsLoadingSnapshot] = useState(false);
-  const [latestSnapshot, setLatestSnapshot] = useState<{ created_at: string } | null>(null);
+  const [latestSnapshot, setLatestSnapshot] = useState<JobSnapshot | null>(null);
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   // Load latest snapshot on open
   useEffect(() => {
@@ -70,7 +73,7 @@ export function JobDetailsModal({
         // First check if any snapshots exist
         const { data, error } = await supabase
           .from('job_snapshots')
-          .select('id, created_at')
+          .select('*')
           .eq('job_id', job.id)
           .eq('user_id', getUserId(userId))
           .order('created_at', { ascending: false })
@@ -170,25 +173,16 @@ export function JobDetailsModal({
       const snapshot = snapshots[0];
       console.log('Found snapshot:', snapshot);
       
-      // Open snapshot in new tab with error handling
-      const win = window.open('', '_blank');
-      if (!win) {
-        throw new Error('Failed to open new window');
-      }
-
       // Check if snapshot has a PDF URL
       if (!snapshot.pdf_url) {
         console.error('No PDF URL found in snapshot:', snapshot);
         throw new Error('No PDF URL found for this snapshot');
       }
 
-      // The pdf_url is already just the file path
-      const pdfPath = snapshot.pdf_url;
-      console.log('Getting signed URL for path:', pdfPath);
-
+      // Get signed URL for the PDF
       const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('pdf_snapshots')
-        .createSignedUrl(pdfPath, 60 * 60); // 1 hour expiry
+        .createSignedUrl(snapshot.pdf_url, 60 * 60); // 1 hour expiry
 
       if (signedUrlError) {
         console.error('Error getting signed URL:', signedUrlError);
@@ -200,67 +194,15 @@ export function JobDetailsModal({
         throw new Error('Failed to get signed URL');
       }
 
-      const signedUrl = signedUrlData.signedUrl;
-      console.log('Got signed URL:', signedUrl);
-
-      // Create a container with our header and the PDF viewer
-      win.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Job Snapshot</title>
-            <style>
-              body { margin: 0; font-family: system-ui; }
-              .header {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                background: #f9fafb;
-                border-bottom: 1px solid #e5e7eb;
-                padding: 8px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                z-index: 1000;
-              }
-              .timestamp {
-                font-size: 11px;
-                color: #6b7280;
-              }
-              .download-btn {
-                background: #2563eb;
-                color: white;
-                border: none;
-                padding: 4px 12px;
-                border-radius: 4px;
-                font-size: 12px;
-                cursor: pointer;
-              }
-              .download-btn:hover {
-                background: #1d4ed8;
-              }
-              .pdf-container {
-                margin-top: 40px;
-                width: 100%;
-                height: calc(100vh - 40px);
-              }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <span class="timestamp">Snapshot from ${new Date(snapshot.created_at).toLocaleString()}</span>
-              <a href="${signedUrl}" download class="download-btn">Download PDF</a>
-            </div>
-            <iframe src="${signedUrl}" class="pdf-container"></iframe>
-          </body>
-        </html>
-      `);
-      win.document.close();
+      // Store the snapshot and URL in state
+      setLatestSnapshot(snapshot);
+      setPdfUrl(signedUrlData.signedUrl);
+      setShowPdfViewer(true);
 
       toast({
-        title: "Success",
-        description: "Opening job snapshot in new tab",
+        title: "Opening Time Machine",
+        description: "Loading job snapshot...",
+        duration: 2000
       });
     } catch (error) {
       console.error('Error viewing snapshot:', error);
@@ -505,6 +447,15 @@ export function JobDetailsModal({
 
   return (
     <>
+      {showPdfViewer && pdfUrl && latestSnapshot && (
+        <PdfViewer
+          url={pdfUrl}
+          title={`${job.position} at ${job.company}`}
+          open={showPdfViewer}
+          onOpenChange={setShowPdfViewer}
+        />
+      )}
+
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
