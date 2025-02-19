@@ -44,16 +44,48 @@ export const handler: Handler = async (event) => {
     console.log('Creating new page...');
     const page = await browser.newPage();
     
-    // Block unnecessary resources
+    // Block unnecessary resources and optimize page load
     await page.setRequestInterception(true);
     page.on('request', (request) => {
       const resourceType = request.resourceType();
-      if (resourceType === 'image' || resourceType === 'font' || resourceType === 'media') {
+      if (
+        resourceType === 'image' || 
+        resourceType === 'font' || 
+        resourceType === 'media' ||
+        resourceType === 'stylesheet' ||
+        resourceType === 'script' ||
+        request.url().includes('analytics') ||
+        request.url().includes('tracking') ||
+        request.url().includes('advertisement')
+      ) {
         request.abort();
       } else {
         request.continue();
       }
     });
+
+    // Inject CSS to hide unnecessary elements
+    const hideElementsStyle = `
+      header, footer, nav, iframe, button, form, 
+      [role="banner"], [role="navigation"],
+      .header, .footer, .nav, .sidebar, .ad, 
+      .cookie-banner, .notification, .popup,
+      div[class*="header"], div[class*="footer"], 
+      div[class*="nav"], div[class*="menu"],
+      div[class*="banner"], div[class*="popup"],
+      div[class*="modal"], div[class*="dialog"],
+      div[class*="cookie"], div[class*="notification"] {
+        display: none !important;
+      }
+      body {
+        padding: 20px !important;
+      }
+      * {
+        background-image: none !important;
+        background-color: white !important;
+        color: black !important;
+      }
+    `;
 
     console.log('Setting user agent...');
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36');
@@ -72,9 +104,19 @@ export const handler: Handler = async (event) => {
     }, { timeout: 5000 });
 
     console.log('Generating PDF...');
+    // Inject the CSS and wait for it to take effect
+    await page.addStyleTag({ content: hideElementsStyle });
+    await page.evaluate(() => {
+      // Remove all script tags to prevent any dynamic content changes
+      document.querySelectorAll('script').forEach(el => el.remove());
+      // Force all images to be removed
+      document.querySelectorAll('img').forEach(el => el.remove());
+    });
+
+    // Generate optimized PDF
     const pdf = await page.pdf({ 
       format: 'A4',
-      printBackground: true,
+      printBackground: false, // Disable background for smaller file size
       margin: {
         top: '20px',
         right: '20px',
@@ -82,7 +124,8 @@ export const handler: Handler = async (event) => {
         left: '20px'
       },
       preferCSSPageSize: true,
-      omitBackground: true // Reduce PDF size
+      omitBackground: true,
+      scale: 0.9, // Slightly reduce content size to fit better
     });
 
     console.log('PDF generated successfully');

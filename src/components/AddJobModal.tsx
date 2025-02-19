@@ -202,81 +202,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         throw new Error("Failed to create job");
       }
 
-      // Create snapshot
-      if (jobDetails.url && jobDetails.rawHtml) {
-        try {
-          // First generate PDF
-          console.log('Generating PDF for URL:', jobDetails.url);
-          const response = await fetch("/.netlify/functions/generate-job-pdf", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              url: jobDetails.url
-            })
-          });
-
-          if (!response.ok) {
-            const errorData = await response.text();
-            console.error('PDF generation failed:', errorData);
-            throw new Error(`Failed to generate PDF: ${response.status} ${response.statusText}`);
-          }
-
-          console.log('PDF generated successfully, uploading to storage...');
-          const blob = await response.blob();
-          const storageName = "pdf_snapshots";
-          const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
-          const fileName = `${getUserId(userId)}/${jobId}-${dateStr}.pdf`;
-
-          console.log('Uploading PDF to storage:', fileName);
-          const { error: uploadError } = await supabase.storage
-            .from(storageName)
-            .upload(fileName, blob, { 
-              contentType: "application/pdf",
-              upsert: true
-            });
-
-          if (uploadError) {
-            console.error('Storage upload error:', uploadError);
-            throw new Error(`Failed to upload PDF to storage: ${uploadError.message}`);
-          }
-
-          // Create snapshot with PDF URL
-          const { error: snapshotError } = await supabase
-            .from("job_snapshots")
-            .insert({
-              job_id: jobId,
-              user_id: getUserId(userId),
-              position: jobDetails.position,
-              company: jobDetails.company,
-              description: jobDetails.description,
-              keywords: jobDetails.keywords,
-              url: jobDetails.url,
-              html_content: jobDetails.rawHtml,
-              created_at: new Date().toISOString(),
-              pdf_url: fileName
-            });
-
-          if (snapshotError) {
-            console.error("Error creating snapshot:", snapshotError);
-            throw snapshotError;
-          }
-
-          toast({
-            title: "Success",
-            description: "Job added successfully. PDF saved in snapshots."
-          });
-        } catch (error) {
-          console.error("Error creating snapshot:", error);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: error instanceof Error ? error.message : "Failed to create job snapshot"
-          });
-        }
-      }
-
+      // Show immediate success message and close modal
       onJobAdded();
       onOpenChange(false);
       resetForm();
@@ -284,6 +210,87 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         title: "Success",
         description: "Job added successfully"
       });
+
+      // Generate PDF and create snapshot in the background
+      if (jobDetails.url && jobDetails.rawHtml) {
+        // Use setTimeout to ensure this runs after the modal is closed
+        setTimeout(async () => {
+          try {
+            console.log('Generating PDF for URL:', jobDetails.url);
+            const response = await fetch("/.netlify/functions/generate-job-pdf", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                url: jobDetails.url
+              })
+            });
+
+            if (!response.ok) {
+              const errorData = await response.text();
+              console.error('PDF generation failed:', errorData);
+              throw new Error(`Failed to generate PDF: ${response.status} ${response.statusText}`);
+            }
+
+            console.log('PDF generated successfully, uploading to storage...');
+            const blob = await response.blob();
+            const storageName = "pdf_snapshots";
+            const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
+            const fileName = `${getUserId(userId)}/${jobId}-${dateStr}.pdf`;
+
+            console.log('Uploading PDF to storage:', fileName);
+            const { error: uploadError } = await supabase.storage
+              .from(storageName)
+              .upload(fileName, blob, { 
+                contentType: "application/pdf",
+                upsert: true
+              });
+
+            if (uploadError) {
+              console.error('Storage upload error:', uploadError);
+              throw new Error(`Failed to upload PDF to storage: ${uploadError.message}`);
+            }
+
+            // Create snapshot with PDF URL
+            const { error: snapshotError } = await supabase
+              .from("job_snapshots")
+              .insert({
+                job_id: jobId,
+                user_id: getUserId(userId),
+                position: jobDetails.position,
+                company: jobDetails.company,
+                description: jobDetails.description,
+                keywords: jobDetails.keywords,
+                url: jobDetails.url,
+                html_content: jobDetails.rawHtml,
+                created_at: new Date().toISOString(),
+                pdf_url: fileName
+              });
+
+            if (snapshotError) {
+              console.error("Error creating snapshot:", snapshotError);
+              throw snapshotError;
+            }
+
+            // Show a subtle notification that PDF was saved
+            toast({
+              title: "PDF Snapshot Created",
+              description: "Job posting has been archived for future reference",
+              duration: 3000
+            });
+          } catch (error) {
+            console.error("Error creating snapshot:", error);
+            // Show error toast but don't block the flow
+            toast({
+              variant: "destructive",
+              title: "PDF Generation Failed",
+              description: "The job was added but we couldn't create a PDF snapshot. You can try again later.",
+              duration: 5000
+            });
+          }
+        }, 100);
+      }
     } catch (err) {
       console.error("Error saving job:", err);
       toast({
