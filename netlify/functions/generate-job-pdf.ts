@@ -44,11 +44,11 @@ export const handler: Handler = async (event) => {
     console.log('Creating new page...');
     const page = await browser.newPage();
     
-    // Allow scripts for LinkedIn to handle dynamic content
+    // Block unnecessary resources
     await page.setRequestInterception(true);
     page.on('request', (request) => {
       const resourceType = request.resourceType();
-      // Allow document, stylesheet, and script for LinkedIn
+      // Only allow essential resources
       if (resourceType === 'document' || resourceType === 'stylesheet' || 
           (url.includes('linkedin.com/jobs/view/') && resourceType === 'script')) {
         request.continue();
@@ -57,39 +57,34 @@ export const handler: Handler = async (event) => {
       }
     });
 
-    // Simplified CSS to minimize processing
+    // Simplified CSS
     const hideElementsStyle = `
-      /* Hide all non-essential elements */
-      header, footer, nav, aside, iframe, form, button, 
-      [role="banner"], [role="navigation"], [role="complementary"],
-      [class*="cookie"], [class*="popup"], [class*="modal"], [class*="banner"],
-      [class*="advertisement"], [class*="notification"] {
-        display: none !important;
-      }
-
       /* Clean layout */
       body {
         padding: 20px !important;
-        margin: 0 !important;
+        margin: 0 auto !important;
         background: white !important;
         max-width: 800px !important;
-        margin: 0 auto !important;
       }
 
-      /* Ensure main content is visible */
+      /* Hide non-essential elements */
+      header, footer, nav, aside, iframe, form,
+      [role="banner"], [role="navigation"], [role="complementary"],
+      [class*="cookie"], [class*="popup"], [class*="modal"], [class*="banner"],
+      [class*="advertisement"], [class*="notification"],
+      button:not([class*="show-more"]):not([class*="see-more"]) {
+        display: none !important;
+      }
+
+      /* Show job content */
       main, article, [role="main"],
-      [class*="content"], [class*="job"], [class*="description"] {
+      [class*="content"], [class*="job"], [class*="description"],
+      .jobs-description__content {
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
         max-width: 100% !important;
         margin: 0 !important;
-      }
-
-      /* Show LinkedIn job description */
-      .jobs-description__content {
-        display: block !important;
-        visibility: visible !important;
         height: auto !important;
         overflow: visible !important;
       }
@@ -101,126 +96,66 @@ export const handler: Handler = async (event) => {
     console.log('Navigating to URL...');
     try {
       await page.goto(url, { 
-        waitUntil: 'networkidle0', // Wait for network to be idle
-        timeout: 15000 // Increased timeout for LinkedIn
+        waitUntil: 'domcontentloaded', // Use domcontentloaded for faster loading
+        timeout: 8000
       });
     } catch (error: any) {
       console.error('Navigation error:', error);
       throw new Error(`Failed to load page: ${error?.message || 'Unknown error'}`);
     }
 
-    console.log('Waiting for main content...');
+    // Add the CSS early to prevent flashing
+    await page.addStyleTag({ content: hideElementsStyle });
+
+    console.log('Waiting for content...');
     try {
-      // Wait for the main content to be available
-      await page.waitForFunction(() => {
-        const content = document.body.textContent || '';
-        return content.length > 100; // Basic check that some content is loaded
-      }, { timeout: 5000 });
-
-      // For LinkedIn, wait for and click the "Show more" button
+      // For LinkedIn, expand the description
       if (url.includes('linkedin.com/jobs/view/')) {
-        console.log('LinkedIn job detected, expanding description...');
         try {
-          // Wait for the job description to load
-          await page.waitForSelector('.jobs-description__content', { timeout: 5000 });
+          // Wait for job content with a short timeout
+          await page.waitForSelector('.jobs-description__content', { timeout: 3000 });
 
-          // Try multiple ways to click "Show more" buttons
+          // Click show more buttons and expand content
           await page.evaluate(() => {
-            // Method 1: Click by button text
+            // Click all show more buttons
             document.querySelectorAll<HTMLButtonElement>('button').forEach(button => {
-              const text = button.textContent?.toLowerCase() || '';
-              if (text.includes('show more') || text.includes('see more')) {
+              if (button.textContent?.toLowerCase().includes('show more') ||
+                  button.textContent?.toLowerCase().includes('see more')) {
                 button.click();
               }
             });
 
-            // Method 2: Click by aria-label
-            document.querySelectorAll<HTMLButtonElement>('button[aria-label*="Click to see more"]')
-              .forEach(button => button.click());
-
-            // Method 3: Click by class name patterns
-            document.querySelectorAll<HTMLElement>('[class*="show-more"], [class*="expand"]')
-              .forEach(el => el.click());
-
-            // Method 4: Force expand any collapsed sections
-            document.querySelectorAll<HTMLElement>('.jobs-description__content')
-              .forEach(desc => {
-                desc.style.maxHeight = 'none';
-                desc.style.overflow = 'visible';
-              });
+            // Force expand description
+            document.querySelectorAll<HTMLElement>('.jobs-description__content').forEach(desc => {
+              desc.style.maxHeight = 'none';
+              desc.style.overflow = 'visible';
+            });
           });
 
-          // Wait for expanded content
-          await page.waitForTimeout(2000);
+          // Short wait for content to expand
+          await page.waitForTimeout(500);
         } catch (error) {
           console.log('No show more button found or error expanding:', error);
         }
       }
 
-      // Check for job content
+      // Wait for any content
       await page.waitForFunction(() => {
         return document.querySelector('div:not(:empty), article:not(:empty), section:not(:empty)');
-      }, { timeout: 5000 });
+      }, { timeout: 3000 });
     } catch (error: any) {
       console.error('Content loading error:', error);
       throw new Error(`Failed to detect job posting content: ${error?.message || 'The page might be invalid or require authentication'}`);
     }
 
-    console.log('Preparing page for PDF...');
-    try {
-      // Inject the CSS and wait for it to take effect
-      await page.addStyleTag({ content: hideElementsStyle });
-      
-      // Clean up the page
-      await page.evaluate(() => {
-        // Remove tracking and ad-related scripts
-        document.querySelectorAll('script[src*="analytics"], script[src*="tracking"], script[src*="ads"]')
-          .forEach(el => el.remove());
-        
-        // Remove non-essential iframes
-        document.querySelectorAll('iframe:not([class*="job"]):not([class*="description"])')
-          .forEach(el => el.remove());
-          
-        // Remove hidden elements that might affect layout
-        document.querySelectorAll('[aria-hidden="true"], [hidden], .hidden, .invisible')
-          .forEach(el => el.remove());
-
-        // For LinkedIn, ensure the job description is fully visible
-        if (window.location.href.includes('linkedin.com/jobs/view/')) {
-          document.querySelectorAll<HTMLElement>('.jobs-description__content')
-            .forEach(desc => {
-              desc.style.maxHeight = 'none';
-              desc.style.overflow = 'visible';
-              desc.style.display = 'block';
-              desc.style.visibility = 'visible';
-              desc.style.opacity = '1';
-            });
-        }
-      });
-
-      // Wait for layout to stabilize
-      await page.waitForTimeout(1000);
-      
-      // Ensure the page is scrolled to top
-      await page.evaluate(() => window.scrollTo(0, 0));
-    } catch (error: any) {
-      console.error('Page preparation error:', error);
-      throw new Error(`Failed to prepare page for PDF generation: ${error?.message || 'Unknown error'}`);
-    }
-
-    // Generate optimized PDF
+    console.log('Generating PDF...');
     const pdf = await page.pdf({ 
       format: 'A4',
-      printBackground: false, // Disable background for smaller file size
-      margin: {
-        top: '20px',
-        right: '20px',
-        bottom: '20px',
-        left: '20px'
-      },
+      printBackground: false,
+      margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' },
       preferCSSPageSize: true,
       omitBackground: true,
-      scale: 0.9, // Slightly reduce content size to fit better
+      scale: 0.9
     });
 
     console.log('PDF generated successfully');
