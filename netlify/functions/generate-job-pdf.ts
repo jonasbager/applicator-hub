@@ -48,61 +48,41 @@ export const handler: Handler = async (event) => {
     await page.setRequestInterception(true);
     page.on('request', (request) => {
       const resourceType = request.resourceType();
-      if (
-        resourceType === 'media' ||
-        resourceType === 'websocket' ||
-        request.url().includes('analytics') ||
-        request.url().includes('tracking') ||
-        request.url().includes('advertisement') ||
-        request.url().includes('google-analytics') ||
-        request.url().includes('doubleclick')
-      ) {
-        request.abort();
-      } else {
+      // Only allow document and stylesheet resources
+      if (resourceType === 'document' || resourceType === 'stylesheet') {
         request.continue();
+      } else {
+        request.abort();
       }
     });
 
-    // Inject CSS to hide only non-essential elements
+    // Simplified CSS to minimize processing
     const hideElementsStyle = `
-      /* Hide non-essential UI elements */
-      nav:not([class*="job"]):not([class*="description"]), 
-      iframe, 
-      form,
-      [role="banner"],
-      [role="navigation"]:not([class*="job"]):not([class*="description"]),
-      .cookie-banner,
-      .notification-banner,
-      .popup,
-      div[class*="cookie"],
-      div[class*="notification"],
-      div[class*="popup"],
-      div[class*="modal"],
-      div[class*="dialog"],
-      div[class*="advertisement"],
-      div[class*="banner"]:not([class*="job"]):not([class*="description"]),
-      button:not([class*="job"]):not([class*="apply"]) {
+      /* Hide all non-essential elements */
+      header, footer, nav, aside, iframe, form, button, 
+      [role="banner"], [role="navigation"], [role="complementary"],
+      [class*="cookie"], [class*="popup"], [class*="modal"], [class*="banner"],
+      [class*="advertisement"], [class*="notification"] {
         display: none !important;
       }
 
-      /* Ensure main content is visible and well-formatted */
+      /* Clean layout */
       body {
         padding: 20px !important;
         margin: 0 !important;
         background: white !important;
+        max-width: 800px !important;
+        margin: 0 auto !important;
       }
 
-      /* Preserve job-related content styling */
-      [class*="job"], 
-      [class*="description"],
-      [class*="requirements"],
-      [class*="qualifications"],
-      [class*="responsibilities"],
-      [class*="about"],
-      [class*="company"] {
+      /* Ensure main content is visible */
+      main, article, [role="main"],
+      [class*="content"], [class*="job"], [class*="description"] {
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
+        max-width: 100% !important;
+        margin: 0 !important;
       }
     `;
 
@@ -112,8 +92,8 @@ export const handler: Handler = async (event) => {
     console.log('Navigating to URL...');
     try {
       await page.goto(url, { 
-        waitUntil: 'networkidle0', // Changed back to ensure content is fully loaded
-        timeout: 30000 // Increased timeout
+        waitUntil: 'domcontentloaded', // Use domcontentloaded instead of networkidle0 for faster loading
+        timeout: 8000 // Reduced timeout
       });
     } catch (error: any) {
       console.error('Navigation error:', error);
@@ -122,27 +102,16 @@ export const handler: Handler = async (event) => {
 
     console.log('Waiting for main content...');
     try {
-      // Wait for the main content to be available
+      // Wait for the main content to be available with a shorter timeout
       await page.waitForFunction(() => {
         const content = document.body.textContent || '';
         return content.length > 100; // Basic check that some content is loaded
-      }, { timeout: 10000 }); // Increased timeout
+      }, { timeout: 3000 });
 
-      // Additional check for common job posting elements
+      // Quick check for any non-empty content
       await page.waitForFunction(() => {
-        const selectors = [
-          // Common job posting selectors
-          '[class*="job"]:not(:empty)',
-          '[class*="description"]:not(:empty)',
-          '[class*="position"]:not(:empty)',
-          '[class*="title"]:not(:empty)',
-          // Fallback to any non-empty content
-          'div:not(:empty)',
-          'article:not(:empty)',
-          'section:not(:empty)'
-        ];
-        return selectors.some(selector => document.querySelector(selector));
-      }, { timeout: 10000 });
+        return document.querySelector('div:not(:empty), article:not(:empty), section:not(:empty)');
+      }, { timeout: 3000 });
     } catch (error: any) {
       console.error('Content loading error:', error);
       throw new Error(`Failed to detect job posting content: ${error?.message || 'The page might be invalid or require authentication'}`);
@@ -168,8 +137,8 @@ export const handler: Handler = async (event) => {
           .forEach(el => el.remove());
       });
 
-      // Wait for any layout shifts to settle
-      await page.waitForTimeout(2000);
+      // Minimal wait for layout
+      await page.waitForTimeout(500);
       
       // Ensure the page is scrolled to top
       await page.evaluate(() => window.scrollTo(0, 0));
