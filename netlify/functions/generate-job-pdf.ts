@@ -44,13 +44,11 @@ export const handler: Handler = async (event) => {
     console.log('Creating new page...');
     const page = await browser.newPage();
     
-    // Block unnecessary resources
+    // Block all resources except document and stylesheet
     await page.setRequestInterception(true);
     page.on('request', (request) => {
       const resourceType = request.resourceType();
-      // Only allow essential resources
-      if (resourceType === 'document' || resourceType === 'stylesheet' || 
-          (url.includes('linkedin.com/jobs/view/') && resourceType === 'script')) {
+      if (resourceType === 'document' || resourceType === 'stylesheet') {
         request.continue();
       } else {
         request.abort();
@@ -59,7 +57,6 @@ export const handler: Handler = async (event) => {
 
     // Simplified CSS
     const hideElementsStyle = `
-      /* Clean layout */
       body {
         padding: 20px !important;
         margin: 0 auto !important;
@@ -67,16 +64,13 @@ export const handler: Handler = async (event) => {
         max-width: 800px !important;
       }
 
-      /* Hide non-essential elements */
       header, footer, nav, aside, iframe, form,
       [role="banner"], [role="navigation"], [role="complementary"],
       [class*="cookie"], [class*="popup"], [class*="modal"], [class*="banner"],
-      [class*="advertisement"], [class*="notification"],
-      button:not([class*="show-more"]):not([class*="see-more"]) {
+      [class*="advertisement"], [class*="notification"] {
         display: none !important;
       }
 
-      /* Show job content */
       main, article, [role="main"],
       [class*="content"], [class*="job"], [class*="description"],
       .jobs-description__content {
@@ -90,71 +84,38 @@ export const handler: Handler = async (event) => {
       }
     `;
 
-    console.log('Setting user agent...');
-    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36');
-
-    // Set a maximum navigation time
-    const maxNavigationTime = 8000; // 8 seconds
-    const navigationPromise = page.goto(url, { waitUntil: 'load' });
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Navigation timeout')), maxNavigationTime)
-    );
-
+    // Navigate with a short timeout
     console.log('Navigating to URL...');
-    try {
-      await Promise.race([navigationPromise, timeoutPromise]);
-    } catch (error: any) {
-      console.error('Navigation error:', error);
-      // Continue anyway, we might have enough content
-    }
+    await page.goto(url, { 
+      waitUntil: 'domcontentloaded',
+      timeout: 5000
+    });
 
-    // Add the CSS early
+    // Add CSS immediately
     await page.addStyleTag({ content: hideElementsStyle });
 
-    console.log('Waiting for content...');
-    try {
-      // For LinkedIn, expand the description
-      if (url.includes('linkedin.com/jobs/view/')) {
-        try {
-          // Wait for job content with a short timeout
-          await page.waitForSelector('.jobs-description__content', { timeout: 3000 });
-
-          // Click show more buttons and expand content
-          await page.evaluate(() => {
-            // Click all show more buttons
-            document.querySelectorAll<HTMLButtonElement>('button').forEach(button => {
-              if (button.textContent?.toLowerCase().includes('show more') ||
-                  button.textContent?.toLowerCase().includes('see more')) {
-                button.click();
-              }
-            });
-
-            // Force expand description
-            document.querySelectorAll<HTMLElement>('.jobs-description__content').forEach(desc => {
-              desc.style.maxHeight = 'none';
-              desc.style.overflow = 'visible';
-            });
+    // For LinkedIn, try to expand content
+    if (url.includes('linkedin.com/jobs/view/')) {
+      try {
+        await page.evaluate(() => {
+          document.querySelectorAll<HTMLButtonElement>('button').forEach(button => {
+            if (button.textContent?.toLowerCase().includes('show more') ||
+                button.textContent?.toLowerCase().includes('see more')) {
+              button.click();
+            }
           });
-
-          // Short wait for content to expand
-          await page.waitForTimeout(500);
-        } catch (error) {
-          console.log('No show more button found or error expanding:', error);
-        }
+          document.querySelectorAll<HTMLElement>('.jobs-description__content').forEach(desc => {
+            desc.style.maxHeight = 'none';
+            desc.style.overflow = 'visible';
+          });
+        });
+        await page.waitForTimeout(500);
+      } catch (error) {
+        console.log('No show more button found or error expanding:', error);
       }
-
-      // Wait for any content with a short timeout
-      await Promise.race([
-        page.waitForFunction(() => {
-          return document.querySelector('div:not(:empty), article:not(:empty), section:not(:empty)');
-        }, { timeout: 3000 }),
-        new Promise(resolve => setTimeout(resolve, 3000))
-      ]);
-    } catch (error: any) {
-      console.error('Content loading error:', error);
-      // Continue anyway, we might have enough content
     }
 
+    // Generate PDF immediately
     console.log('Generating PDF...');
     const pdf = await page.pdf({ 
       format: 'A4',
