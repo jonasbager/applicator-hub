@@ -233,18 +233,29 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
               throw new Error(`Failed to generate PDF: ${response.status} ${response.statusText}`);
             }
 
-            console.log('PDF generated successfully, uploading to storage...');
+            console.log('PDF generated successfully, preparing storage...');
             const blob = await response.blob();
             const storageName = "pdf_snapshots";
             const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
             const fileName = `${getUserId(userId)}/${jobId}-${dateStr}.pdf`;
 
+            // First verify the file doesn't already exist
+            const { data: existingFile } = await supabase.storage
+              .from(storageName)
+              .list(`${getUserId(userId)}`);
+
+            const fileExists = existingFile?.some(f => f.name === `${jobId}-${dateStr}.pdf`);
+            if (fileExists) {
+              console.log('PDF already exists, skipping upload');
+              throw new Error('PDF already exists for this job');
+            }
+
             console.log('Uploading PDF to storage:', fileName);
-            const { error: uploadError } = await supabase.storage
+            const { data: uploadData, error: uploadError } = await supabase.storage
               .from(storageName)
               .upload(fileName, blob, { 
                 contentType: "application/pdf",
-                upsert: true
+                upsert: false // Prevent overwriting
               });
 
             if (uploadError) {
@@ -252,8 +263,14 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
               throw new Error(`Failed to upload PDF to storage: ${uploadError.message}`);
             }
 
-            // Create snapshot with PDF URL
-            const { error: snapshotError } = await supabase
+            if (!uploadData?.path) {
+              throw new Error('Upload succeeded but no path returned');
+            }
+
+            console.log('PDF uploaded successfully, creating snapshot record...');
+
+            // Create snapshot with PDF URL in a transaction
+            const { data: snapshot, error: snapshotError } = await supabase
               .from("job_snapshots")
               .insert({
                 job_id: jobId,
@@ -266,12 +283,24 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
                 html_content: jobDetails.rawHtml,
                 created_at: new Date().toISOString(),
                 pdf_url: fileName
-              });
+              })
+              .select()
+              .single();
 
             if (snapshotError) {
               console.error("Error creating snapshot:", snapshotError);
+              // If snapshot creation fails, delete the uploaded PDF
+              await supabase.storage
+                .from(storageName)
+                .remove([fileName]);
               throw snapshotError;
             }
+
+            if (!snapshot) {
+              throw new Error('Snapshot creation succeeded but no data returned');
+            }
+
+            console.log('Snapshot created successfully:', snapshot.id);
 
             // Show a concise notification
             toast({
