@@ -1,6 +1,6 @@
 import { Dialog, DialogContent } from "./dialog";
 import { Button } from "./button";
-import { X, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import logo from "/logo.png";
 
@@ -20,35 +20,24 @@ export function PdfViewer({ url, title, open, onOpenChange }: PdfViewerProps) {
       <DialogContent className="max-w-5xl h-[95vh] p-0 gap-0 overflow-hidden">
         {/* Minimal header */}
         <div className="flex items-center justify-between h-8 px-2 border-b bg-background shrink-0">
-          <div className="flex items-center gap-1.5">
-            <div className="w-4 h-4 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 flex-shrink-0">
               <img src={logo} alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <div className="flex items-baseline gap-2">
-              <h3 className="text-xs font-medium leading-none">{title}</h3>
-              <p className="text-[9px] text-muted-foreground">Time Machine</p>
+            <div className="flex flex-col">
+              <h3 className="text-sm font-medium leading-none">{title}</h3>
+              <p className="text-[10px] text-muted-foreground">Time Machine</p>
             </div>
           </div>
-          <div className="flex items-center gap-0.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-5 w-5 p-0"
-              onClick={() => window.open(url, '_blank')}
-              title="Download PDF"
-            >
-              <Download className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-5 w-5 p-0"
-              onClick={() => onOpenChange(false)}
-              title="Close"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0"
+            onClick={() => window.open(url, '_blank')}
+            title="Download PDF"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* PDF Viewer - Take all available space */}
@@ -85,7 +74,7 @@ export function PdfViewer({ url, title, open, onOpenChange }: PdfViewerProps) {
               <ChevronRight className="h-3 w-3" />
             </Button>
           </div>
-          <p className="text-[9px] text-muted-foreground">
+          <p className="text-[10px] text-muted-foreground">
             Time Machine
           </p>
         </div>
