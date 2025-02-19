@@ -44,12 +44,13 @@ export const handler: Handler = async (event) => {
     console.log('Creating new page...');
     const page = await browser.newPage();
     
-    // Block unnecessary resources while keeping styling
+    // Block unnecessary resources while keeping styling and scripts for LinkedIn
     await page.setRequestInterception(true);
     page.on('request', (request) => {
       const resourceType = request.resourceType();
-      // Only allow document and stylesheet resources
-      if (resourceType === 'document' || resourceType === 'stylesheet') {
+      // Allow document, stylesheet, and script for LinkedIn
+      if (resourceType === 'document' || resourceType === 'stylesheet' || 
+          (url.includes('linkedin.com/jobs/view/') && resourceType === 'script')) {
         request.continue();
       } else {
         request.abort();
@@ -92,8 +93,8 @@ export const handler: Handler = async (event) => {
     console.log('Navigating to URL...');
     try {
       await page.goto(url, { 
-        waitUntil: 'domcontentloaded', // Use domcontentloaded instead of networkidle0 for faster loading
-        timeout: 8000 // Reduced timeout
+        waitUntil: 'networkidle0', // Wait for network to be idle
+        timeout: 10000 // Increased timeout
       });
     } catch (error: any) {
       console.error('Navigation error:', error);
@@ -102,16 +103,47 @@ export const handler: Handler = async (event) => {
 
     console.log('Waiting for main content...');
     try {
-      // Wait for the main content to be available with a shorter timeout
+      // Wait for the main content to be available
       await page.waitForFunction(() => {
         const content = document.body.textContent || '';
         return content.length > 100; // Basic check that some content is loaded
-      }, { timeout: 3000 });
+      }, { timeout: 5000 });
 
-      // Quick check for any non-empty content
+      // For LinkedIn, wait for and click the "Show more" button
+      if (url.includes('linkedin.com/jobs/view/')) {
+        console.log('LinkedIn job detected, expanding description...');
+        try {
+          // Wait for the "Show more" button
+          await page.waitForFunction(() => {
+            const buttons = Array.from(document.querySelectorAll('button'));
+            return buttons.some(button => 
+              button.textContent?.toLowerCase().includes('show more') ||
+              button.textContent?.toLowerCase().includes('see more')
+            );
+          }, { timeout: 5000 });
+
+          // Click all "Show more" buttons
+          await page.evaluate(() => {
+            const buttons = Array.from(document.querySelectorAll('button'));
+            buttons.forEach(button => {
+              if (button.textContent?.toLowerCase().includes('show more') ||
+                  button.textContent?.toLowerCase().includes('see more')) {
+                button.click();
+              }
+            });
+          });
+
+          // Wait for expanded content
+          await page.waitForTimeout(1000);
+        } catch (error) {
+          console.log('No show more button found or error expanding:', error);
+        }
+      }
+
+      // Check for job content
       await page.waitForFunction(() => {
         return document.querySelector('div:not(:empty), article:not(:empty), section:not(:empty)');
-      }, { timeout: 3000 });
+      }, { timeout: 5000 });
     } catch (error: any) {
       console.error('Content loading error:', error);
       throw new Error(`Failed to detect job posting content: ${error?.message || 'The page might be invalid or require authentication'}`);
@@ -137,8 +169,8 @@ export const handler: Handler = async (event) => {
           .forEach(el => el.remove());
       });
 
-      // Minimal wait for layout
-      await page.waitForTimeout(500);
+      // Wait for layout to stabilize
+      await page.waitForTimeout(1000);
       
       // Ensure the page is scrolled to top
       await page.evaluate(() => window.scrollTo(0, 0));
