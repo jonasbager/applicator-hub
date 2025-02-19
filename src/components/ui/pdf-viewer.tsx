@@ -22,7 +22,7 @@ export function PdfViewer({ url, title, open, onOpenChange }: PdfViewerProps) {
         <div className="flex items-center justify-between h-16 px-4 border-b bg-background shrink-0">
           <div className="flex-1" /> {/* Left spacer */}
           <div className="flex items-center gap-3 flex-1 justify-center">
-            <div className="w-10 h-10 flex-shrink-0">
+            <div className="w-12 h-12 flex-shrink-0">
               <img src={logo} alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div className="flex flex-col">
@@ -30,15 +30,15 @@ export function PdfViewer({ url, title, open, onOpenChange }: PdfViewerProps) {
               <p className="text-xs text-muted-foreground">Time Machine</p>
             </div>
           </div>
-          <div className="flex-1 flex justify-end"> {/* Right spacer with button */}
+          <div className="flex-1 flex justify-end pr-8"> {/* Right spacer with button and padding */}
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-8 px-3 flex items-center gap-1.5"
               onClick={() => window.open(url, '_blank')}
-              title="Download PDF"
             >
-              <Download className="h-5 w-5" />
+              <Download className="h-4 w-4" />
+              <span>Download PDF</span>
             </Button>
           </div>
         </div>
