@@ -141,75 +141,107 @@ export function JobDetailsModal({
     if (!userId || !job) return;
     setIsLoadingSnapshot(true);
     try {
-      console.log('Fetching snapshot for job:', job.id);
-      
-      // Get latest snapshot with PDF URL
-      const { data: snapshots, error } = await supabase
-        .from('job_snapshots')
-        .select('*')  // Select all fields to make sure we get pdf_url
-        .eq('job_id', job.id)
-        .eq('user_id', getUserId(userId))
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      console.log('Raw snapshot data:', snapshots?.[0]);
-
-      console.log('Snapshot query result:', snapshots);
-
-      if (error) throw error;
-      
-      console.log('Snapshot query result:', { snapshots });
-      
-      if (!snapshots?.length) {
-        console.log('No snapshots found');
-        toast({
-          title: "No snapshot found",
-          description: "This job doesn't have any snapshots yet.",
-          variant: "destructive"
+      if (!latestSnapshot) {
+        // Create new snapshot
+        console.log('Creating new snapshot for job:', job.id);
+        const response = await fetch("/.netlify/functions/generate-job-pdf", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            url: job.url
+          })
         });
-        return;
+
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error('PDF generation failed:', errorData);
+          throw new Error(`Failed to generate PDF: ${response.status} ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+        const storageName = "pdf_snapshots";
+        const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
+        const fileName = `${getUserId(userId)}/${job.id}-${dateStr}.pdf`;
+
+        const { error: uploadError } = await supabase.storage
+          .from(storageName)
+          .upload(fileName, blob, { 
+            contentType: "application/pdf",
+            upsert: true
+          });
+
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          throw new Error(`Failed to upload PDF to storage: ${uploadError.message}`);
+        }
+
+        // Create snapshot record
+        const { data: newSnapshot, error: snapshotError } = await supabase
+          .from("job_snapshots")
+          .insert({
+            job_id: job.id,
+            user_id: getUserId(userId),
+            position: job.position,
+            company: job.company,
+            description: job.description,
+            keywords: job.keywords,
+            url: job.url,
+            html_content: "", // We don't have this for existing jobs
+            created_at: new Date().toISOString(),
+            pdf_url: fileName
+          })
+          .select()
+          .single();
+
+        if (snapshotError) {
+          console.error("Error creating snapshot:", snapshotError);
+          throw snapshotError;
+        }
+
+        setLatestSnapshot(newSnapshot);
+
+        // Get signed URL for the new snapshot
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from('pdf_snapshots')
+          .createSignedUrl(fileName, 60 * 60);
+
+        if (signedUrlError) throw signedUrlError;
+        if (!signedUrlData?.signedUrl) throw new Error('Failed to get signed URL');
+
+        setPdfUrl(signedUrlData.signedUrl);
+        setShowPdfViewer(true);
+
+        toast({
+          title: "Time Machine Backup Created",
+          description: "Opening snapshot viewer...",
+          duration: 2000
+        });
+      } else {
+        // Get signed URL for existing snapshot
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from('pdf_snapshots')
+          .createSignedUrl(latestSnapshot.pdf_url, 60 * 60);
+
+        if (signedUrlError) throw signedUrlError;
+        if (!signedUrlData?.signedUrl) throw new Error('Failed to get signed URL');
+
+        setPdfUrl(signedUrlData.signedUrl);
+        setShowPdfViewer(true);
+
+        toast({
+          title: "Opening Time Machine",
+          description: "Loading snapshot viewer...",
+          duration: 2000
+        });
       }
-
-      const snapshot = snapshots[0];
-      console.log('Found snapshot:', snapshot);
-      
-      // Check if snapshot has a PDF URL
-      if (!snapshot.pdf_url) {
-        console.error('No PDF URL found in snapshot:', snapshot);
-        throw new Error('No PDF URL found for this snapshot');
-      }
-
-      // Get signed URL for the PDF
-      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-        .from('pdf_snapshots')
-        .createSignedUrl(snapshot.pdf_url, 60 * 60); // 1 hour expiry
-
-      if (signedUrlError) {
-        console.error('Error getting signed URL:', signedUrlError);
-        throw signedUrlError;
-      }
-
-      if (!signedUrlData?.signedUrl) {
-        console.error('No signed URL returned:', signedUrlData);
-        throw new Error('Failed to get signed URL');
-      }
-
-      // Store the snapshot and URL in state
-      setLatestSnapshot(snapshot);
-      setPdfUrl(signedUrlData.signedUrl);
-      setShowPdfViewer(true);
-
-      toast({
-        title: "Opening Time Machine",
-        description: "Loading job snapshot...",
-        duration: 2000
-      });
     } catch (error) {
-      console.error('Error viewing snapshot:', error);
+      console.error('Error with snapshot:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to view snapshot",
+        description: error instanceof Error ? error.message : "Failed to handle snapshot",
       });
     } finally {
       setIsLoadingSnapshot(false);
@@ -649,13 +681,13 @@ export function JobDetailsModal({
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold">Job Posting URL</h3>
                   {isLoadingSnapshot && (
-                    <span className="text-sm text-muted-foreground">
-                      Creating snapshot...
+                    <span className="text-xs text-muted-foreground">
+                      {latestSnapshot ? "Loading snapshot..." : "Creating snapshot..."}
                     </span>
                   )}
                   {latestSnapshot && !isLoadingSnapshot && (
-                    <span className="text-sm text-muted-foreground">
-                      Last snapshot: {new Date(latestSnapshot.created_at).toLocaleString()}
+                    <span className="text-xs text-muted-foreground">
+                      Snapshot from {new Date(latestSnapshot.created_at).toLocaleString()}
                     </span>
                   )}
                 </div>
@@ -663,7 +695,11 @@ export function JobDetailsModal({
                   <Button
                     onClick={handleViewSnapshot}
                     disabled={isLoadingSnapshot || !userId}
-                    className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600"
+                    className={`${
+                      latestSnapshot 
+                        ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600" 
+                        : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                    } text-white`}
                     size="sm"
                   >
                     {isLoadingSnapshot ? (
@@ -671,7 +707,7 @@ export function JobDetailsModal({
                     ) : (
                       <History className="h-4 w-4 mr-2" />
                     )}
-                    Time Machine
+                    {latestSnapshot ? "View Snapshot" : "Create Snapshot"}
                   </Button>
                 )}
               </div>

@@ -110,33 +110,73 @@ export const handler: Handler = async (event) => {
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36');
 
     console.log('Navigating to URL...');
-    await page.goto(url, { 
-      waitUntil: 'domcontentloaded', // Changed from networkidle0 to be faster
-      timeout: 20000 // 20 second timeout
-    });
+    try {
+      await page.goto(url, { 
+        waitUntil: 'networkidle0', // Changed back to ensure content is fully loaded
+        timeout: 30000 // Increased timeout
+      });
+    } catch (error: any) {
+      console.error('Navigation error:', error);
+      throw new Error(`Failed to load page: ${error?.message || 'Unknown error'}`);
+    }
 
     console.log('Waiting for main content...');
-    // Wait for the main content to be available
-    await page.waitForFunction(() => {
-      const content = document.body.textContent || '';
-      return content.length > 100; // Basic check that some content is loaded
-    }, { timeout: 5000 });
+    try {
+      // Wait for the main content to be available
+      await page.waitForFunction(() => {
+        const content = document.body.textContent || '';
+        return content.length > 100; // Basic check that some content is loaded
+      }, { timeout: 10000 }); // Increased timeout
 
-    console.log('Generating PDF...');
-    // Inject the CSS and wait for it to take effect
-    await page.addStyleTag({ content: hideElementsStyle });
-    await page.evaluate(() => {
-      // Remove tracking and ad-related scripts
-      document.querySelectorAll('script[src*="analytics"], script[src*="tracking"], script[src*="ads"]')
-        .forEach(el => el.remove());
+      // Additional check for common job posting elements
+      await page.waitForFunction(() => {
+        const selectors = [
+          // Common job posting selectors
+          '[class*="job"]:not(:empty)',
+          '[class*="description"]:not(:empty)',
+          '[class*="position"]:not(:empty)',
+          '[class*="title"]:not(:empty)',
+          // Fallback to any non-empty content
+          'div:not(:empty)',
+          'article:not(:empty)',
+          'section:not(:empty)'
+        ];
+        return selectors.some(selector => document.querySelector(selector));
+      }, { timeout: 10000 });
+    } catch (error: any) {
+      console.error('Content loading error:', error);
+      throw new Error(`Failed to detect job posting content: ${error?.message || 'The page might be invalid or require authentication'}`);
+    }
+
+    console.log('Preparing page for PDF...');
+    try {
+      // Inject the CSS and wait for it to take effect
+      await page.addStyleTag({ content: hideElementsStyle });
       
-      // Remove non-essential iframes
-      document.querySelectorAll('iframe:not([class*="job"]):not([class*="description"])')
-        .forEach(el => el.remove());
-    });
+      // Clean up the page
+      await page.evaluate(() => {
+        // Remove tracking and ad-related scripts
+        document.querySelectorAll('script[src*="analytics"], script[src*="tracking"], script[src*="ads"]')
+          .forEach(el => el.remove());
+        
+        // Remove non-essential iframes
+        document.querySelectorAll('iframe:not([class*="job"]):not([class*="description"])')
+          .forEach(el => el.remove());
+          
+        // Remove hidden elements that might affect layout
+        document.querySelectorAll('[aria-hidden="true"], [hidden], .hidden, .invisible')
+          .forEach(el => el.remove());
+      });
 
-    // Wait a bit for styles to stabilize
-    await page.waitForTimeout(1000);
+      // Wait for any layout shifts to settle
+      await page.waitForTimeout(2000);
+      
+      // Ensure the page is scrolled to top
+      await page.evaluate(() => window.scrollTo(0, 0));
+    } catch (error: any) {
+      console.error('Page preparation error:', error);
+      throw new Error(`Failed to prepare page for PDF generation: ${error?.message || 'Unknown error'}`);
+    }
 
     // Generate optimized PDF
     const pdf = await page.pdf({ 
