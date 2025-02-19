@@ -18,30 +18,33 @@ export function PdfViewer({ url, title, open, onOpenChange }: PdfViewerProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl h-[95vh] p-0 gap-0 overflow-hidden">
-        {/* Minimal header */}
-        <div className="flex items-center justify-between h-8 px-2 border-b bg-background shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 flex-shrink-0">
+        {/* Header */}
+        <div className="flex items-center justify-between h-16 px-4 border-b bg-background shrink-0">
+          <div className="flex-1" /> {/* Left spacer */}
+          <div className="flex items-center gap-3 flex-1 justify-center">
+            <div className="w-10 h-10 flex-shrink-0">
               <img src={logo} alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div className="flex flex-col">
-              <h3 className="text-sm font-medium leading-none">{title}</h3>
-              <p className="text-[10px] text-muted-foreground">Time Machine</p>
+              <h3 className="text-base font-medium leading-tight">{title}</h3>
+              <p className="text-xs text-muted-foreground">Time Machine</p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0"
-            onClick={() => window.open(url, '_blank')}
-            title="Download PDF"
-          >
-            <Download className="h-4 w-4" />
-          </Button>
+          <div className="flex-1 flex justify-end"> {/* Right spacer with button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => window.open(url, '_blank')}
+              title="Download PDF"
+            >
+              <Download className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         {/* PDF Viewer - Take all available space */}
-        <div className="grow bg-muted overflow-hidden h-[calc(95vh-56px)]">
+        <div className="grow bg-muted overflow-hidden h-[calc(95vh-88px)]">
           <iframe
             src={`${url}#toolbar=0`}
             className="w-full h-full border-none"
