@@ -44,19 +44,18 @@ export const handler: Handler = async (event) => {
     console.log('Creating new page...');
     const page = await browser.newPage();
     
-    // Block unnecessary resources and optimize page load
+    // Block unnecessary resources while keeping styling
     await page.setRequestInterception(true);
     page.on('request', (request) => {
       const resourceType = request.resourceType();
       if (
-        resourceType === 'image' || 
-        resourceType === 'font' || 
         resourceType === 'media' ||
-        resourceType === 'stylesheet' ||
-        resourceType === 'script' ||
+        resourceType === 'websocket' ||
         request.url().includes('analytics') ||
         request.url().includes('tracking') ||
-        request.url().includes('advertisement')
+        request.url().includes('advertisement') ||
+        request.url().includes('google-analytics') ||
+        request.url().includes('doubleclick')
       ) {
         request.abort();
       } else {
@@ -64,26 +63,46 @@ export const handler: Handler = async (event) => {
       }
     });
 
-    // Inject CSS to hide unnecessary elements
+    // Inject CSS to hide only non-essential elements
     const hideElementsStyle = `
-      header, footer, nav, iframe, button, form, 
-      [role="banner"], [role="navigation"],
-      .header, .footer, .nav, .sidebar, .ad, 
-      .cookie-banner, .notification, .popup,
-      div[class*="header"], div[class*="footer"], 
-      div[class*="nav"], div[class*="menu"],
-      div[class*="banner"], div[class*="popup"],
-      div[class*="modal"], div[class*="dialog"],
-      div[class*="cookie"], div[class*="notification"] {
+      /* Hide non-essential UI elements */
+      nav:not([class*="job"]):not([class*="description"]), 
+      iframe, 
+      form,
+      [role="banner"],
+      [role="navigation"]:not([class*="job"]):not([class*="description"]),
+      .cookie-banner,
+      .notification-banner,
+      .popup,
+      div[class*="cookie"],
+      div[class*="notification"],
+      div[class*="popup"],
+      div[class*="modal"],
+      div[class*="dialog"],
+      div[class*="advertisement"],
+      div[class*="banner"]:not([class*="job"]):not([class*="description"]),
+      button:not([class*="job"]):not([class*="apply"]) {
         display: none !important;
       }
+
+      /* Ensure main content is visible and well-formatted */
       body {
         padding: 20px !important;
+        margin: 0 !important;
+        background: white !important;
       }
-      * {
-        background-image: none !important;
-        background-color: white !important;
-        color: black !important;
+
+      /* Preserve job-related content styling */
+      [class*="job"], 
+      [class*="description"],
+      [class*="requirements"],
+      [class*="qualifications"],
+      [class*="responsibilities"],
+      [class*="about"],
+      [class*="company"] {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
       }
     `;
 
@@ -107,11 +126,17 @@ export const handler: Handler = async (event) => {
     // Inject the CSS and wait for it to take effect
     await page.addStyleTag({ content: hideElementsStyle });
     await page.evaluate(() => {
-      // Remove all script tags to prevent any dynamic content changes
-      document.querySelectorAll('script').forEach(el => el.remove());
-      // Force all images to be removed
-      document.querySelectorAll('img').forEach(el => el.remove());
+      // Remove tracking and ad-related scripts
+      document.querySelectorAll('script[src*="analytics"], script[src*="tracking"], script[src*="ads"]')
+        .forEach(el => el.remove());
+      
+      // Remove non-essential iframes
+      document.querySelectorAll('iframe:not([class*="job"]):not([class*="description"])')
+        .forEach(el => el.remove());
     });
+
+    // Wait a bit for styles to stabilize
+    await page.waitForTimeout(1000);
 
     // Generate optimized PDF
     const pdf = await page.pdf({ 

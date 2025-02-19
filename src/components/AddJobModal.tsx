@@ -273,19 +273,19 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
               throw snapshotError;
             }
 
-            // Show a subtle notification that PDF was saved
+            // Show a descriptive notification about the Time Machine feature
             toast({
-              title: "PDF Snapshot Created",
-              description: "Job posting has been archived for future reference",
-              duration: 3000
+              title: `Time Machine Snapshot Created`,
+              description: `A backup of "${jobDetails.position}" at ${jobDetails.company} has been saved. You can access this snapshot later using the Time Machine feature if the job posting becomes unavailable.`,
+              duration: 5000
             });
           } catch (error) {
             console.error("Error creating snapshot:", error);
             // Show error toast but don't block the flow
             toast({
               variant: "destructive",
-              title: "PDF Generation Failed",
-              description: "The job was added but we couldn't create a PDF snapshot. You can try again later.",
+              title: "Time Machine Snapshot Failed",
+              description: "The job was added successfully, but we couldn't create a backup snapshot. You can try creating one later through the Time Machine feature.",
               duration: 5000
             });
           }
