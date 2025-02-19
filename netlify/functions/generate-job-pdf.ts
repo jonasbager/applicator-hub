@@ -44,7 +44,7 @@ export const handler: Handler = async (event) => {
     console.log('Creating new page...');
     const page = await browser.newPage();
     
-    // Block unnecessary resources while keeping styling and scripts for LinkedIn
+    // Allow scripts for LinkedIn to handle dynamic content
     await page.setRequestInterception(true);
     page.on('request', (request) => {
       const resourceType = request.resourceType();
@@ -85,6 +85,14 @@ export const handler: Handler = async (event) => {
         max-width: 100% !important;
         margin: 0 !important;
       }
+
+      /* Show LinkedIn job description */
+      .jobs-description__content {
+        display: block !important;
+        visibility: visible !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
     `;
 
     console.log('Setting user agent...');
@@ -94,7 +102,7 @@ export const handler: Handler = async (event) => {
     try {
       await page.goto(url, { 
         waitUntil: 'networkidle0', // Wait for network to be idle
-        timeout: 10000 // Increased timeout
+        timeout: 15000 // Increased timeout for LinkedIn
       });
     } catch (error: any) {
       console.error('Navigation error:', error);
@@ -113,28 +121,37 @@ export const handler: Handler = async (event) => {
       if (url.includes('linkedin.com/jobs/view/')) {
         console.log('LinkedIn job detected, expanding description...');
         try {
-          // Wait for the "Show more" button
-          await page.waitForFunction(() => {
-            const buttons = Array.from(document.querySelectorAll('button'));
-            return buttons.some(button => 
-              button.textContent?.toLowerCase().includes('show more') ||
-              button.textContent?.toLowerCase().includes('see more')
-            );
-          }, { timeout: 5000 });
+          // Wait for the job description to load
+          await page.waitForSelector('.jobs-description__content', { timeout: 5000 });
 
-          // Click all "Show more" buttons
+          // Try multiple ways to click "Show more" buttons
           await page.evaluate(() => {
-            const buttons = Array.from(document.querySelectorAll('button'));
-            buttons.forEach(button => {
-              if (button.textContent?.toLowerCase().includes('show more') ||
-                  button.textContent?.toLowerCase().includes('see more')) {
+            // Method 1: Click by button text
+            document.querySelectorAll<HTMLButtonElement>('button').forEach(button => {
+              const text = button.textContent?.toLowerCase() || '';
+              if (text.includes('show more') || text.includes('see more')) {
                 button.click();
               }
             });
+
+            // Method 2: Click by aria-label
+            document.querySelectorAll<HTMLButtonElement>('button[aria-label*="Click to see more"]')
+              .forEach(button => button.click());
+
+            // Method 3: Click by class name patterns
+            document.querySelectorAll<HTMLElement>('[class*="show-more"], [class*="expand"]')
+              .forEach(el => el.click());
+
+            // Method 4: Force expand any collapsed sections
+            document.querySelectorAll<HTMLElement>('.jobs-description__content')
+              .forEach(desc => {
+                desc.style.maxHeight = 'none';
+                desc.style.overflow = 'visible';
+              });
           });
 
           // Wait for expanded content
-          await page.waitForTimeout(1000);
+          await page.waitForTimeout(2000);
         } catch (error) {
           console.log('No show more button found or error expanding:', error);
         }
@@ -167,6 +184,18 @@ export const handler: Handler = async (event) => {
         // Remove hidden elements that might affect layout
         document.querySelectorAll('[aria-hidden="true"], [hidden], .hidden, .invisible')
           .forEach(el => el.remove());
+
+        // For LinkedIn, ensure the job description is fully visible
+        if (window.location.href.includes('linkedin.com/jobs/view/')) {
+          document.querySelectorAll<HTMLElement>('.jobs-description__content')
+            .forEach(desc => {
+              desc.style.maxHeight = 'none';
+              desc.style.overflow = 'visible';
+              desc.style.display = 'block';
+              desc.style.visibility = 'visible';
+              desc.style.opacity = '1';
+            });
+        }
       });
 
       // Wait for layout to stabilize
