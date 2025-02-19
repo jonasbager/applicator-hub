@@ -140,14 +140,16 @@ export function JobDetailsModal({
     try {
       console.log('Fetching snapshot for job:', job.id);
       
-      // Get latest snapshot
+      // Get latest snapshot with PDF URL
       const { data: snapshots, error } = await supabase
         .from('job_snapshots')
-        .select('id, created_at, pdf_url')
+        .select('*')  // Select all fields to make sure we get pdf_url
         .eq('job_id', job.id)
         .eq('user_id', getUserId(userId))
         .order('created_at', { ascending: false })
         .limit(1);
+
+      console.log('Raw snapshot data:', snapshots?.[0]);
 
       console.log('Snapshot query result:', snapshots);
 

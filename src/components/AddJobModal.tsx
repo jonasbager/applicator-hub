@@ -204,94 +204,76 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
 
       // Create snapshot
       if (jobDetails.url && jobDetails.rawHtml) {
-        const { error: snapshotError } = await supabase
-          .from("job_snapshots")
-          .insert({
-            job_id: jobId,
-            user_id: getUserId(userId),
-            position: jobDetails.position,
-            company: jobDetails.company,
-            description: jobDetails.description,
-            keywords: jobDetails.keywords,
-            url: jobDetails.url,
-            html_content: jobDetails.rawHtml,
-            created_at: new Date().toISOString()
+        try {
+          // First generate PDF
+          console.log('Generating PDF for URL:', jobDetails.url);
+          const response = await fetch("/.netlify/functions/generate-job-pdf", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              url: jobDetails.url
+            })
           });
 
-        if (snapshotError) {
-          console.error("Error creating snapshot:", snapshotError);
+          if (!response.ok) {
+            const errorData = await response.text();
+            console.error('PDF generation failed:', errorData);
+            throw new Error(`Failed to generate PDF: ${response.status} ${response.statusText}`);
+          }
+
+          console.log('PDF generated successfully, uploading to storage...');
+          const blob = await response.blob();
+          const storageName = "pdf_snapshots";
+          const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
+          const fileName = `${getUserId(userId)}/${jobId}-${dateStr}.pdf`;
+
+          console.log('Uploading PDF to storage:', fileName);
+          const { error: uploadError } = await supabase.storage
+            .from(storageName)
+            .upload(fileName, blob, { 
+              contentType: "application/pdf",
+              upsert: true
+            });
+
+          if (uploadError) {
+            console.error('Storage upload error:', uploadError);
+            throw new Error(`Failed to upload PDF to storage: ${uploadError.message}`);
+          }
+
+          // Create snapshot with PDF URL
+          const { error: snapshotError } = await supabase
+            .from("job_snapshots")
+            .insert({
+              job_id: jobId,
+              user_id: getUserId(userId),
+              position: jobDetails.position,
+              company: jobDetails.company,
+              description: jobDetails.description,
+              keywords: jobDetails.keywords,
+              url: jobDetails.url,
+              html_content: jobDetails.rawHtml,
+              created_at: new Date().toISOString(),
+              pdf_url: fileName
+            });
+
+          if (snapshotError) {
+            console.error("Error creating snapshot:", snapshotError);
+            throw snapshotError;
+          }
+
+          toast({
+            title: "Success",
+            description: "Job added successfully. PDF saved in snapshots."
+          });
+        } catch (error) {
+          console.error("Error creating snapshot:", error);
           toast({
             variant: "destructive",
             title: "Error",
-            description: "Failed to create job snapshot"
+            description: error instanceof Error ? error.message : "Failed to create job snapshot"
           });
-        } else {
-          // Now generate PDF
-          try {
-            console.log('Generating PDF for URL:', jobDetails.url);
-            const response = await fetch("/.netlify/functions/generate-job-pdf", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                url: jobDetails.url
-              })
-            });
-
-            if (!response.ok) {
-              const errorData = await response.text();
-              console.error('PDF generation failed:', errorData);
-              throw new Error(`Failed to generate PDF: ${response.status} ${response.statusText}`);
-            }
-
-            console.log('PDF generated successfully, uploading to storage...');
-            const blob = await response.blob();
-            const storageName = "pdf_snapshots";
-            const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
-            const fileName = `${getUserId(userId)}/${jobId}-${dateStr}.pdf`;
-
-            console.log('Uploading PDF to storage:', fileName);
-            const { error: uploadError } = await supabase.storage
-              .from(storageName)
-              .upload(fileName, blob, { 
-                contentType: "application/pdf",
-                upsert: true
-              });
-
-            if (uploadError) {
-              console.error('Storage upload error:', uploadError);
-              throw new Error(`Failed to upload PDF to storage: ${uploadError.message}`);
-            }
-
-            // Store just the file path instead of full URL
-            console.log('Updating job snapshot with PDF path...');
-            const { error: snapshotUpdateError } = await supabase
-              .from("job_snapshots")
-              .update({ pdf_url: fileName })
-              .eq("job_id", jobId)
-              .eq("user_id", getUserId(userId))
-              .order("created_at", { ascending: false })
-              .limit(1);
-
-            if (snapshotUpdateError) {
-              console.error("Error updating pdf_url in job_snapshots:", snapshotUpdateError);
-            } else {
-              console.log('Job snapshot updated successfully');
-            }
-
-            toast({
-              title: "Success",
-              description: "Job added successfully. PDF saved in snapshots."
-            });
-          } catch (pdfError) {
-            console.error("Error generating PDF:", pdfError);
-            toast({
-              variant: "destructive",
-              title: "Warning",
-              description: "Job created but PDF generation failed"
-            });
-          }
         }
       }
 
