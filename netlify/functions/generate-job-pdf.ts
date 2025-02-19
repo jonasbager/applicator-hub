@@ -93,18 +93,22 @@ export const handler: Handler = async (event) => {
     console.log('Setting user agent...');
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36');
 
+    // Set a maximum navigation time
+    const maxNavigationTime = 8000; // 8 seconds
+    const navigationPromise = page.goto(url, { waitUntil: 'load' });
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Navigation timeout')), maxNavigationTime)
+    );
+
     console.log('Navigating to URL...');
     try {
-      await page.goto(url, { 
-        waitUntil: 'domcontentloaded', // Use domcontentloaded for faster loading
-        timeout: 8000
-      });
+      await Promise.race([navigationPromise, timeoutPromise]);
     } catch (error: any) {
       console.error('Navigation error:', error);
-      throw new Error(`Failed to load page: ${error?.message || 'Unknown error'}`);
+      // Continue anyway, we might have enough content
     }
 
-    // Add the CSS early to prevent flashing
+    // Add the CSS early
     await page.addStyleTag({ content: hideElementsStyle });
 
     console.log('Waiting for content...');
@@ -139,13 +143,16 @@ export const handler: Handler = async (event) => {
         }
       }
 
-      // Wait for any content
-      await page.waitForFunction(() => {
-        return document.querySelector('div:not(:empty), article:not(:empty), section:not(:empty)');
-      }, { timeout: 3000 });
+      // Wait for any content with a short timeout
+      await Promise.race([
+        page.waitForFunction(() => {
+          return document.querySelector('div:not(:empty), article:not(:empty), section:not(:empty)');
+        }, { timeout: 3000 }),
+        new Promise(resolve => setTimeout(resolve, 3000))
+      ]);
     } catch (error: any) {
       console.error('Content loading error:', error);
-      throw new Error(`Failed to detect job posting content: ${error?.message || 'The page might be invalid or require authentication'}`);
+      // Continue anyway, we might have enough content
     }
 
     console.log('Generating PDF...');
