@@ -62,75 +62,79 @@ export function JobCard({ job, index, onClick }: JobCardProps) {
             cursor: 'grab' // Show grab cursor
           }}
         >
-      <div className="flex flex-col h-full relative">
-          {/* Match Percentage Chip */}
-          {job.match_percentage !== undefined && (
-            <Badge 
-              variant="secondary" 
-              className={cn(
-                "absolute top-0 right-0 text-xs",
-                job.match_percentage >= 80 ? "bg-green-100 text-green-700" :
-                job.match_percentage >= 50 ? "bg-yellow-100 text-yellow-700" :
-                job.match_percentage >= 30 ? "bg-red-100 text-red-700" :
-                "bg-gray-100 text-gray-700"
+          <div className="flex flex-col h-full relative">
+            {/* Top Row: Logo and Match Percentage */}
+            <div className="flex justify-between items-start mb-2">
+              {/* Logo */}
+              <div className="w-10 h-10 overflow-hidden flex items-center justify-center">
+                {(() => {
+                  const logoUrl = getCompanyLogoUrl(job);
+                  return !imageError && logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt={`${job.company} logo`}
+                      className="w-full h-full object-contain p-1"
+                      onError={(e) => {
+                        console.error('Logo load error for', job.company, e);
+                        setImageError(true);
+                      }}
+                    />
+                  ) : (
+                    <span className="text-gray-500 text-sm font-medium">
+                      {job.company.charAt(0)}
+                    </span>
+                  );
+                })()}
+              </div>
+
+              {/* Match Percentage */}
+              {job.match_percentage !== undefined && (
+                <Badge 
+                  variant="secondary" 
+                  className={cn(
+                    "text-xs",
+                    job.match_percentage >= 80 ? "bg-green-100 text-green-700" :
+                    job.match_percentage >= 50 ? "bg-yellow-100 text-yellow-700" :
+                    job.match_percentage >= 30 ? "bg-red-100 text-red-700" :
+                    "bg-gray-100 text-gray-700"
+                  )}
+                >
+                  {job.match_percentage}% Match
+                </Badge>
               )}
-            >
-              {job.match_percentage}% Match
-            </Badge>
-          )}
-        {/* Header: Logo and Company Name */}
-        <div className="flex items-center gap-3 mb-3 mt-6">
-          <div className="w-10 h-10 overflow-hidden flex items-center justify-center">
-            {(() => {
-              const logoUrl = getCompanyLogoUrl(job);
-              return !imageError && logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt={`${job.company} logo`}
-                  className="w-full h-full object-contain p-1.5"
-                  onError={(e) => {
-                    console.error('Logo load error for', job.company, e);
-                    setImageError(true);
-                  }}
-                />
+            </div>
+
+            {/* Company Name */}
+            <span className="text-gray-600 text-sm font-medium mb-1 ml-[2px]">{job.company}</span>
+
+            {/* Job Title */}
+            <h3 className="font-medium text-base leading-snug text-gray-900 truncate mb-3 ml-[2px]">
+              {job.position}
+            </h3>
+
+            {/* Bottom Chips */}
+            <div className="mt-auto flex justify-between items-center">
+              {job.in_joblog ? (
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs flex items-center gap-1">
+                  <Check className="h-3 w-3" />
+                  In Joblog
+                </Badge>
               ) : (
-                <span className="text-gray-500 text-sm font-medium">
-                  {job.company.charAt(0)}
-                </span>
-              );
-            })()}
+                <div />
+              )}
+              <Badge 
+                variant="secondary" 
+                className={cn(
+                  "text-xs",
+                  job.status === 'Rejected' 
+                    ? statusColors['Rejected']
+                    : deadlineColors[getDeadlineStatus(job.deadline || null)]
+                )}
+              >
+                {job.status === 'Rejected' ? 'Rejected' : getDeadlineText(job.deadline || null)}
+              </Badge>
+            </div>
           </div>
-          <span className="text-gray-600 text-sm font-medium">{job.company}</span>
-        </div>
-
-        {/* Job Title */}
-        <h3 className="font-medium text-base leading-snug text-gray-900 truncate mb-4">
-          {job.position}
-        </h3>
-
-        {/* Bottom Chips */}
-        <div className="mt-auto flex justify-between items-center">
-          {job.in_joblog ? (
-            <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs flex items-center gap-1">
-              <Check className="h-3 w-3" />
-              In Joblog
-            </Badge>
-          ) : (
-            <div />
-          )}
-          <Badge 
-            variant="secondary" 
-            className={cn(
-              "text-xs",
-              job.status === 'Rejected' 
-                ? statusColors['Rejected']
-                : deadlineColors[getDeadlineStatus(job.deadline || null)]
-            )}
-          >
-            {job.status === 'Rejected' ? 'Rejected' : getDeadlineText(job.deadline || null)}
-          </Badge>
-        </div>
-      </div>
         </Card>
       )}
     </Draggable>
