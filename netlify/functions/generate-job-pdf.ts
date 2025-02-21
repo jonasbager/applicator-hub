@@ -44,15 +44,36 @@ export const handler: Handler = async (event) => {
     console.log('Creating new page...');
     const page = await browser.newPage();
     
-    // Block all resources except document and stylesheet
+    // Block only non-essential resources
     await page.setRequestInterception(true);
     page.on('request', (request) => {
       const resourceType = request.resourceType();
-      if (resourceType === 'document' || resourceType === 'stylesheet') {
-        request.continue();
-      } else {
+      const url = request.url().toLowerCase();
+      
+      // Block tracking, analytics, and ads
+      if (url.includes('analytics') || 
+          url.includes('tracking') || 
+          url.includes('doubleclick') || 
+          url.includes('advertising')) {
         request.abort();
+        return;
       }
+
+      // For LinkedIn, allow more resource types
+      if (url.includes('linkedin.com')) {
+        if (['document', 'stylesheet', 'script', 'xhr', 'fetch'].includes(resourceType)) {
+          request.continue();
+          return;
+        }
+      } else {
+        // For other sites, be more restrictive
+        if (['document', 'stylesheet'].includes(resourceType)) {
+          request.continue();
+          return;
+        }
+      }
+
+      request.abort();
     });
 
     // Simplified CSS
@@ -64,16 +85,28 @@ export const handler: Handler = async (event) => {
         max-width: 800px !important;
       }
 
-      header, footer, nav, aside, iframe, form,
+      /* Hide non-essential elements */
+      header:not([class*="job"]):not([class*="description"]),
+      footer, nav, aside, iframe, form,
       [role="banner"], [role="navigation"], [role="complementary"],
       [class*="cookie"], [class*="popup"], [class*="modal"], [class*="banner"],
-      [class*="advertisement"], [class*="notification"] {
+      [class*="advertisement"], [class*="notification"],
+      [class*="footer"], [class*="header"]:not([class*="job"]):not([class*="description"]),
+      button:not([class*="show-more"]):not([class*="see-more"]) {
         display: none !important;
       }
 
+      /* Show job content */
       main, article, [role="main"],
       [class*="content"], [class*="job"], [class*="description"],
-      .jobs-description__content {
+      .jobs-description__content, .jobs-description,
+      [class*="job-view-layout"], [class*="details"],
+      [class*="top-card"], [class*="description-section"],
+      .jobs-unified-top-card, .jobs-unified-top-card__content-container,
+      .jobs-unified-top-card__title, .jobs-unified-top-card__subtitle-primary-grouping,
+      .jobs-unified-top-card__company-name, .jobs-unified-top-card__job-title,
+      .jobs-unified-top-card__subtitle, .jobs-unified-top-card__job-insight,
+      .jobs-box__html-content {
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
@@ -81,48 +114,127 @@ export const handler: Handler = async (event) => {
         margin: 0 !important;
         height: auto !important;
         overflow: visible !important;
+        position: static !important;
+      }
+
+      /* Ensure text is visible */
+      * {
+        color: black !important;
+        background-color: transparent !important;
+      }
+
+      /* LinkedIn specific styles */
+      .jobs-unified-top-card {
+        margin-bottom: 1rem !important;
+        padding-bottom: 1rem !important;
+        border-bottom: 1px solid #e0e0e0 !important;
+      }
+
+      .jobs-unified-top-card__job-title {
+        font-size: 1.5rem !important;
+        font-weight: 600 !important;
+        margin-bottom: 0.5rem !important;
+      }
+
+      .jobs-unified-top-card__company-name {
+        font-size: 1.2rem !important;
+        margin-bottom: 0.5rem !important;
+      }
+
+      .jobs-box__html-content {
+        font-size: 1rem !important;
+        line-height: 1.5 !important;
       }
     `;
 
-    // Navigate with a short timeout
-    console.log('Navigating to URL...');
-    await page.goto(url, { 
-      waitUntil: 'domcontentloaded',
-      timeout: 5000
-    });
+    console.log('Setting user agent...');
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36');
 
-    // Add CSS immediately
+    console.log('Navigating to URL...');
+    try {
+      await page.goto(url, { 
+        waitUntil: 'networkidle0',
+        timeout: 10000
+      });
+    } catch (error: any) {
+      console.error('Navigation error:', error);
+      // Try to continue even if timeout, we might have enough content
+    }
+
+    // Add the CSS early
     await page.addStyleTag({ content: hideElementsStyle });
 
-    // For LinkedIn, try to expand content
-    if (url.includes('linkedin.com/jobs/view/')) {
-      try {
+    console.log('Waiting for content...');
+    try {
+      if (url.includes('linkedin.com/jobs/view/')) {
+        console.log('LinkedIn job detected, waiting for content...');
+        
+        // Wait for key LinkedIn elements with longer timeout
+        await Promise.race([
+          page.waitForSelector('.jobs-description__content', { timeout: 8000 }),
+          page.waitForSelector('.jobs-unified-top-card', { timeout: 8000 }),
+          page.waitForSelector('.jobs-box__html-content', { timeout: 8000 })
+        ]);
+
+        // Try to expand the description
         await page.evaluate(() => {
-          document.querySelectorAll<HTMLButtonElement>('button').forEach(button => {
+          // Method 1: Click show more buttons
+          document.querySelectorAll('button').forEach(button => {
             if (button.textContent?.toLowerCase().includes('show more') ||
                 button.textContent?.toLowerCase().includes('see more')) {
               button.click();
             }
           });
-          document.querySelectorAll<HTMLElement>('.jobs-description__content').forEach(desc => {
-            desc.style.maxHeight = 'none';
-            desc.style.overflow = 'visible';
+
+          // Method 2: Force show all content
+          document.querySelectorAll('.jobs-description__content, .jobs-box__html-content').forEach(el => {
+            if (el instanceof HTMLElement) {
+              el.style.maxHeight = 'none';
+              el.style.overflow = 'visible';
+              // Remove any truncation classes
+              el.classList.remove('truncated');
+              el.classList.remove('collapsed');
+            }
+          });
+
+          // Method 3: Remove any remaining collapse triggers
+          document.querySelectorAll('[class*="truncate"], [class*="collapse"]').forEach(el => {
+            if (el instanceof HTMLElement) {
+              el.style.maxHeight = 'none';
+              el.style.overflow = 'visible';
+            }
           });
         });
-        await page.waitForTimeout(500);
-      } catch (error) {
-        console.log('No show more button found or error expanding:', error);
+
+        // Wait a bit for content to expand
+        await page.waitForTimeout(1500);
+
+        // Clean up the page
+        await page.evaluate(() => {
+          // Remove unnecessary sections
+          ['jobs-premium-upsell', 'similar-jobs', 'job-seeker-tools', 'jobs-company__footer'].forEach(className => {
+            document.querySelectorAll(`[class*="${className}"]`).forEach(el => el.remove());
+          });
+        });
       }
+
+      // Final check for content
+      await page.waitForFunction(() => {
+        const content = document.body.textContent || '';
+        return content.length > 500;
+      }, { timeout: 3000 });
+
+    } catch (error) {
+      console.log('Error waiting for content:', error);
+      // Continue anyway, we might have enough content
     }
 
-    // Generate PDF immediately
     console.log('Generating PDF...');
     const pdf = await page.pdf({ 
       format: 'A4',
-      printBackground: false,
+      printBackground: true, // Enable backgrounds for better LinkedIn rendering
       margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' },
       preferCSSPageSize: true,
-      omitBackground: true,
       scale: 0.9
     });
 
