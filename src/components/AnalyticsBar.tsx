@@ -52,9 +52,10 @@ export function AnalyticsBar({ jobs, loading = false }: AnalyticsBarProps) {
   const interviewJobs = jobs.filter(job => job.status === 'Interview').length;
   const successRate = totalJobs ? Math.round((interviewJobs / totalJobs) * 100) : 0;
 
-  // Calculate deadlines
+  // Calculate deadlines (including ASAP)
   const upcomingDeadlines = jobs.filter(job => {
-    if (!job.deadline || job.deadline === 'ASAP') return false;
+    if (!job.deadline) return false;
+    if (job.deadline === 'ASAP') return true;
     const deadline = new Date(job.deadline);
     const now = new Date();
     const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -97,7 +98,7 @@ export function AnalyticsBar({ jobs, loading = false }: AnalyticsBarProps) {
       icon: Clock,
       colorClass: "bg-yellow-500/10",
       iconColorClass: "text-yellow-500",
-      tooltip: "Applications due in the next 7 days",
+      tooltip: "Applications marked as ASAP or due in the next 7 days",
       subtitle: upcomingDeadlines === 1 ? "due soon" : "due soon",
     },
     {

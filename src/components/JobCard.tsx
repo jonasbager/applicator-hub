@@ -31,6 +31,7 @@ function getDeadlineText(deadline: DateValue): string {
   const deadlineDate = new Date(deadline);
   const diffDays = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   
+  if (diffDays < 0) return 'Overdue';
   if (diffDays <= 2) return 'Due soon';
   return `${diffDays}d left`;
 }
