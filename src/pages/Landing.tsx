@@ -75,7 +75,7 @@ export default function Landing() {
           </div>
 
           {/* Hero Image */}
-          <div className="relative w-full max-w-[1440px] mx-auto mt-20 group">
+          <div className="relative w-full max-w-[1440px] mx-auto mt-12 group">
             <img 
               src="/heromockup.png" 
               alt="ApplyMate Dashboard" 
