@@ -73,10 +73,8 @@ export default function Landing() {
             <img 
               src="/heromockup.png" 
               alt="ApplyMate Dashboard" 
-              className="w-full h-auto rounded-lg shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]"
+              className="w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
             />
-            {/* Gradient overlay at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none" />
           </div>
         </div>
 
@@ -85,6 +83,56 @@ export default function Landing() {
           <div className="absolute top-0 left-0 w-72 h-72 bg-primary/30 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob" />
           <div className="absolute top-0 right-0 w-72 h-72 bg-primary/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000" />
           <div className="absolute bottom-0 left-1/2 w-72 h-72 bg-primary/40 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000" />
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-24 md:py-32 bg-muted/30">
+        <div className="container px-4 mx-auto">
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 mb-6 text-sm font-medium">
+              <Target className="h-4 w-4" />
+              Key Features
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Everything you need to manage your job search
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              A complete toolkit designed to make your job search efficient and organized
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="group bg-background/50 backdrop-blur-sm p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                <Sparkles className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">AI-Powered Analysis</h3>
+              <p className="text-muted-foreground">
+                Our AI analyzes job postings to extract key requirements, skills, and qualifications.
+                Get instant insights into what employers are looking for and how you match up.
+              </p>
+            </div>
+            <div className="group bg-background/50 backdrop-blur-sm p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                <Target className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Progress Tracking</h3>
+              <p className="text-muted-foreground">
+                Intuitive Kanban board lets you drag and drop applications through each stage.
+                Track deadlines, interviews, and follow-ups all in one visual dashboard.
+              </p>
+            </div>
+            <div className="group bg-background/50 backdrop-blur-sm p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                <CheckCircle2 className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Stay Organized</h3>
+              <p className="text-muted-foreground">
+                Keep everything in one place - application materials, interview notes, important dates,
+                and company research. Never miss a deadline or lose track of your progress.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -113,9 +161,10 @@ export default function Landing() {
                 </div>
                 <h3 className="text-xl font-semibold mb-2">Time Machine</h3>
                 <p className="text-muted-foreground mb-4">
-                  Never lose track of job details. Our Time Machine automatically creates snapshots
-                  of job postings, ensuring you have access to the complete information even after
-                  the listing is removed.
+                  Never lose track of job details. Our Time Machine automatically creates PDF snapshots
+                  of job postings, preserving every detail including requirements, responsibilities,
+                  and company information. Access the complete job description anytime, even years
+                  after the listing is removed.
                 </p>
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2 text-sm">
@@ -143,9 +192,10 @@ export default function Landing() {
                 </div>
                 <h3 className="text-xl font-semibold mb-2">Smart Job Matching</h3>
                 <p className="text-muted-foreground mb-4">
-                  Upload your CV and let our AI analyze job postings to find the best matches.
-                  Get personalized match scores and focus on opportunities that align with
-                  your skills and experience.
+                  Upload your CV and let our advanced AI analyze job postings to find perfect matches.
+                  Our system extracts key skills and requirements, comparing them with your experience
+                  to generate accurate match scores. Focus on opportunities where you're most likely
+                  to succeed, and understand exactly how your skills align with each role.
                 </p>
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2 text-sm">
@@ -162,56 +212,6 @@ export default function Landing() {
                   </li>
                 </ul>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-24 md:py-32 bg-muted/30">
-        <div className="container px-4 mx-auto">
-          <div className="max-w-3xl mx-auto text-center mb-16">
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 mb-6 text-sm font-medium">
-              <Target className="h-4 w-4" />
-              Key Features
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Everything you need to manage your job search
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              A complete toolkit designed to make your job search efficient and organized
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="group bg-background/50 backdrop-blur-sm p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                <Sparkles className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">AI-Powered Analysis</h3>
-              <p className="text-muted-foreground">
-                Automatically extract key information from job postings. Get insights into required
-                skills and qualifications.
-              </p>
-            </div>
-            <div className="group bg-background/50 backdrop-blur-sm p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                <Target className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Progress Tracking</h3>
-              <p className="text-muted-foreground">
-                Visual Kanban board to track your applications from "Not Started" to "Interview".
-                Never lose track of where you stand.
-              </p>
-            </div>
-            <div className="group bg-background/50 backdrop-blur-sm p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                <CheckCircle2 className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Stay Organized</h3>
-              <p className="text-muted-foreground">
-                Keep notes, track important dates, and link to your application documents.
-                Everything in one place.
-              </p>
             </div>
           </div>
         </div>
