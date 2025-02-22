@@ -147,24 +147,39 @@ export function JobDetailsModal({
     try {
       if (!latestSnapshot) {
         // Create new snapshot
-        console.log('Creating new snapshot for job:', job.id);
-        const response = await fetch("/.netlify/functions/generate-job-pdf", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            url: job.url
-          })
-        });
+            if (!job.url) {
+              throw new Error('No URL available for this job');
+            }
 
-        if (!response.ok) {
-          const errorData = await response.text();
-          console.error('PDF generation failed:', errorData);
-          throw new Error(`Failed to generate PDF: ${response.status} ${response.statusText}`);
-        }
+            console.log('Creating new snapshot for job:', job.id, 'with URL:', job.url);
+            const response = await fetch("/.netlify/functions/generate-job-pdf", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                url: job.url
+              })
+            });
 
-        const blob = await response.blob();
+            if (!response.ok) {
+              const errorData = await response.text();
+              console.error('PDF generation failed:', errorData);
+              throw new Error(`Failed to generate PDF: ${response.status} ${response.statusText}`);
+            }
+
+            // Verify the response is a PDF
+            const contentType = response.headers.get('content-type');
+            if (!contentType?.includes('application/pdf')) {
+              console.error('Invalid content type:', contentType);
+              throw new Error('Generated file is not a PDF');
+            }
+
+            console.log('PDF generated successfully, getting blob...');
+            const blob = await response.blob();
+            if (blob.size === 0) {
+              throw new Error('Generated PDF is empty');
+            }
         const storageName = "pdf_snapshots";
         const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
         const fileName = `${getUserId(userId)}/${job.id}-${dateStr}.pdf`;

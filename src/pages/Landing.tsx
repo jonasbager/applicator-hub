@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Header } from "../components/Header";
 import { ArrowRight, CheckCircle2, Sparkles, Target, Star, History, Brain, Quote } from "lucide-react";
 import { useState } from "react";
+import { TrustedUsers } from "../components/ui/trusted-users";
 
 // Mock reviews data
 const reviews = [
@@ -65,6 +66,11 @@ export default function Landing() {
               <Button asChild variant="outline" size="lg">
                 <Link to="/sign-in">Sign In</Link>
               </Button>
+            </div>
+
+            {/* Trusted Users */}
+            <div className="flex justify-center mt-8">
+              <TrustedUsers />
             </div>
           </div>
 
