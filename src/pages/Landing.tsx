@@ -4,26 +4,24 @@ import { Header } from "../components/Header";
 import { ArrowRight, CheckCircle2, Sparkles, Target, Star, History, Brain, Quote } from "lucide-react";
 import { useState } from "react";
 import { TrustedUsers } from "../components/ui/trusted-users";
+import { Badge } from "../components/ui/badge";
 
 // Mock reviews data
 const reviews = [
   {
     name: "Sarah M.",
-    role: "Software Engineer",
     company: "Tech Corp",
     text: "ApplyMate's CV matching feature helped me focus on jobs that were the best fit for my skills. Landed my dream job in just 6 weeks!",
     rating: 5
   },
   {
-    name: "James L.",
-    role: "Product Manager",
+    name: "Henrik L.",
     company: "StartupCo",
     text: "The Time Machine feature is a game-changer. Being able to reference job posts even after they're taken down is incredibly valuable.",
     rating: 5
   },
   {
-    name: "Emily R.",
-    role: "UX Designer",
+    name: "Emilie R.",
     company: "DesignHub",
     text: "Finally, a job application tracker that actually understands what job seekers need. The AI analysis saves me so much time!",
     rating: 5
@@ -172,6 +170,12 @@ export default function Landing() {
                   and company information. Access the complete job description anytime, even years
                   after the listing is removed.
                 </p>
+                <div className="mb-6">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <History className="h-4 w-4" />
+                    View PDF Snapshot
+                  </Button>
+                </div>
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -203,6 +207,11 @@ export default function Landing() {
                   to generate accurate match scores. Focus on opportunities where you're most likely
                   to succeed, and understand exactly how your skills align with each role.
                 </p>
+                <div className="mb-6">
+                  <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                    95% Match
+                  </Badge>
+                </div>
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -254,7 +263,7 @@ export default function Landing() {
                 <div className="text-muted-foreground">
                   <div className="font-semibold">{reviews[activeReview].name}</div>
                   <div className="text-sm">
-                    {reviews[activeReview].role} at {reviews[activeReview].company}
+                    {reviews[activeReview].company}
                   </div>
                 </div>
               </div>
