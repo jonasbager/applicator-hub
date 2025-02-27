@@ -42,7 +42,7 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
           />
         </div>
 
-        <div className="relative">
+        <div className="relative mb-6">
           <Button
             onClick={async () => {
               if (location.pathname !== '/jobs') {
