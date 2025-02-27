@@ -2,7 +2,7 @@ import React from "react";
 import { Archive, Briefcase, LogOut, Plus, Sparkles, UserCircle } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useClerk, useUser } from "@clerk/clerk-react";
-import { AuroraButton } from "./ui/aurora-button";
+import { Button } from "./ui/button";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const menuItems = [
@@ -43,7 +43,7 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
         </div>
 
         <div className="relative">
-          <AuroraButton
+          <Button
             onClick={async () => {
               if (location.pathname !== '/jobs') {
                 await navigate('/jobs');
@@ -56,7 +56,7 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
           >
             <Plus className="h-4 w-4 mr-2" />
             Add New Job
-          </AuroraButton>
+          </Button>
           {!hasJobs && (
             <div className="absolute inset-0 rounded-md">
               <div className="absolute inset-0 rounded-md pulse-ring" />
