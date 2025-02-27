@@ -66,32 +66,28 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        "bubble-top": {
+        "greentopBubbles": {
           "0%": {
-            transform: "translateX(-50%) scale(1)",
-            opacity: "0"
+            backgroundPosition: "5% 90%, 10% 90%, 10% 90%, 15% 90%, 25% 90%, 25% 90%, 40% 90%, 55% 90%, 70% 90%"
           },
           "50%": {
-            transform: "translateX(-50%) translateY(-100px) scale(1.4)",
-            opacity: "0.1"
+            backgroundPosition: "0% 80%, 0% 20%, 10% 40%, 20% 0%, 30% 30%, 22% 50%, 50% 50%, 65% 20%, 90% 30%"
           },
           "100%": {
-            transform: "translateX(-50%) translateY(-200px) scale(0)",
-            opacity: "0"
+            backgroundPosition: "0% 70%, 0% 10%, 10% 30%, 20% -10%, 30% 20%, 22% 40%, 50% 40%, 65% 10%, 90% 20%",
+            backgroundSize: "0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%"
           }
         },
-        "bubble-bottom": {
+        "greenbottomBubbles": {
           "0%": {
-            transform: "translateX(-50%) scale(1)",
-            opacity: "0"
+            backgroundPosition: "10% -10%, 30% 10%, 55% -10%, 70% -10%, 85% -10%, 70% -10%, 70% 0%"
           },
           "50%": {
-            transform: "translateX(-50%) translateY(100px) scale(1.4)",
-            opacity: "0.1"
+            backgroundPosition: "0% 80%, 20% 80%, 45% 60%, 60% 100%, 75% 70%, 95% 60%, 105% 0%"
           },
           "100%": {
-            transform: "translateX(-50%) translateY(200px) scale(0)",
-            opacity: "0"
+            backgroundPosition: "0% 90%, 20% 90%, 45% 70%, 60% 110%, 75% 80%, 95% 70%, 110% 10%",
+            backgroundSize: "0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%"
           }
         },
         blob: {
@@ -112,8 +108,8 @@ const config = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "bubble-top": "bubble-top 0.6s ease-out",
-        "bubble-bottom": "bubble-bottom 0.6s ease-out",
+        "greentopBubbles": "greentopBubbles 0.6s ease",
+        "greenbottomBubbles": "greenbottomBubbles 0.6s ease",
         blob: "blob 7s infinite",
       },
     },

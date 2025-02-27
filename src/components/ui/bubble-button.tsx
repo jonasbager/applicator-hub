@@ -12,16 +12,24 @@ const BubbleButton = React.forwardRef<HTMLButtonElement, BubbleButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "group relative w-full px-6 py-2.5 bg-sky-500 text-white rounded-lg font-medium",
-          "transition-all duration-200 hover:bg-sky-600 active:scale-95",
-          "before:content-[''] before:absolute before:left-1/2 before:top-0",
-          "before:w-[150%] before:h-full before:bg-gradient-to-r",
-          "before:from-sky-500/20 before:via-sky-500/20 before:to-sky-500/20",
-          "before:opacity-0 hover:before:animate-bubble-top",
-          "after:content-[''] after:absolute after:left-1/2 after:bottom-0",
-          "after:w-[150%] after:h-full after:bg-gradient-to-r",
-          "after:from-sky-500/20 after:via-sky-500/20 after:to-sky-500/20",
-          "after:opacity-0 hover:after:animate-bubble-bottom",
+          "relative px-6 py-2.5 bg-sky-500 text-white rounded-lg cursor-pointer",
+          "transition-all duration-200 active:scale-96",
+          // Before element (top bubbles)
+          "before:absolute before:content-[''] before:w-[150%] before:h-full before:left-1/2",
+          "before:top-[-70%] before:-translate-x-1/2 before:z-[-1000]",
+          "before:bg-[radial-gradient(circle,theme(colors.sky.500)_20%,transparent_20%),radial-gradient(circle,transparent_20%,theme(colors.sky.500)_20%,transparent_30%),radial-gradient(circle,theme(colors.sky.500)_20%,transparent_20%),radial-gradient(circle,theme(colors.sky.500)_20%,transparent_20%),radial-gradient(circle,transparent_10%,theme(colors.sky.500)_15%,transparent_20%),radial-gradient(circle,theme(colors.sky.500)_20%,transparent_20%),radial-gradient(circle,theme(colors.sky.500)_20%,transparent_20%),radial-gradient(circle,theme(colors.sky.500)_20%,transparent_20%),radial-gradient(circle,theme(colors.sky.500)_20%,transparent_20%)]",
+          "before:bg-[size:10%_10%,20%_20%,15%_15%,20%_20%,18%_18%,10%_10%,15%_15%,10%_10%,18%_18%]",
+          "before:bg-[position:50%_120%]",
+          "hover:before:animate-greentopBubbles",
+          // After element (bottom bubbles)
+          "after:absolute after:content-[''] after:w-[150%] after:h-full after:left-1/2",
+          "after:bottom-[-70%] after:-translate-x-1/2 after:z-[-1000]",
+          "after:bg-[radial-gradient(circle,theme(colors.sky.500)_20%,transparent_20%),radial-gradient(circle,theme(colors.sky.500)_20%,transparent_20%),radial-gradient(circle,transparent_10%,theme(colors.sky.500)_15%,transparent_20%),radial-gradient(circle,theme(colors.sky.500)_20%,transparent_20%),radial-gradient(circle,theme(colors.sky.500)_20%,transparent_20%),radial-gradient(circle,theme(colors.sky.500)_20%,transparent_20%),radial-gradient(circle,theme(colors.sky.500)_20%,transparent_20%)]",
+          "after:bg-[size:15%_15%,20%_20%,18%_18%,20%_20%,15%_15%,20%_20%,18%_18%]",
+          "after:bg-[position:50%_0%]",
+          "hover:after:animate-greenbottomBubbles",
+          // Hover state
+          "hover:bg-sky-600",
           className
         )}
         {...props}
