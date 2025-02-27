@@ -2,7 +2,7 @@ import React from "react";
 import { Archive, Briefcase, LogOut, Plus, Sparkles, UserCircle } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useClerk, useUser } from "@clerk/clerk-react";
-import { Button } from "./ui/button";
+import BubbleButton from "./ui/bubble-button";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const menuItems = [
@@ -43,7 +43,7 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
         </div>
 
         <div className="relative">
-          <Button
+          <BubbleButton
             onClick={async () => {
               if (location.pathname !== '/jobs') {
                 await navigate('/jobs');
@@ -53,11 +53,10 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
                 onAddClick();
               }
             }}
-            className="w-full mb-6 relative z-10"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Application
-          </Button>
+            Add New Job
+          </BubbleButton>
           {!hasJobs && (
             <div className="absolute inset-0 rounded-md">
               <div className="absolute inset-0 rounded-md pulse-ring" />

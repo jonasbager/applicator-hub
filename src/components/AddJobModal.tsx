@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { triggerConfetti } from "../lib/confetti";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -202,7 +203,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         throw new Error("Failed to create job");
       }
 
-      // Show immediate success message and close modal
+      // Show immediate success message, confetti, and close modal
       onJobAdded();
       onOpenChange(false);
       resetForm();
@@ -210,6 +211,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
         title: "Success",
         description: "Job added successfully"
       });
+      triggerConfetti(); // Trigger confetti animation
 
       // Generate PDF and create snapshot in the background
       if (jobDetails.url && jobDetails.rawHtml) {

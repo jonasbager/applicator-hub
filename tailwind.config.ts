@@ -66,6 +66,34 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "bubble-top": {
+          "0%": {
+            transform: "translateX(-50%) scale(1)",
+            opacity: "0"
+          },
+          "50%": {
+            transform: "translateX(-50%) translateY(-100px) scale(1.4)",
+            opacity: "0.1"
+          },
+          "100%": {
+            transform: "translateX(-50%) translateY(-200px) scale(0)",
+            opacity: "0"
+          }
+        },
+        "bubble-bottom": {
+          "0%": {
+            transform: "translateX(-50%) scale(1)",
+            opacity: "0"
+          },
+          "50%": {
+            transform: "translateX(-50%) translateY(100px) scale(1.4)",
+            opacity: "0.1"
+          },
+          "100%": {
+            transform: "translateX(-50%) translateY(200px) scale(0)",
+            opacity: "0"
+          }
+        },
         blob: {
           "0%": {
             transform: "translate(0px, 0px) scale(1)",
@@ -84,6 +112,8 @@ const config = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "bubble-top": "bubble-top 0.6s ease-out",
+        "bubble-bottom": "bubble-bottom 0.6s ease-out",
         blob: "blob 7s infinite",
       },
     },
