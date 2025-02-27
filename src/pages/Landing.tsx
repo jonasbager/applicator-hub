@@ -1,7 +1,7 @@
 import { Button } from "../components/ui/button";
 import { Link } from "react-router-dom";
 import { Header } from "../components/Header";
-import { ArrowRight, CheckCircle2, Sparkles, Target, Star, History, Brain, Quote } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, Target, Star, History, Brain, Quote, Clock, FileText } from "lucide-react";
 import { useState } from "react";
 import { TrustedUsers } from "../components/ui/trusted-users";
 import { Badge } from "../components/ui/badge";
@@ -90,6 +90,62 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Time Machine Feature Section */}
+      <section className="py-24 md:py-32 bg-gradient-to-br from-orange-500/5 to-yellow-500/5">
+        <div className="container px-4 mx-auto">
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 rounded-full px-4 py-1.5 mb-6 text-sm font-medium">
+              <History className="h-4 w-4" />
+              Introducing Time Machine
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Never Lose Track of Job Details Again
+            </h2>
+            <p className="text-lg text-muted-foreground mb-8">
+              Our revolutionary Time Machine feature automatically preserves every job posting,
+              ensuring you always have access to the complete details - even after the listing is removed.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              <Button asChild size="lg" className="group bg-orange-500 hover:bg-orange-600">
+                <Link to="/sign-up">
+                  Try Time Machine Now
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="bg-background/80 backdrop-blur-sm p-6 rounded-xl border">
+                <div className="w-12 h-12 bg-orange-100 text-orange-700 rounded-lg flex items-center justify-center mb-4">
+                  <Clock className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Automatic Snapshots</h3>
+                <p className="text-muted-foreground text-sm">
+                  Every job posting is automatically preserved the moment you add it to your board
+                </p>
+              </div>
+              <div className="bg-background/80 backdrop-blur-sm p-6 rounded-xl border">
+                <div className="w-12 h-12 bg-orange-100 text-orange-700 rounded-lg flex items-center justify-center mb-4">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Complete Details</h3>
+                <p className="text-muted-foreground text-sm">
+                  Every aspect of the job posting is preserved, from requirements to benefits
+                </p>
+              </div>
+              <div className="bg-background/80 backdrop-blur-sm p-6 rounded-xl border">
+                <div className="w-12 h-12 bg-orange-100 text-orange-700 rounded-lg flex items-center justify-center mb-4">
+                  <History className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Always Available</h3>
+                <p className="text-muted-foreground text-sm">
+                  Access your preserved job postings anytime, even years after they're taken down
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section className="py-24 md:py-32 bg-muted/30">
         <div className="container px-4 mx-auto">
@@ -101,9 +157,15 @@ export default function Landing() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Everything you need to manage your job search
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg text-muted-foreground mb-8">
               A complete toolkit designed to make your job search efficient and organized
             </p>
+            <Button asChild size="lg" className="group mb-12">
+              <Link to="/sign-up">
+                Get Started Free
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="group bg-background/50 backdrop-blur-sm p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
@@ -140,92 +202,57 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* New Features Section */}
+      {/* Job Matching Feature */}
       <section className="py-24 md:py-32">
         <div className="container px-4 mx-auto">
           <div className="max-w-3xl mx-auto text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 mb-6 text-sm font-medium">
-              <Sparkles className="h-4 w-4" />
-              New Features
+              <Brain className="h-4 w-4" />
+              Smart Matching
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Supercharge your job search
+              Find Your Perfect Match
             </h2>
-            <p className="text-lg text-muted-foreground">
-              Our latest features help you find and track the perfect opportunities
+            <p className="text-lg text-muted-foreground mb-8">
+              Let our AI analyze job postings and match them with your skills and experience
             </p>
+            <Button asChild size="lg" className="group mb-12">
+              <Link to="/sign-up">
+                Start Matching Now
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Time Machine Feature */}
-            <div className="group relative bg-gradient-to-br from-background to-muted/30 p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg flex items-center justify-center mb-4">
-                  <History className="h-6 w-6 text-orange-500" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Time Machine</h3>
-                <p className="text-muted-foreground mb-4">
-                  Never lose track of job details. Our Time Machine automatically creates PDF snapshots
-                  of job postings, preserving every detail including requirements, responsibilities,
-                  and company information. Access the complete job description anytime, even years
-                  after the listing is removed.
-                </p>
-                <div className="mb-6">
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <History className="h-4 w-4" />
-                    View PDF Snapshot
-                  </Button>
-                </div>
-                <ul className="space-y-2">
-                  <li className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Automatic PDF snapshots
-                  </li>
-                  <li className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Access removed job listings
-                  </li>
-                  <li className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Complete job details preserved
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Job Matching Feature */}
-            <div className="group relative bg-gradient-to-br from-background to-muted/30 p-8 rounded-2xl border shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg flex items-center justify-center mb-4">
+          <div className="relative bg-gradient-to-br from-background to-muted/30 p-8 rounded-2xl border shadow-sm overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg flex items-center justify-center">
                   <Brain className="h-6 w-6 text-purple-500" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Smart Job Matching</h3>
-                <p className="text-muted-foreground mb-4">
-                  Upload your CV and let our advanced AI analyze job postings to find perfect matches.
-                  Our system extracts key skills and requirements, comparing them with your experience
-                  to generate accurate match scores. Focus on opportunities where you're most likely
-                  to succeed, and understand exactly how your skills align with each role.
-                </p>
-                <div className="mb-6">
-                  <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                    95% Match
-                  </Badge>
+                <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                  95% Match
+                </Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">AI-Powered Analysis</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Our AI extracts and analyzes key requirements from job postings
+                  </p>
                 </div>
-                <ul className="space-y-2">
-                  <li className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    AI-powered skill analysis
-                  </li>
-                  <li className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Personalized match scores
-                  </li>
-                  <li className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Focus on relevant opportunities
-                  </li>
-                </ul>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Skill Matching</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Compare your skills against job requirements for perfect matches
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Smart Recommendations</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Get personalized job recommendations based on your profile
+                  </p>
+                </div>
               </div>
             </div>
           </div>
