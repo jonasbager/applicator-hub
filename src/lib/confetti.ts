@@ -1,4 +1,4 @@
-import confetti from "canvas-confetti";
+declare const confetti: any;
 
 export function triggerConfetti() {
   const end = Date.now() + 3 * 1000; // 3 seconds
