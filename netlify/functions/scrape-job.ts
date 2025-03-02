@@ -129,11 +129,18 @@ export const handler: Handler = async (event) => {
       // Parse the response into our schema
       const parsedJob = await parser.parse(response.content.toString());
 
-      // Add the original URL if not present
+      // Get the raw HTML content before trimming
+      const rawHtml = docs[0].pageContent;
+      console.log('Raw HTML content length:', rawHtml.length);
+
+      // Add the original URL and HTML
       const jobDetails = {
         ...parsedJob,
-        url: parsedJob.url || url
+        url: parsedJob.url || url,
+        rawHtml: rawHtml
       };
+
+      console.log('Returning job details with HTML');
 
       return {
         statusCode: 200,
@@ -149,7 +156,8 @@ export const handler: Handler = async (event) => {
         company: responseText.match(/"company":\s*"([^"]+)"/)?.[1] || 'Unknown Company',
         description: responseText.match(/"description":\s*"([^"]+)"/)?.[1] || 'No description available',
         keywords: [],
-        url: url
+        url: url,
+        rawHtml: docs[0].pageContent // Use the full HTML content for fallback too
       };
       return {
         statusCode: 200,

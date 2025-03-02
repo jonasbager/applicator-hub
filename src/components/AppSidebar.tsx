@@ -42,7 +42,7 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
           />
         </div>
 
-        <div className="relative">
+        <div className="relative mb-6">
           <Button
             onClick={async () => {
               if (location.pathname !== '/jobs') {
@@ -53,10 +53,9 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
                 onAddClick();
               }
             }}
-            className="w-full mb-6 relative z-10"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Application
+            Add New Job
           </Button>
           {!hasJobs && (
             <div className="absolute inset-0 rounded-md">

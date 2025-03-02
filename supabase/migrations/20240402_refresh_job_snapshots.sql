@@ -1,9 +1,7 @@
--- Drop existing indexes if they exist
-DROP INDEX IF EXISTS job_snapshots_job_id_idx;
-DROP INDEX IF EXISTS job_snapshots_user_id_idx;
+-- Drop and recreate the job_snapshots table to refresh schema cache
+DROP TABLE IF EXISTS job_snapshots CASCADE;
 
--- Create job_snapshots table if it doesn't exist
-CREATE TABLE IF NOT EXISTS job_snapshots (
+CREATE TABLE job_snapshots (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
   user_id TEXT NOT NULL,
@@ -13,19 +11,11 @@ CREATE TABLE IF NOT EXISTS job_snapshots (
   keywords TEXT[] NOT NULL,
   url TEXT NOT NULL,
   html_content TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  
-  -- Add foreign key constraint if it doesn't exist
-  CONSTRAINT fk_job FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable RLS if not already enabled
+-- Enable RLS
 ALTER TABLE job_snapshots ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies if they exist
-DROP POLICY IF EXISTS select_own_snapshots ON job_snapshots;
-DROP POLICY IF EXISTS insert_own_snapshots ON job_snapshots;
-DROP POLICY IF EXISTS delete_own_snapshots ON job_snapshots;
 
 -- Create policies
 CREATE POLICY select_own_snapshots ON job_snapshots

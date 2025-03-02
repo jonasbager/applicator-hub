@@ -87,6 +87,12 @@
   force = true
 
 [[redirects]]
+  from = "/.netlify/functions/generate-job-pdf"
+  to = "/.netlify/functions/generate-job-pdf"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
@@ -102,10 +108,17 @@
 
 [functions.scrape-job]
   included_files = []
-  external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio", "zod", "axios"]
+  external_node_modules = ["@langchain/community", "@langchain/openai", "cheerio", "zod", "axios", "@supabase/supabase-js"]
   environment = { NODE_VERSION = "18.x", OPENAI_API_KEY = "${OPENAI_API_KEY}" }
 
 [functions.find-matching-jobs]
   included_files = []
   external_node_modules = ["linkedin-jobs-api", "@supabase/supabase-js", "axios", "openai"]
   environment = { NODE_VERSION = "18.x" }
+
+[functions.generate-job-pdf]
+  included_files = []
+  external_node_modules = ["puppeteer-core", "@sparticuz/chromium", "@supabase/supabase-js"]
+  environment = { NODE_VERSION = "18.x" }
+  timeout = "30s"
+  memory = 3008

@@ -32,11 +32,11 @@ export default defineConfig(({ mode }) => {
       // Handle environment variables
       rollupOptions: {
         // Ensure external dependencies are properly handled
-        external: [],
+        external: ['canvas-confetti'],
       },
     },
     optimizeDeps: {
-      include: ['@clerk/clerk-react'],
+      include: ['@clerk/clerk-react', 'canvas-confetti'],
     },
   }
 })
