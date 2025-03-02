@@ -10,19 +10,16 @@ import { Badge } from "../components/ui/badge";
 const reviews = [
   {
     name: "Sarah M.",
-    company: "Tech Corp",
     text: "ApplyMate's CV matching feature helped me focus on jobs that were the best fit for my skills. Landed my dream job in just 6 weeks!",
     rating: 5
   },
   {
     name: "Henrik L.",
-    company: "StartupCo",
     text: "The Time Machine feature is a game-changer. Being able to reference job posts even after they're taken down is incredibly valuable.",
     rating: 5
   },
   {
     name: "Emilie R.",
-    company: "DesignHub",
     text: "Finally, a job application tracker that actually understands what job seekers need. The AI analysis saves me so much time!",
     rating: 5
   }
@@ -289,9 +286,6 @@ export default function Landing() {
                 </blockquote>
                 <div className="text-muted-foreground">
                   <div className="font-semibold">{reviews[activeReview].name}</div>
-                  <div className="text-sm">
-                    {reviews[activeReview].company}
-                  </div>
                 </div>
               </div>
 
