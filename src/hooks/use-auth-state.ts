@@ -1,11 +1,11 @@
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from './use-auth';
 
 export const useAuthState = () => {
-  const { isLoaded, isSignedIn, userId } = useAuth();
-  
+  const { user, loading } = useAuth();
+
   return {
-    isLoaded,
-    isAuthenticated: isLoaded && isSignedIn,
-    userId
+    isLoaded: !loading,
+    isAuthenticated: !!user,
+    userId: user?.id ?? null,
   };
 };

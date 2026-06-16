@@ -1,7 +1,7 @@
 import React from "react";
 import { Archive, Briefcase, LogOut, Plus, Sparkles, UserCircle } from "lucide-react";
 import { cn } from "../lib/utils";
-import { useClerk, useUser } from "@clerk/clerk-react";
+import { useAuth } from "../hooks/use-auth";
 import { Button } from "./ui/button";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
@@ -17,8 +17,7 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
-  const { signOut } = useClerk();
-  const { user } = useUser();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 

@@ -8,8 +8,8 @@ import { JobDetailsModal } from "../components/JobDetailsModal";
 import { Button } from "../components/ui/button";
 import { Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
-import { useAuth } from "@clerk/clerk-react";
-import { supabase } from "../lib/supabase";
+import { useAuth } from "../hooks/use-auth";
+import { useSupabase } from "../lib/supabase";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +23,9 @@ import {
 } from "../components/ui/alert-dialog";
 
 export function Archived() {
-  const { userId } = useAuth();
+  const { user } = useAuth();
+  const userId = user?.id;
+  const { supabase } = useSupabase();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

@@ -1,15 +1,17 @@
 import { JobPreferences } from '../types/resume';
 import { RecommendedJob } from '../types/recommended-job';
+import { supabase } from './supabase';
 
-export async function findMatchingJobs(userId: string, preferences: JobPreferences): Promise<RecommendedJob[]> {
+export async function findMatchingJobs(preferences: JobPreferences): Promise<RecommendedJob[]> {
   try {
+    const { data: { session } } = await supabase.auth.getSession();
     const response = await fetch('/.netlify/functions/find-matching-jobs', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token ?? ''}`,
       },
       body: JSON.stringify({
-        userId,
         skills: preferences.skills || [],
         level: preferences.level || [],
         roles: preferences.roles || [],

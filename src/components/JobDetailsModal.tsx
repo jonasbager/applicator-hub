@@ -11,9 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Job, getDeadlineStatus, formatDate } from "../types/job";
 import { useToast } from "./ui/use-toast";
 import { Archive, CalendarClock, CalendarDays, History, Loader2 } from "lucide-react";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../hooks/use-auth";
 import { useSupabase } from "../lib/supabase";
-import { getUserId } from "../lib/user-id";
 import { calculateMatchPercentage } from "../lib/job-matching-utils";
 
 interface JobSnapshot {
@@ -45,7 +44,8 @@ export function JobDetailsModal({
   onUpdate,
   onDelete,
 }: JobDetailsModalProps) {
-  const { userId } = useAuth();
+  const { user } = useAuth();
+  const userId = user?.id;
   const { supabase } = useSupabase();
   const [notes, setNotes] = useState('');
   const [inJoblog, setInJoblog] = useState(false);
@@ -77,7 +77,7 @@ export function JobDetailsModal({
           .select('*')
           .match({
             job_id: job.id,
-            user_id: getUserId(userId)
+            user_id: userId
           })
           .order('created_at', { ascending: false })
           .maybeSingle();
@@ -182,7 +182,7 @@ export function JobDetailsModal({
             }
         const storageName = "pdf_snapshots";
         const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
-        const fileName = `${getUserId(userId)}/${job.id}-${dateStr}.pdf`;
+        const fileName = `${userId}/${job.id}-${dateStr}.pdf`;
 
         const { error: uploadError } = await supabase.storage
           .from(storageName)
@@ -201,7 +201,7 @@ export function JobDetailsModal({
           .from("job_snapshots")
           .insert({
             job_id: job.id,
-            user_id: getUserId(userId),
+            user_id: userId,
             position: job.position,
             company: job.company,
             description: job.description,
@@ -275,7 +275,7 @@ export function JobDetailsModal({
       const { data: preferences } = await supabase
         .from('job_preferences')
         .select('*')
-        .eq('user_id', getUserId(userId))
+        .eq('user_id', userId)
         .single();
 
       // Calculate new match percentage if preferences exist
@@ -295,7 +295,7 @@ export function JobDetailsModal({
           match_percentage: matchPercentage 
         })
         .eq('id', job.id)
-        .eq('user_id', getUserId(userId))
+        .eq('user_id', userId)
         .select('*')
         .single();
 
@@ -331,7 +331,7 @@ export function JobDetailsModal({
         .from('jobs')
         .update({ notes: notesArray })
         .eq('id', job.id)
-        .eq('user_id', getUserId(userId))
+        .eq('user_id', userId)
         .select('*')
         .single();
 
@@ -364,7 +364,7 @@ export function JobDetailsModal({
         .from('jobs')
         .update({ application_draft_url: applicationUrl })
         .eq('id', job.id)
-        .eq('user_id', getUserId(userId))
+        .eq('user_id', userId)
         .select('*')
         .single();
 
@@ -400,7 +400,7 @@ export function JobDetailsModal({
         .from('jobs')
         .update({ deadline: deadlineValue })
         .eq('id', job.id)
-        .eq('user_id', getUserId(userId))
+        .eq('user_id', userId)
         .select('*')
         .single();
 
@@ -436,7 +436,7 @@ export function JobDetailsModal({
         .from('jobs')
         .update({ start_date: startDateValue })
         .eq('id', job.id)
-        .eq('user_id', getUserId(userId))
+        .eq('user_id', userId)
         .select('*')
         .single();
 
@@ -469,7 +469,7 @@ export function JobDetailsModal({
         .from('jobs')
         .update({ archived: true })
         .eq('id', job.id)
-        .eq('user_id', getUserId(userId));
+        .eq('user_id', userId);
 
       if (error) throw error;
 
@@ -557,7 +557,7 @@ export function JobDetailsModal({
                         .from('jobs')
                         .update({ in_joblog: checked })
                         .eq('id', job.id)
-                        .eq('user_id', getUserId(userId))
+                        .eq('user_id', userId)
                         .select('*')
                         .single();
 
