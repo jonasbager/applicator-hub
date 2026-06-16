@@ -28,11 +28,14 @@ begin
   end loop;
 end $$;
 
--- 2. Wipe user-scoped data (cascades to dependent rows) and the resumes bucket.
+-- 2. Wipe user-scoped data (cascades to dependent rows).
 truncate table public.jobs, public.job_preferences, public.resumes,
                public.job_snapshots, public.recommended_jobs
   restart identity cascade;
-delete from storage.objects where bucket_id = 'resumes';
+-- Note: old objects in the `resumes` storage bucket are now orphaned (their
+-- paths are keyed by Clerk ids that no longer match any auth.uid(), so they are
+-- inaccessible under the new policies). Clear them via the dashboard Storage UI
+-- or the Storage API if desired — direct DELETE on storage.objects is blocked.
 
 -- 3. Convert user_id to uuid and re-point the FK at auth.users.
 do $$
@@ -58,8 +61,20 @@ begin
   end loop;
 end $$;
 
--- 4. The Clerk-era identity helper is no longer needed.
-drop function if exists current_user_id();
+-- 4. Replace the Clerk-era helper. This project has no `auth.uid()` function
+--    (it ran on Clerk), so define an equivalent that returns the verified user
+--    id from the JWT `sub`. CASCADE on the old function also removes any leftover
+--    policy depending on it (e.g. on orphaned tables like saved_jobs), leaving
+--    those tables safely deny-all under RLS.
+drop function if exists current_user_id() cascade;
+
+create or replace function public.requesting_user_id()
+returns uuid
+language sql
+stable
+as $$
+  select nullif(current_setting('request.jwt.claims', true)::json ->> 'sub', '')::uuid;
+$$;
 
 -- 5. Per-user policies via native auth.uid().
 do $$
@@ -70,16 +85,16 @@ begin
   foreach tbl in array per_user loop
     if to_regclass('public.' || tbl) is null then continue; end if;
     execute format(
-      'create policy %I on public.%I for select to authenticated using (auth.uid() = user_id)',
+      'create policy %I on public.%I for select to authenticated using (requesting_user_id() = user_id)',
       tbl || '_select_own', tbl);
     execute format(
-      'create policy %I on public.%I for insert to authenticated with check (auth.uid() = user_id)',
+      'create policy %I on public.%I for insert to authenticated with check (requesting_user_id() = user_id)',
       tbl || '_insert_own', tbl);
     execute format(
-      'create policy %I on public.%I for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id)',
+      'create policy %I on public.%I for update to authenticated using (requesting_user_id() = user_id) with check (requesting_user_id() = user_id)',
       tbl || '_update_own', tbl);
     execute format(
-      'create policy %I on public.%I for delete to authenticated using (auth.uid() = user_id)',
+      'create policy %I on public.%I for delete to authenticated using (requesting_user_id() = user_id)',
       tbl || '_delete_own', tbl);
   end loop;
 end $$;
@@ -113,20 +128,20 @@ end $$;
 
 create policy "resumes_select_own"
   on storage.objects for select to authenticated
-  using (bucket_id = 'resumes' and auth.uid()::text = (storage.foldername(name))[1]);
+  using (bucket_id = 'resumes' and requesting_user_id()::text = (storage.foldername(name))[1]);
 
 create policy "resumes_insert_own"
   on storage.objects for insert to authenticated
   with check (
     bucket_id = 'resumes'
-    and auth.uid()::text = (storage.foldername(name))[1]
+    and requesting_user_id()::text = (storage.foldername(name))[1]
     and storage.extension(name) in ('pdf', 'doc', 'docx')
   );
 
 create policy "resumes_update_own"
   on storage.objects for update to authenticated
-  using (bucket_id = 'resumes' and auth.uid()::text = (storage.foldername(name))[1]);
+  using (bucket_id = 'resumes' and requesting_user_id()::text = (storage.foldername(name))[1]);
 
 create policy "resumes_delete_own"
   on storage.objects for delete to authenticated
-  using (bucket_id = 'resumes' and auth.uid()::text = (storage.foldername(name))[1]);
+  using (bucket_id = 'resumes' and requesting_user_id()::text = (storage.foldername(name))[1]);
