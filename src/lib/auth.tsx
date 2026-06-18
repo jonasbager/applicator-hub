@@ -4,7 +4,10 @@ import { supabase } from './supabase';
 import { useToast } from '../components/ui/use-toast';
 import { AuthContext } from './auth-context';
 
-const SITE_URL = import.meta.env.VITE_SITE_URL || window.location.origin;
+// Always redirect back to the current origin so each environment (localhost,
+// deploy previews, production) returns to itself. These URLs must be in the
+// Supabase Auth redirect allowlist.
+const SITE_URL = window.location.origin;
 
 // Owns the auth session state and exposes the auth actions. Navigation after
 // sign-in / sign-out is handled by the route guards (Protected / Public), so
