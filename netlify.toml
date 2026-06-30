@@ -61,17 +61,14 @@
   status = 200
   force = true
 
-[[redirects]]
-  from = "/.netlify/functions/generate-job-pdf"
-  to = "/.netlify/functions/generate-job-pdf"
-  status = 200
-  force = true
-
+# SPA fallback. Netlify serves existing static files (assets, images, etc.)
+# before applying redirects, so this only catches client-side routes such as
+# /sign-in and /sign-up. (The previous `conditions = {Path = ...}` was invalid —
+# Netlify has no Path condition — which broke the fallback and 404'd those routes.)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Path = {exclude = ["/*.png", "/*.ico", "/*.svg"]}}
 
 [functions]
   node_bundler = "esbuild"
