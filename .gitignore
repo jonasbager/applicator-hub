@@ -28,3 +28,9 @@ lerna-debug.log*
 # Netlify
 .netlify
 .env.production
+
+# Python (scraping-service)
+venv/
+**/venv/
+__pycache__/
+*.pyc
