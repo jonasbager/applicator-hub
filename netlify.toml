@@ -9,30 +9,9 @@
 
 [context.production]
   environment = { NODE_ENV = "production" }
-  [[context.production.redirects]]
-    from = "/sign-in"
-    to = "https://accounts.applymate.app/sign-in"
-    status = 301
-    force = true
-
-  [[context.production.redirects]]
-    from = "/sign-up"
-    to = "https://accounts.applymate.app/sign-up"
-    status = 301
-    force = true
 
 [context.develop]
   environment = { NODE_ENV = "development" }
-  [[context.develop.redirects]]
-    from = "/sign-in"
-    to = "https://exact-viper-93.accounts.dev/sign-in"
-    status = 301
-    force = true
-  [[context.develop.redirects]]
-    from = "/sign-up"
-    to = "https://exact-viper-93.accounts.dev/sign-up"
-    status = 301
-    force = true
 
 [context.deploy-preview]
   environment = { NODE_ENV = "development" }
@@ -42,12 +21,8 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-[[headers]]
-  for = "/*"
-  [headers.values]
-    # Allow Clerk domains
-    Content-Security-Policy = "frame-ancestors 'self' https://accounts.applymate.app https://exact-viper-93.accounts.dev https://*.clerk.accounts.dev"
-    X-Frame-Options = "ALLOW-FROM https://accounts.applymate.app https://exact-viper-93.accounts.dev"
+# Sign-in / sign-up are now served by the SPA (Supabase Auth), so they fall
+# through to the catch-all redirect below — no external auth-host redirects.
 
 # Common redirects (for both environments)
 [[redirects]]
@@ -86,17 +61,14 @@
   status = 200
   force = true
 
-[[redirects]]
-  from = "/.netlify/functions/generate-job-pdf"
-  to = "/.netlify/functions/generate-job-pdf"
-  status = 200
-  force = true
-
+# SPA fallback. Netlify serves existing static files (assets, images, etc.)
+# before applying redirects, so this only catches client-side routes such as
+# /sign-in and /sign-up. (The previous `conditions = {Path = ...}` was invalid —
+# Netlify has no Path condition — which broke the fallback and 404'd those routes.)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Path = {exclude = ["/*.png", "/*.ico", "/*.svg"]}}
 
 [functions]
   node_bundler = "esbuild"

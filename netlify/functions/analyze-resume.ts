@@ -6,6 +6,7 @@ import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { JobMatch } from './types/job-match';
+import { getVerifiedUserId } from './lib/auth';
 
 // Schema for parsed resume data
 const resumeSchema = z.object({
@@ -78,13 +79,23 @@ export const handler: Handler = async (event) => {
       throw new Error('OpenAI API key is not configured');
     }
 
-    const { resumeId, userId } = JSON.parse(event.body || '{}');
+    // Identity comes from the verified session token, never the request body.
+    const userId = await getVerifiedUserId(event);
+    if (!userId) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'Unauthorized' }),
+      };
+    }
 
-    if (!resumeId || !userId) {
+    const { resumeId } = JSON.parse(event.body || '{}');
+
+    if (!resumeId) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Resume ID and User ID are required' }),
+        body: JSON.stringify({ error: 'Resume ID is required' }),
       };
     }
 

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { JobMatch } from './types/job-match';
 import { analyzeJob, matchJobToPreferences } from './lib/openai';
 import { scrapeJobs } from './lib/job-scraping';
+import { getVerifiedUserId } from './lib/auth';
 import axios from 'axios';
 
 if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -170,13 +171,13 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const { userId } = JSON.parse(event.body || '{}');
-
+    // Identity comes from the verified session token, never the request body.
+    const userId = await getVerifiedUserId(event);
     if (!userId) {
       return {
-        statusCode: 400,
+        statusCode: 401,
         headers,
-        body: JSON.stringify({ error: 'User ID is required' }),
+        body: JSON.stringify({ error: 'Unauthorized' }),
       };
     }
 

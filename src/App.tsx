@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from './components/ui/toaster';
 import { ThemeProvider } from './lib/theme';
-import { Protected, Public } from './lib/clerk-provider';
+import { Protected, Public } from './lib/auth-guards';
 import { useAuthState } from './hooks/use-auth-state';
 import { NotFound } from './pages/NotFound';
 
@@ -50,14 +50,9 @@ export default function App() {
             </Public>
           }
         />
-        <Route
-          path="/reset-password"
-          element={
-            <Public>
-              <ResetPasswordPage />
-            </Public>
-          }
-        />
+        {/* Not wrapped in <Public>: the recovery link establishes a session,
+            and the user still needs to land here to set a new password. */}
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Public routes */}
         <Route path="/privacy" element={<Privacy />} />

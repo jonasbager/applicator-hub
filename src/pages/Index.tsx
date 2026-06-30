@@ -7,19 +7,18 @@ import { Job, JobStatus, JOB_STATUS_ORDER } from "../types/job";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { AppSidebar } from "../components/AppSidebar";
 import { AnalyticsBar } from "../components/AnalyticsBar";
-import { useAuth, useUser } from "@clerk/clerk-react";
+import { useAuth } from "../hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
 import { useSupabase } from "../lib/supabase";
-import { getUserId } from "../lib/user-id";
 import { cn } from "../lib/utils";
 
 export function Index() {
-  const { userId, isLoaded: authLoaded } = useAuth();
+  const { user, loading } = useAuth();
+  const userId = user?.id;
+  const isLoaded = !loading;
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isLoaded: userLoaded } = useUser();
-  const isLoaded = authLoaded && userLoaded;
   const { supabase } = useSupabase();
   const { toast } = useToast();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -52,7 +51,7 @@ export function Index() {
       const { data: fetchedJobs, error } = await supabase
         .from('jobs')
         .select('*')
-        .eq('user_id', getUserId(userId))
+        .eq('user_id', userId)
         .is('archived', false) // Only get non-archived jobs
         .order('created_at', { ascending: false });
 
@@ -144,7 +143,7 @@ export function Index() {
         .from('jobs')
         .update({ status: newStatus })
         .eq('id', draggableId)
-        .eq('user_id', getUserId(userId));
+        .eq('user_id', userId);
 
       if (error) throw error;
 
@@ -199,11 +198,11 @@ export function Index() {
             <h1 className="text-3xl font-bold">
               Welcome back
               {isLoaded ? (
-                user?.firstName ? 
-                  `, ${user.firstName}` : 
-                  user?.primaryEmailAddress ? 
-                    `, ${user.primaryEmailAddress.emailAddress.split('@')[0]}` : 
-                    ''
+                user?.user_metadata?.first_name
+                  ? `, ${user.user_metadata.first_name}`
+                  : user?.email
+                    ? `, ${user.email.split('@')[0]}`
+                    : ''
               ) : '...'}
             </h1>
             <p className="text-muted-foreground">

@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../hooks/use-auth';
+import { supabase } from '../lib/supabase';
 import { AppSidebar } from '../components/AppSidebar';
 import { RecommendedJobCard } from '../components/RecommendedJobCard';
 import { Button } from '../components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useToast } from '../components/ui/use-toast';
-import { getUserId } from '../lib/user-id';
 import { JobMatch } from '../types/recommended-job';
 import { Spinner } from '../components/ui/spinner';
 
 export default function RecommendedJobs() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [jobs, setJobs] = useState<JobMatch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,19 +21,19 @@ export default function RecommendedJobs() {
 
     try {
       setRefreshing(true);
-      const userId = getUserId(user.id);
+      const userId = user.id;
       console.log('Fetching jobs for user:', userId);
 
       const functionPath = '/.netlify/functions/find-matching-jobs';
       const baseUrl = window.location.origin;
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(`${baseUrl}${functionPath}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
         },
-        body: JSON.stringify({
-          userId: userId,
-        }),
+        body: JSON.stringify({}),
       });
 
       const data = await response.json();

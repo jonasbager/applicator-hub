@@ -8,12 +8,11 @@ import { useToast } from "./ui/use-toast";
 import { scrapeJobDetails, JobDetails } from "../lib/job-scraping";
 import { Loader2, Sparkles, History } from "lucide-react";
 import { Badge } from "./ui/badge";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../hooks/use-auth";
 import { JobStatus } from "../types/job";
 import { JobPreferences } from "../types/resume";
 import { calculateMatchPercentage } from "../lib/job-matching-utils";
 import { useSupabase } from "../lib/supabase";
-import { getUserId } from "../lib/user-id";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 interface AddJobModalProps {
@@ -23,7 +22,8 @@ interface AddJobModalProps {
 }
 
 export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps) {
-  const { userId } = useAuth();
+  const { user } = useAuth();
+  const userId = user?.id;
   const { supabase } = useSupabase();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -179,7 +179,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
       const { data: newJob, error: jobError } = await supabase
         .from("jobs")
         .insert({
-          user_id: getUserId(userId),
+          user_id: userId,
           position: jobDetails.position,
           company: jobDetails.company,
           description: jobDetails.description,
@@ -255,12 +255,12 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
             }
             const storageName = "pdf_snapshots";
             const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
-            const fileName = `${getUserId(userId)}/${jobId}-${dateStr}.pdf`;
+            const fileName = `${userId}/${jobId}-${dateStr}.pdf`;
 
             // First verify the file doesn't already exist
             const { data: existingFile } = await supabase.storage
               .from(storageName)
-              .list(`${getUserId(userId)}`);
+              .list(`${userId}`);
 
             const fileExists = existingFile?.some(f => f.name === `${jobId}-${dateStr}.pdf`);
             if (fileExists) {
@@ -292,7 +292,7 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
               .from("job_snapshots")
               .insert({
                 job_id: jobId,
-                user_id: getUserId(userId),
+                user_id: userId,
                 position: jobDetails.position,
                 company: jobDetails.company,
                 description: jobDetails.description,

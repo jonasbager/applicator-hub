@@ -16,27 +16,15 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3000,
-      proxy: {
-        // Proxy auth requests to development Clerk instance
-        '/auth': {
-          target: 'https://exact-viper-93.accounts.dev',
-          changeOrigin: true,
-          secure: true,
-        }
-      }
     },
     build: {
       // Improve error reporting
       minify: mode === 'development' ? false : 'esbuild',
       sourcemap: true,
-      // Handle environment variables
       rollupOptions: {
-        // Ensure external dependencies are properly handled
+        // canvas-confetti is loaded as a global via a <script> tag, not imported.
         external: ['canvas-confetti'],
       },
-    },
-    optimizeDeps: {
-      include: ['@clerk/clerk-react', 'canvas-confetti'],
     },
   }
 })

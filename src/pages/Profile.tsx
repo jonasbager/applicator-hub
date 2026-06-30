@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser, useSession } from '@clerk/clerk-react';
+import { useAuth } from '../hooks/use-auth';
 import { useSupabase } from '../lib/supabase';
 import { JobPreferences, Resume } from '../types/resume';
 import { Button } from '../components/ui/button';
@@ -11,7 +11,6 @@ import { Card } from '../components/ui/card';
 import { useToast } from '../components/ui/use-toast';
 import { Upload as FileUpload, X, Plus, Loader2, FileText, Download, Trash2, ArrowRight } from 'lucide-react';
 import { AppSidebar } from '../components/AppSidebar';
-import { getUserId } from '../lib/user-id';
 
 type PreferenceField = 'level' | 'roles' | 'locations' | 'skills';
 
@@ -32,8 +31,7 @@ const ALLOWED_FILE_TYPES = [
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user } = useUser();
-  const { session } = useSession();
+  const { user } = useAuth();
   const { supabase } = useSupabase();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -43,8 +41,8 @@ export default function Profile() {
 
   useEffect(() => {
     if (user) {
-      setFirstName(user.firstName || '');
-      setLastName(user.lastName || '');
+      setFirstName(user.user_metadata?.first_name || '');
+      setLastName(user.user_metadata?.last_name || '');
     }
   }, [user]);
   const [preferences, setPreferences] = useState<JobPreferences | null>(null);
@@ -89,7 +87,7 @@ export default function Profile() {
       const { data, error } = await supabase
         .from('resumes')
         .select('*')
-        .eq('user_id', getUserId(user.id))
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -112,7 +110,7 @@ export default function Profile() {
       return;
     }
 
-    const currentUserId = getUserId(user.id);
+    const currentUserId = user.id;
     console.log('Loading preferences for user:', currentUserId);
 
     try {
@@ -122,7 +120,7 @@ export default function Profile() {
       const { data: existingPrefs, error: selectError } = await supabase
         .from('job_preferences')
         .select('*')
-        .eq('user_id', getUserId(user.id))
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (selectError) {
@@ -142,12 +140,12 @@ export default function Profile() {
         return;
       }
 
-      console.log('Creating new preferences for user:', getUserId(user.id));
+      console.log('Creating new preferences for user:', user.id);
       
       // Create empty preferences if none exist
       const newPrefs = {
         ...emptyPreferences,
-        user_id: getUserId(user.id)
+        user_id: user.id
       };
 
       console.log('Creating new preferences with user_id:', currentUserId);
@@ -239,7 +237,7 @@ export default function Profile() {
     setStatus('uploading');
 
     try {
-      const userId = getUserId(user.id);
+      const userId = user.id;
       console.log('Uploading resume for user:', userId);
       
       // First create the resume record
@@ -290,14 +288,15 @@ export default function Profile() {
       const analyzeUrl = '/.netlify/functions/analyze-resume';
       
       console.log('Calling analyze-resume function at:', analyzeUrl);
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(analyzeUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
         },
         body: JSON.stringify({
           resumeId: resume.id,
-          userId: userId
         }),
       });
 
@@ -424,7 +423,7 @@ export default function Profile() {
       const { error } = await supabase
         .from('job_preferences')
         .update(newPrefs)
-        .eq('user_id', getUserId(user.id));
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -471,7 +470,7 @@ export default function Profile() {
       const { error } = await supabase
         .from('job_preferences')
         .update(newPrefs)
-        .eq('user_id', getUserId(user.id));
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -527,9 +526,8 @@ export default function Profile() {
                   if (!user) return;
                   setIsSaving(true);
                   try {
-                    await user.update({
-                      firstName,
-                      lastName
+                    await supabase.auth.updateUser({
+                      data: { first_name: firstName, last_name: lastName }
                     });
                     toast({
                       title: 'Success',
