@@ -197,13 +197,15 @@ export function Index() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold">
               Welcome back
-              {isLoaded ? (
-                user?.user_metadata?.first_name
-                  ? `, ${user.user_metadata.first_name}`
-                  : user?.email
-                    ? `, ${user.email.split('@')[0]}`
-                    : ''
-              ) : '...'}
+              {isLoaded ? (() => {
+                const m = user?.user_metadata || {};
+                const name =
+                  m.first_name ||
+                  m.given_name ||
+                  (m.name || m.full_name || '').split(' ')[0] ||
+                  user?.email?.split('@')[0];
+                return name ? `, ${name}` : '';
+              })() : '...'}
             </h1>
             <p className="text-muted-foreground">
               Manage your job applications on the kanban board below

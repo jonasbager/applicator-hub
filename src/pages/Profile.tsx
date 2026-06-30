@@ -41,8 +41,14 @@ export default function Profile() {
 
   useEffect(() => {
     if (user) {
-      setFirstName(user.user_metadata?.first_name || '');
-      setLastName(user.user_metadata?.last_name || '');
+      // Prefer our own saved fields, then fall back to OAuth metadata
+      // (LinkedIn OIDC provides given_name/family_name/name, not first/last).
+      const m = user.user_metadata || {};
+      const fullName: string = m.name || m.full_name || '';
+      setFirstName(m.first_name || m.given_name || fullName.split(' ')[0] || '');
+      setLastName(
+        m.last_name || m.family_name || fullName.split(' ').slice(1).join(' ') || ''
+      );
     }
   }, [user]);
   const [preferences, setPreferences] = useState<JobPreferences | null>(null);
@@ -151,7 +157,7 @@ export default function Profile() {
       console.log('Creating new preferences with user_id:', currentUserId);
       const { data: inserted, error: insertError } = await supabase
         .from('job_preferences')
-        .insert(newPrefs)
+        .upsert(newPrefs, { onConflict: 'user_id' })
         .select()
         .single();
 
@@ -172,7 +178,7 @@ export default function Profile() {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to load preferences'
+        description: error instanceof Error ? error.message : 'Failed to load preferences'
       });
     } finally {
       setLoading(false);
