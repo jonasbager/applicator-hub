@@ -1,25 +1,47 @@
 import { Handler } from '@netlify/functions';
 import OpenAI from 'openai';
-import { ChatOpenAI } from '@langchain/openai';
-import { PromptTemplate } from '@langchain/core/prompts';
-import { StructuredOutputParser } from '@langchain/core/output_parsers';
-import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
-import { JobMatch } from './types/job-match';
 import { getVerifiedUserId } from './lib/auth';
+import { extractStructured, aiErrorResponse } from './lib/anthropic';
 
-// Schema for parsed resume data
-const resumeSchema = z.object({
-  skills: z.array(z.string()),
-  experience_level: z.string(),
-  roles: z.array(z.string()),
-  industries: z.array(z.string()),
-  education: z.array(z.string()),
-  languages: z.array(z.string()),
-  years_of_experience: z.number(),
-  key_achievements: z.array(z.string()),
-  locations: z.array(z.string()),
-});
+interface ResumeAnalysis {
+  skills: string[];
+  experience_level: string;
+  roles: string[];
+  industries: string[];
+  education: string[];
+  languages: string[];
+  years_of_experience: number;
+  key_achievements: string[];
+  locations: string[];
+}
+
+// JSON schema for guaranteed-valid structured output from Claude.
+const RESUME_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    skills: { type: 'array', items: { type: 'string' } },
+    experience_level: {
+      type: 'string',
+      description: 'One of "Entry Level", "Mid Level", "Senior Level", or "Executive Level"',
+    },
+    roles: { type: 'array', items: { type: 'string' } },
+    industries: { type: 'array', items: { type: 'string' } },
+    education: { type: 'array', items: { type: 'string' } },
+    languages: { type: 'array', items: { type: 'string' } },
+    years_of_experience: { type: 'number' },
+    key_achievements: { type: 'array', items: { type: 'string' } },
+    locations: { type: 'array', items: { type: 'string' } },
+  },
+  required: [
+    'skills', 'experience_level', 'roles', 'industries', 'education',
+    'languages', 'years_of_experience', 'key_achievements', 'locations',
+  ],
+};
+
+const RESUME_SYSTEM_PROMPT =
+  'You analyze resumes and extract structured information. Be thorough — capture both explicit and implicit details. Infer the experience level from roles, responsibilities, and years of experience. For locations, include specific cities and broader regions, current and previous work locations, relocation willingness, and remote preferences.';
 
 // Initialize Supabase client with service role key
 console.log('Environment variables:', {
@@ -74,9 +96,9 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    // Check OpenAI API key
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OpenAI API key is not configured');
+    // Resume analysis runs on Claude; the AI key is required.
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error('ANTHROPIC_API_KEY is not configured');
     }
 
     // Identity comes from the verified session token, never the request body.
@@ -148,66 +170,24 @@ export const handler: Handler = async (event) => {
 
     console.log('Extracted text from resume:', text.substring(0, 200) + '...');
 
-    console.log('Starting OpenAI analysis...');
-    // Initialize OpenAI with GPT-3.5 for faster processing
-    const model = new ChatOpenAI({
-      modelName: 'gpt-3.5-turbo',
-      temperature: 0,
-      maxTokens: 1000,
-      openAIApiKey: process.env.OPENAI_API_KEY,
-    });
-
-    // Create parser for structured output
-    const parser = StructuredOutputParser.fromZodSchema(resumeSchema);
-
-    // Create prompt template for resume analysis
-    const promptTemplate = new PromptTemplate({
-      template: `Analyze the following resume content and extract key information.
-      Return a JSON object with these fields:
-      - "skills": Array of technical and soft skills
-      - "experience_level": One of "Entry Level", "Mid Level", "Senior Level", or "Executive Level"
-      - "roles": Array of job titles/roles the person has held or is qualified for
-      - "industries": Array of industries the person has experience in
-      - "education": Array of educational qualifications
-      - "languages": Array of languages the person knows
-      - "years_of_experience": Total years of relevant work experience (number)
-      - "key_achievements": Array of notable achievements or accomplishments
-      - "locations": Array of locations the person has worked in or is willing to work in. Look for:
-          * Current location
-          * Previous work locations
-          * "Willing to relocate" statements
-          * Remote work preferences
-
-      Be thorough in analyzing the entire resume. Look for both explicit and implicit information.
-      Infer the experience level from the roles, responsibilities, and years of experience.
-      For locations, include both specific cities and broader regions (e.g., "San Francisco" and "Bay Area").
-
-      {format_instructions}
-      
-      Resume Content: {resume_content}`,
-      inputVariables: ['resume_content'],
-      partialVariables: {
-        format_instructions: parser.getFormatInstructions(),
-      },
-    });
-
-    // Format prompt with resume content
-    const prompt = await promptTemplate.format({
-      resume_content: text,
-    });
-
-    // Get analysis from OpenAI with timeout handling
-    console.log('Sending prompt to OpenAI...');
-    const response = await Promise.race<any>([
-      model.invoke(prompt),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('OpenAI analysis timeout')), 20000)
-      )
-    ]) as Awaited<ReturnType<typeof model.invoke>>;
-    
-    console.log('Received OpenAI response, parsing...');
-    const responseText = response.content.toString();
-    const parsedResume = await parser.parse(responseText);
+    console.log('Analyzing resume with Claude...');
+    let parsedResume: ResumeAnalysis;
+    try {
+      parsedResume = await extractStructured<ResumeAnalysis>({
+        system: RESUME_SYSTEM_PROMPT,
+        content: `Analyze this resume and extract the candidate's profile:\n\n${text}`,
+        schema: RESUME_SCHEMA,
+        maxTokens: 1500,
+      });
+    } catch (aiError) {
+      const { statusCode, message } = aiErrorResponse(aiError);
+      console.error('AI resume analysis failed:', aiError);
+      return {
+        statusCode,
+        headers,
+        body: JSON.stringify({ error: 'Failed to analyze resume', details: message }),
+      };
+    }
     console.log('Successfully parsed resume data');
 
     // Update job preferences based on resume analysis
@@ -253,24 +233,28 @@ export const handler: Handler = async (event) => {
 
     console.log('Successfully updated job preferences');
 
-    // Create resume embedding
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
-    const resumeEmbedding = await openai.embeddings.create({
-      model: "text-embedding-ada-002",
-      input: text
-    });
-
-    // Store resume embedding
-    const { error: embeddingError } = await supabase
-      .from('resumes')
-      .update({ embedding: resumeEmbedding.data[0].embedding })
-      .eq('id', resumeId);
-
-    if (embeddingError) {
-      throw new Error('Failed to store resume embedding');
+    // Best-effort: store a resume embedding for the (currently disabled) job
+    // matching feature. Anthropic has no embeddings API, so this still uses
+    // OpenAI — but it must not fail the analysis if OpenAI is unavailable.
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        const resumeEmbedding = await openai.embeddings.create({
+          model: 'text-embedding-3-small',
+          input: text,
+        });
+        const { error: embeddingError } = await supabase
+          .from('resumes')
+          .update({ embedding: resumeEmbedding.data[0].embedding })
+          .eq('id', resumeId);
+        if (embeddingError) {
+          console.warn('Could not store resume embedding:', embeddingError.message);
+        }
+      } catch (embeddingError) {
+        console.warn('Skipping resume embedding (OpenAI unavailable):', embeddingError);
+      }
+    } else {
+      console.log('OPENAI_API_KEY not set — skipping resume embedding.');
     }
 
     return {
