@@ -57,7 +57,7 @@ export function AppSidebar({ onAddClick, hasJobs }: AppSidebarProps) {
             Add New Job
           </Button>
           {!hasJobs && (
-            <div className="absolute inset-0 rounded-md">
+            <div className="absolute inset-0 rounded-md pointer-events-none">
               <div className="absolute inset-0 rounded-md pulse-ring" />
             </div>
           )}
