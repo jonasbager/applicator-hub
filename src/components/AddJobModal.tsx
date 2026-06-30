@@ -54,11 +54,13 @@ export function AddJobModal({ open, onOpenChange, onJobAdded }: AddJobModalProps
     async function loadPreferences() {
       if (!userId) return;
       try {
+        // maybeSingle: a brand-new user may not have a preferences row yet,
+        // which is not an error — matching just won't run.
         const { data, error } = await supabase
           .from("job_preferences")
           .select("*")
           .eq("user_id", userId)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
         setPreferences(data);
